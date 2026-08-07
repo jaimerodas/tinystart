@@ -5,16 +5,38 @@ class User < ApplicationRecord
 
   has_secure_password
   has_many :sessions, dependent: :destroy
-  has_one :start_page, dependent: :destroy
+  has_many :start_page_groups, dependent: :destroy
+  has_many :start_page_items, through: :start_page_groups
   has_one :tinylinks_connection, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :theme_preference, inclusion: { in: %w[system light dark], message: "%{value} is not a valid theme" }
   validates :color_preference, inclusion: { in: VALID_COLORS, message: "%{value} is not a valid color" }
+  validates :columns, presence: true,
+            numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 6 }
 
   normalizes :email, with: ->(e) { e.strip.downcase }
 
   before_create :bootstrap_first_user
+
+  def groups_by_column
+    start_page_groups.order(:position).group_by(&:column)
+  end
+
+  def column_range
+    (1..columns).to_a
+  end
+
+  def groups_in_column(column_number)
+    start_page_groups.in_column(column_number).ordered
+  end
+
+  # Embedded in the page so the command bar can filter tiles without a round trip.
+  def links_for_command_bar
+    start_page_items.map do |item|
+      { title: item.title, url: item.url, id: item.id }
+    end
+  end
 
   def update_password(params)
     assign_attributes(params)

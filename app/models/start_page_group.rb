@@ -1,14 +1,14 @@
 class StartPageGroup < ApplicationRecord
-  belongs_to :start_page
+  belongs_to :user
   has_many :start_page_items, dependent: :destroy
 
-  validates :name, presence: true, uniqueness: { scope: :start_page_id }
+  validates :name, presence: true, uniqueness: { scope: :user_id }
   validates :column, presence: true,
             numericality: { only_integer: true, greater_than: 0 }
   validates :position, presence: true,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
-  validate :column_within_start_page_limit
+  validate :column_within_user_limit
 
   scope :in_column, ->(col) { where(column: col) }
   scope :ordered, -> { order(:column, :position) }
@@ -18,7 +18,7 @@ class StartPageGroup < ApplicationRecord
   end
 
   def move_to_column(new_column, new_position = nil)
-    return false if new_column > start_page.columns
+    return false if new_column > user.columns
 
     self.column = new_column
     self.position = new_position || next_position_in_column(new_column)
@@ -61,13 +61,13 @@ class StartPageGroup < ApplicationRecord
   private
 
   def next_position_in_column(col)
-    max_position = start_page.start_page_groups.in_column(col).maximum(:position)
+    max_position = user.start_page_groups.in_column(col).maximum(:position)
     max_position ? max_position + 1 : 0
   end
 
-  def column_within_start_page_limit
-    if column && start_page && column > start_page.columns
-      errors.add(:column, "cannot exceed start page column limit of #{start_page.columns}")
+  def column_within_user_limit
+    if column && user && column > user.columns
+      errors.add(:column, "cannot exceed start page column limit of #{user.columns}")
     end
   end
 end

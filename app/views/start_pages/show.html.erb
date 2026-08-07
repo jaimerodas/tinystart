@@ -23,8 +23,8 @@
     </div>
   </section>
 
-  <section class="start-page-grid" data-columns="<%= @start_page.columns %>" data-controller="visit-tracker">
-    <% @start_page.column_range.each do |column_number| %>
+  <section class="start-page-grid" data-columns="<%= current_user.columns %>" data-controller="visit-tracker">
+    <% current_user.column_range.each do |column_number| %>
       <div class="start-page-column">
         <% groups_in_column = @groups_by_column[column_number] || [] %>
         <% groups_in_column.each do |group| %>

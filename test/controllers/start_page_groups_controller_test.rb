@@ -3,7 +3,6 @@ require "test_helper"
 class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   def setup
     @user = users(:one)
-    @start_page = StartPage.create!(user: @user, name: "Test Page", columns: 3)
     sign_in_as(@user)
   end
 
@@ -23,7 +22,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
 
     group = StartPageGroup.find_by(name: "Work Links")
     assert_not_nil group
-    assert_equal @start_page, group.start_page
+    assert_equal @user, group.user
     assert_equal 1, group.column
     assert_equal 0, group.position
   end
@@ -44,7 +43,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update group" do
-    group = @start_page.start_page_groups.create!(name: "Original Name", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Original Name", column: 1, position: 0)
 
     patch start_group_path(group), params: {
       start_page_group: {
@@ -60,7 +59,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not update with invalid data" do
-    group = @start_page.start_page_groups.create!(name: "Valid Name", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Valid Name", column: 1, position: 0)
 
     patch start_group_path(group), params: {
       start_page_group: {
@@ -76,7 +75,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy group" do
-    group = @start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
 
     assert_difference("StartPageGroup.count", -1) do
       delete start_group_path(group)
@@ -87,7 +86,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should move group to different column" do
-    group = @start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
 
     post move_start_group_path(group), params: { column: 2, position: 1 }
 
@@ -100,7 +99,7 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not move group to invalid column" do
-    group = @start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
 
     post move_start_group_path(group), params: { column: 5, position: 0 }
 
@@ -111,19 +110,6 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, group.column
   end
 
-  test "should redirect if no start page exists" do
-    @start_page.destroy
-
-    post start_groups_path, params: {
-      start_page_group: {
-        name: "Test Group",
-        column: 1,
-        position: 0
-      }
-    }
-
-    assert_redirected_to settings_start_page_path
-  end
 
   test "should require authentication" do
     sign_out

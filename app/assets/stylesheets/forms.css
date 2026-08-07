@@ -229,6 +229,27 @@ textarea {
   min-height: 7em;
 }
 
+/* Same tokens as the text inputs, but sized to its options rather than the
+   form: a select holding "3" has no business being 40em wide. */
+select {
+  font-size: 0.875em;
+  box-sizing: border-box;
+  padding: 0.75em;
+  border-radius: 0.5em;
+  border: 0.0625rem solid var(--border-color);
+
+  color: var(--fg-color);
+  background: var(--bg-color);
+
+  outline: medium solid var(--bg-color);
+  transition: 0.3s ease outline;
+
+  &:focus {
+    border-color: var(--highlight-color);
+    outline: medium solid var(--highlight-color);
+  }
+}
+
 input[type=submit] {
   font-size: 1em;
   font-weight: bold;

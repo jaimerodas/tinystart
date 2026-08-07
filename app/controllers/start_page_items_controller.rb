@@ -1,12 +1,11 @@
 class StartPageItemsController < ApplicationController
-  before_action :set_start_page
   before_action :set_item, only: [ :update, :destroy, :move, :visit ]
 
   layout "start"
 
   # POST /start/items
   def create
-    @group = @start_page.start_page_groups.find(params[:group_id])
+    @group = current_user.start_page_groups.find(params[:group_id])
 
     @item = @group.start_page_items.build(
       item_params.merge(position: @group.start_page_items.count)
@@ -55,7 +54,7 @@ class StartPageItemsController < ApplicationController
 
     if group_id.present?
       # Moving to a different group
-      new_group = @start_page.start_page_groups.find(group_id)
+      new_group = current_user.start_page_groups.find(group_id)
       success = @item.move_to_group(new_group, new_position)
       @item.reorder_group_positions! if success
     else
@@ -67,7 +66,7 @@ class StartPageItemsController < ApplicationController
       respond_to do |format|
         format.html { redirect_to edit_start_path, notice: "Item moved successfully." }
         format.json { render json: { status: "success", message: "Item moved successfully." } }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { start_page: @start_page, groups_by_column: @start_page.groups_by_column }) }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { user: current_user, groups_by_column: current_user.groups_by_column }) }
       end
     else
       respond_to do |format|
@@ -80,15 +79,8 @@ class StartPageItemsController < ApplicationController
 
   private
 
-  def set_start_page
-    @start_page = current_user.start_page
-    redirect_to settings_start_page_path unless @start_page
-  end
-
   def set_item
-    @item = StartPageItem.joins(start_page_group: :start_page)
-                        .where(start_pages: { user_id: current_user.id })
-                        .find(params[:id])
+    @item = current_user.start_page_items.find(params[:id])
   end
 
   def item_params

@@ -37,11 +37,17 @@ Nothing here exists yet. Recorded so the shape is clear.
 
 | Model | Purpose |
 |-------|---------|
-| User | Auth; theme and color preferences; first user is bootstrapped as admin |
+| User | Auth; theme, color and `columns` preferences; first user is bootstrapped as admin |
 | Session | Auth sessions with expiration |
-| StartPage | One per user: name + column count |
-| StartPageGroup | A named group of tiles, placed at a column + position |
+| StartPageGroup | A named group of tiles belonging to a user, placed at a column + position |
 | StartPageItem | A tile: owns its own `url` and `title` (no pointer to tinylinks) |
+
+There is no `StartPage` record. It only ever held a column count and a name
+nobody read, and it was already 1:1 with its user, so `columns` lives on
+`users` and groups belong to the user directly. The consequence worth
+remembering: **a start page is never created**, it exists from signup — so
+there is no "no start page yet" branch anywhere, and the column count is
+edited on the main Settings page alongside theme and color.
 
 ### The tinylinks relationship
 

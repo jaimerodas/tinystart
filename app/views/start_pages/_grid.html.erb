@@ -1,5 +1,5 @@
-<section id="start_page_grid" class="start-page-grid" data-columns="<%= start_page.columns %>" data-controller="drag-drop">
-  <% start_page.column_range.each do |column_number| %>
+<section id="start_page_grid" class="start-page-grid" data-columns="<%= user.columns %>" data-controller="drag-drop">
+  <% user.column_range.each do |column_number| %>
     <div class="start-page-column"
          data-column="<%= column_number %>"
          data-drag-drop-target="column"

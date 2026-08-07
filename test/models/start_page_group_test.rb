@@ -6,9 +6,8 @@ class StartPageGroupTest < ActiveSupport::TestCase
 
   def setup
     @user = users(:one)
-    @start_page = StartPage.create!(user: @user, name: "Test Page", columns: 3)
     @group = StartPageGroup.new(
-      start_page: @start_page,
+      user: @user,
       name: "Test Group",
       column: 1,
       position: 0
@@ -19,10 +18,10 @@ class StartPageGroupTest < ActiveSupport::TestCase
     assert @group.valid?
   end
 
-  test "should require start_page" do
-    @group.start_page = nil
+  test "should require user" do
+    @group.user = nil
     assert_not @group.valid?
-    assert_includes @group.errors[:start_page], "must exist"
+    assert_includes @group.errors[:user], "must exist"
   end
 
   test "should require name" do
@@ -31,11 +30,11 @@ class StartPageGroupTest < ActiveSupport::TestCase
     assert_includes @group.errors[:name], "can't be blank"
   end
 
-  test "should require unique name within start_page" do
+  test "should require unique name within user" do
     @group.save!
 
     duplicate = StartPageGroup.new(
-      start_page: @start_page,
+      user: @user,
       name: "Test Group",
       column: 2,
       position: 0
@@ -45,14 +44,11 @@ class StartPageGroupTest < ActiveSupport::TestCase
     assert_includes duplicate.errors[:name], "has already been taken"
   end
 
-  test "should allow same name across different start_pages" do
+  test "should allow same name across different users" do
     @group.save!
 
-    other_user = users(:two)
-    other_start_page = StartPage.create!(user: other_user, name: "Other Page", columns: 3)
-
     other_group = StartPageGroup.new(
-      start_page: other_start_page,
+      user: users(:two),
       name: "Test Group",
       column: 1,
       position: 0
@@ -73,7 +69,7 @@ class StartPageGroupTest < ActiveSupport::TestCase
     assert_includes @group.errors[:position], "can't be blank"
   end
 
-  test "should validate column within start_page limit" do
+  test "should validate column within the user column limit" do
     @group.column = 4
     assert_not @group.valid?
     assert_includes @group.errors[:column], "cannot exceed start page column limit of 3"
@@ -98,8 +94,8 @@ class StartPageGroupTest < ActiveSupport::TestCase
 
   test "should move after the groups already in the target column" do
     @group.save!
-    @start_page.start_page_groups.create!(name: "First", column: 2, position: 0)
-    @start_page.start_page_groups.create!(name: "Second", column: 2, position: 1)
+    @user.start_page_groups.create!(name: "First", column: 2, position: 0)
+    @user.start_page_groups.create!(name: "Second", column: 2, position: 1)
 
     success = @group.move_to_column(2)
 
@@ -109,7 +105,7 @@ class StartPageGroupTest < ActiveSupport::TestCase
 
   test "should not move an item that belongs to another group" do
     @group.save!
-    other_group = @start_page.start_page_groups.create!(name: "Other Group", column: 2, position: 0)
+    other_group = @user.start_page_groups.create!(name: "Other Group", column: 2, position: 0)
     foreign_item = other_group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
 
     success = @group.move_item_to_position(foreign_item, 0)

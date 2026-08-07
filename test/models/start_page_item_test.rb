@@ -6,8 +6,7 @@ class StartPageItemTest < ActiveSupport::TestCase
 
   def setup
     @user = users(:one)
-    @start_page = StartPage.create!(user: @user, name: "Test Page", columns: 3)
-    @group = @start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    @group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
     @item = StartPageItem.new(
       start_page_group: @group,
       url: "https://example.com/one",
@@ -73,7 +72,7 @@ class StartPageItemTest < ActiveSupport::TestCase
   test "should allow the same url in different groups" do
     @item.save!
 
-    other_group = @start_page.start_page_groups.create!(name: "Other Group", column: 2, position: 0)
+    other_group = @user.start_page_groups.create!(name: "Other Group", column: 2, position: 0)
 
     other_item = StartPageItem.new(
       start_page_group: other_group,
@@ -88,7 +87,7 @@ class StartPageItemTest < ActiveSupport::TestCase
   test "should move to different group" do
     @item.save!
 
-    new_group = @start_page.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
 
     success = @item.move_to_group(new_group)
 

@@ -201,4 +201,86 @@ class UserTest < ActiveSupport::TestCase
       assert user.valid?, "#{color} should be a valid color"
     end
   end
+
+  # --- start page ---
+  # The start page used to be its own record. It is a column count on the user
+  # now, and the grid is built straight off the user's groups.
+
+  test "defaults to three columns" do
+    assert_equal 3, User.new.columns
+  end
+
+  test "requires columns" do
+    @user.columns = nil
+    assert_not @user.valid?
+    assert_includes @user.errors[:columns], "can't be blank"
+  end
+
+  test "requires columns within one and six" do
+    @user.columns = 0
+    assert_not @user.valid?
+    assert_includes @user.errors[:columns], "must be greater than 0"
+
+    @user.columns = 7
+    assert_not @user.valid?
+    assert_includes @user.errors[:columns], "must be less than or equal to 6"
+  end
+
+  test "column_range spans the configured columns" do
+    @user.columns = 4
+    assert_equal [ 1, 2, 3, 4 ], @user.column_range
+  end
+
+  test "groups_by_column buckets the groups by their column" do
+    group1 = @user.start_page_groups.create!(name: "Group 1", column: 1, position: 0)
+    group2 = @user.start_page_groups.create!(name: "Group 2", column: 2, position: 0)
+    group3 = @user.start_page_groups.create!(name: "Group 3", column: 1, position: 1)
+
+    groups_by_column = @user.groups_by_column
+
+    assert_equal [ group1, group3 ], groups_by_column[1]
+    assert_equal [ group2 ], groups_by_column[2]
+  end
+
+  test "groups_in_column returns one column in order" do
+    group1 = @user.start_page_groups.create!(name: "Group 1", column: 1, position: 1)
+    @user.start_page_groups.create!(name: "Group 2", column: 2, position: 0)
+    group3 = @user.start_page_groups.create!(name: "Group 3", column: 1, position: 0)
+
+    assert_equal [ group3, group1 ], @user.groups_in_column(1).to_a
+  end
+
+  test "links_for_command_bar carries every tile the user owns" do
+    search = @user.start_page_groups.create!(name: "Search", column: 1, position: 0)
+    development = @user.start_page_groups.create!(name: "Development", column: 2, position: 0)
+
+    amazon = search.start_page_items.create!(url: "https://amazon.com", title: "Amazon Shopping", position: 0)
+    development.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 0)
+    development.start_page_items.create!(url: "https://stackoverflow.com", title: "Stack Overflow", position: 1)
+
+    links = @user.links_for_command_bar
+
+    assert_equal 3, links.length
+    assert_includes links, { title: "Amazon Shopping", url: "https://amazon.com", id: amazon.id }
+  end
+
+  # A tinylinks token grants one account; the grid must be just as private.
+  test "links_for_command_bar excludes another user's tiles" do
+    mine = @user.start_page_groups.create!(name: "Mine", column: 1, position: 0)
+    mine.start_page_items.create!(url: "https://mine.example.com", title: "Mine", position: 0)
+
+    theirs = users(:two).start_page_groups.create!(name: "Theirs", column: 1, position: 0)
+    theirs.start_page_items.create!(url: "https://theirs.example.com", title: "Theirs", position: 0)
+
+    assert_equal [ "Mine" ], @user.links_for_command_bar.map { |l| l[:title] }
+  end
+
+  test "destroying a user takes its groups and tiles with it" do
+    group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
+    group.start_page_items.create!(url: "https://example.com", title: "Example", position: 0)
+
+    assert_difference [ "StartPageGroup.count", "StartPageItem.count" ], -1 do
+      @user.destroy
+    end
+  end
 end

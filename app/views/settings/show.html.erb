@@ -18,6 +18,16 @@
     </ul>
   </section>
 
+  <section id="start-page" class="user-section">
+    <h2>Start Page</h2>
+    <ul>
+      <li><b>Groups:</b> <%= current_user.start_page_groups.count %></li>
+      <li><b>Total Links:</b> <%= current_user.start_page_items.count %></li>
+      <li><%= link_to "View Start Page", start_path %></li>
+      <li><%= link_to "Edit Start Page", edit_start_path %></li>
+    </ul>
+  </section>
+
   <section id="user-preferences" class="user-section">
     <h2>Preferences</h2>
     <%= form_with model: current_user, url: settings_path, method: :patch, data: { controller: "theme", action: "turbo:submit-end->theme#updateTheme" } do |form| %>
@@ -51,6 +61,12 @@
           <% end %>
         </div>
         <p class="help-text">Choose your preferred accent color for links and interface elements.</p>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :columns, "Start Page Columns" %>
+        <%= form.select :columns, options_for_select((2..6).map { |c| [ c, c ] }, current_user.columns) %>
+        <p class="help-text">How many columns of groups the start page grid lays out.</p>
       </div>
 
       <%= form.submit "Update Preferences", class: "btn btn-primary" %>

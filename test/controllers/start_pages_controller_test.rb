@@ -6,24 +6,26 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
   end
 
-  test "should redirect to start page settings if no start page exists" do
+  # There is no start page to create any more: every user has one from signup.
+  test "should show the start page without any setup" do
     get start_path
-    assert_redirected_to settings_start_page_path
-    assert_equal "Create your start page to get started.", flash[:notice]
-  end
 
-  test "should show start page if exists" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
-    get start_path
     assert_response :success
     assert_select ".start-page-grid[data-columns='3']"
   end
 
-  test "should include command bar with links data" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
+  test "should lay the grid out with the user's column count" do
+    @user.update!(columns: 5)
 
-    group = start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    get start_path
+
+    assert_response :success
+    assert_select ".start-page-grid[data-columns='5']"
+    assert_select ".start-page-column", 5
+  end
+
+  test "should include command bar with links data" do
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
     group.start_page_items.create!(url: "https://amazon.com", title: "Amazon", position: 0)
     group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 1)
 
@@ -46,81 +48,29 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # One person's tiles must never surface in another person's grid or command bar.
+  test "should only show the signed-in user's tiles" do
+    mine = @user.start_page_groups.create!(name: "Mine", column: 1, position: 0)
+    mine.start_page_items.create!(url: "https://mine.example.com", title: "Mine", position: 0)
 
-  test "should create start page" do
-    assert_difference("StartPage.count") do
-      post start_path, params: {
-        start_page: {
-          name: "Test Start Page",
-          columns: 4
-        }
-      }
+    theirs = users(:two).start_page_groups.create!(name: "Theirs", column: 1, position: 0)
+    theirs.start_page_items.create!(url: "https://theirs.example.com", title: "Theirs", position: 0)
+
+    get start_path
+
+    assert_select ".start-page-grid", /Mine/
+    assert_select ".start-page-grid", { text: /Theirs/, count: 0 }
+    assert_select "main[data-command-bar-links-value]" do |elements|
+      titles = JSON.parse(elements.first["data-command-bar-links-value"]).map { |l| l["title"] }
+      assert_equal [ "Mine" ], titles
     end
-
-    assert_redirected_to settings_start_page_path
-    assert_equal "Start page created successfully.", flash[:notice]
-
-    start_page = StartPage.find_by(user: @user)
-    assert_equal "Test Start Page", start_page.name
-    assert_equal 4, start_page.columns
-  end
-
-  test "should not create invalid start page" do
-    assert_no_difference("StartPage.count") do
-      post start_path, params: {
-        start_page: {
-          name: "",
-          columns: 10
-        }
-      }
-    end
-
-    assert_redirected_to settings_start_page_path
-    assert_match /Failed to create start page/, flash[:alert]
   end
 
   test "should get edit" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
     get edit_start_path
-    assert_response :success
-    assert_select "form"
-  end
-
-  test "should update start page" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
-    patch start_path, params: {
-      start_page: {
-        name: "Updated Start Page",
-        columns: 5
-      }
-    }
-
-    assert_redirected_to settings_start_page_path
-    assert_equal "Start page updated successfully.", flash[:notice]
-
-    start_page.reload
-    assert_equal "Updated Start Page", start_page.name
-    assert_equal 5, start_page.columns
-  end
-
-  test "should not update with invalid data" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
-    patch start_path, params: {
-      start_page: {
-        name: "",
-        columns: 0
-      }
-    }
 
     assert_response :success
     assert_select "form"
-
-    start_page.reload
-    assert_equal "My Start Page", start_page.name
-    assert_equal 3, start_page.columns
   end
 
   test "should require authentication" do
@@ -128,6 +78,31 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
     get start_path
     assert_redirected_to new_session_path
+  end
+
+  # A lapsed token must be visible: silent federated failure is indistinguishable
+  # from an empty archive.
+  test "shows a reconnect notice when the tinylinks token was rejected" do
+    TinylinksConnection.create!(user: @user, base_url: "https://links.example.com", token: "t")
+      .record_failure!("tinylinks rejected the token")
+
+    get start_path
+
+    assert_select ".tinylinks-disconnected", /disconnected/i
+  end
+
+  test "shows no reconnect notice while the connection is healthy" do
+    TinylinksConnection.create!(user: @user, base_url: "https://links.example.com", token: "t")
+
+    get start_path
+
+    assert_select ".tinylinks-disconnected", false
+  end
+
+  test "shows no reconnect notice when the app was never connected" do
+    get start_path
+
+    assert_select ".tinylinks-disconnected", false
   end
 
   private
@@ -138,33 +113,5 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   def sign_out
     delete session_path
-  end
-  # A lapsed token must be visible: silent federated failure is indistinguishable
-  # from an empty archive.
-  test "shows a reconnect notice when the tinylinks token was rejected" do
-    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    TinylinksConnection.create!(user: users(:one), base_url: "https://links.example.com", token: "t")
-      .record_failure!("tinylinks rejected the token")
-
-    get start_path
-
-    assert_select ".tinylinks-disconnected", /disconnected/i
-  end
-
-  test "shows no reconnect notice while the connection is healthy" do
-    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    TinylinksConnection.create!(user: users(:one), base_url: "https://links.example.com", token: "t")
-
-    get start_path
-
-    assert_select ".tinylinks-disconnected", false
-  end
-
-  test "shows no reconnect notice when the app was never connected" do
-    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
-    get start_path
-
-    assert_select ".tinylinks-disconnected", false
   end
 end

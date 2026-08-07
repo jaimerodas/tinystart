@@ -13,6 +13,6 @@ class SettingsController < ApplicationController
   private
 
   def user_params
-    params.require(:user).permit(:theme_preference, :color_preference)
+    params.require(:user).permit(:theme_preference, :color_preference, :columns)
   end
 end

@@ -55,46 +55,6 @@
   text-align: center;
 }
 
-/* Start page form styling */
-.start-page-form {
-  margin-top: 1em;
-
-  .form-row {
-    display: flex;
-    gap: 1em;
-    align-items: end;
-  }
-
-  .field {
-    label {
-      display: block;
-      margin-bottom: 0.25em;
-      font-size: 0.875em;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 0.5em;
-      border: 1px solid var(--border-color);
-      border-radius: 0.25em;
-    }
-
-    select {
-      padding: 0.5em;
-      border: 1px solid var(--border-color);
-      border-radius: 0.25em;
-    }
-  }
-
-  .field.flex-1 {
-    flex: 1;
-  }
-
-  input[type="submit"] {
-    margin: 0;
-  }
-}
-
 #tinylinks-connection {
   .connection-status {
     margin: 1em 0;

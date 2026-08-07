@@ -6,34 +6,26 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  test "user can create a start page from settings" do
+  # There is nothing to create any more — the grid is there from signup, and the
+  # only thing to configure is how wide it is.
+  test "user can change the start page column count from settings" do
     visit start_path
+    assert_selector ".start-page-grid[data-columns='3']"
 
-    # With no start page yet, the page sends you to settings to make one.
-    assert_current_path settings_start_page_path
-    assert_text "Create your start page to get started"
-    dismiss_flash
-    assert_text "Start Page"
+    visit settings_path
+    select "5", from: "Start Page Columns"
+    click_button "Update Preferences"
 
-    assert_field "Name", with: "Start"
-
-    fill_in "Name", with: "My Dashboard"
-    select "4", from: "Columns"
-    click_button "Create Start Page"
-
-    assert_current_path settings_start_page_path
-    assert_text "Start page created successfully"
-    assert_text "My Dashboard"
+    assert_current_path settings_path
+    assert_text "Settings updated successfully"
 
     visit start_path
-    assert_selector ".start-page-grid[data-columns='4']"
+    assert_selector ".start-page-grid[data-columns='5']"
   end
 
   # The whole editing loop in one pass: make a group, put a tile in it, move the
   # tile, then take it away again.
   test "user can add a group, add a tile, reorder tiles and delete one" do
-    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-
     visit edit_start_path
 
     fill_in "Group Name", with: "Daily"
@@ -54,7 +46,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     assert_text "Tile added"
     dismiss_flash
 
-    group = @user.start_page.start_page_groups.find_by(name: "Daily")
+    group = @user.start_page_groups.find_by(name: "Daily")
     assert_equal [ "GitHub", "Apple" ], group.ordered_items.map(&:title)
 
     # Move the second tile up. The drag handles need real pointer drags, so the
@@ -75,8 +67,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   end
 
   test "command bar filters the tiles on the page" do
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    group = start_page.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
     group.start_page_items.create!(url: "https://amazon.com", title: "Amazon Shopping", position: 0)
     group.start_page_items.create!(url: "https://apple.com", title: "Apple", position: 1)
     group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 2)
@@ -109,8 +100,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
 
   test "clicking a tile records a visit" do
     host = "http://#{page.server.host}:#{page.server.port}"
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    group = start_page.start_page_groups.create!(name: "Tools", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Tools", column: 1, position: 0)
     # Point at the in-app health route so the same-tab navigation stays
     # same-origin and resolves instantly (no external load).
     item = group.start_page_items.create!(url: "#{host}/up", title: "Health Check", position: 0)
@@ -125,8 +115,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
 
   test "selecting a command bar suggestion records a visit" do
     host = "http://#{page.server.host}:#{page.server.port}"
-    start_page = StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    group = start_page.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
+    group = @user.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
     item = group.start_page_items.create!(url: "#{host}/up", title: "Apple", position: 0)
 
     visit start_path
@@ -160,9 +149,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     fill_in "email", with: user[:email]
     fill_in "password", with: "password123"
     click_button "Sign in"
-    # Root is the start page, which bounces to settings when none exists yet —
-    # so just assert we're off the login screen. Generous wait: logins get slow
-    # when the whole suite runs in parallel.
+    # Generous wait: logins get slow when the whole suite runs in parallel.
     assert_no_selector "#login", wait: 10
   end
 end

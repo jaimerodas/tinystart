@@ -6,8 +6,7 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   def setup
     @user = users(:one)
-    @start_page = StartPage.create!(user: @user, name: "Test Page", columns: 3)
-    @group = @start_page.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+    @group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
     @item_url = "https://example.com/one"
     sign_in_as(@user)
   end
@@ -83,7 +82,7 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should move item to different group" do
     item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
-    new_group = @start_page.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
 
     post move_start_item_path(item), params: {
       group_id: new_group.id,
@@ -112,7 +111,7 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should report failure when moving an item into a group that already has the link" do
     item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
-    new_group = @start_page.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
     new_group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
 
     post move_start_item_path(item), params: { group_id: new_group.id, position: 0 }
@@ -124,7 +123,7 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should return 422 when a JSON move fails" do
     item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
-    new_group = @start_page.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
     new_group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
 
     post move_start_item_path(item, format: :json), params: { group_id: new_group.id, position: 0 }
@@ -136,7 +135,7 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should return success json when a JSON move succeeds" do
     item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
-    new_group = @start_page.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
 
     post move_start_item_path(item, format: :json), params: { group_id: new_group.id, position: 0 }
 
@@ -147,24 +146,12 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not allow access to other users items" do
     other_user = users(:two)
-    other_start_page = StartPage.create!(user: other_user, name: "Other Page", columns: 3)
-    other_group = other_start_page.start_page_groups.create!(name: "Other Group", column: 1, position: 0)
+    other_group = other_user.start_page_groups.create!(name: "Other Group", column: 1, position: 0)
     other_item = other_group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 0)
 
     # Should get 404 when trying to access other user's item
     delete start_item_path(other_item)
     assert_response :not_found
-  end
-
-  test "should redirect if no start page exists" do
-    @start_page.destroy
-
-    post start_items_path, params: {
-      start_page_item: { url: @item_url, title: "One" },
-      group_id: @group.id
-    }
-
-    assert_redirected_to settings_start_page_path
   end
 
   test "should require authentication" do

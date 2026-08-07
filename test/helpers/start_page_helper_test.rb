@@ -5,10 +5,9 @@ class StartPageHelperTest < ActionView::TestCase
 
   setup do
     @user = users(:one)
-    @start_page = StartPage.create!(user: @user, name: "Start", columns: 3)
-    @group = @start_page.start_page_groups.create!(name: "Work", column: 1, position: 0)
-    @other_group = @start_page.start_page_groups.create!(name: "Play", column: 1, position: 1)
-    @last_group = @start_page.start_page_groups.create!(name: "Later", column: 1, position: 2)
+    @group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
+    @other_group = @user.start_page_groups.create!(name: "Play", column: 1, position: 1)
+    @last_group = @user.start_page_groups.create!(name: "Later", column: 1, position: 2)
     @item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
     @item_two = @group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 1)
   end
@@ -22,14 +21,14 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{<header class="start-page-header">}, html
     assert_match %r{<div class="start-page-actions">}, html
     assert_match %r{href="#{edit_start_path}"}, html
-    assert_no_match %r{href="#{settings_start_page_path}"}, html
+    assert_no_match %r{View Start Page}, html
   end
 
   test "start_page_header renders edit actions when the path includes edit" do
     self.request.path_info = "/start/edit"
     html = start_page_header
 
-    assert_match %r{href="#{settings_start_page_path}"}, html
+    assert_match %r{href="#{settings_path}"}, html
     assert_match %r{View Start Page}, html
   end
 
@@ -38,7 +37,7 @@ class StartPageHelperTest < ActionView::TestCase
     assert_equal 2, actions.length
     assert_match %r{View Start Page}, actions[0]
     assert_match %r{href="#{root_path}"}, actions[0]
-    assert_match %r{href="#{settings_start_page_path}"}, actions[1]
+    assert_match %r{href="#{settings_path}"}, actions[1]
   end
 
   test "start_page_show_actions links to edit and settings" do
@@ -52,7 +51,7 @@ class StartPageHelperTest < ActionView::TestCase
   # --- group_move_buttons ---
 
   test "group_move_buttons renders only down button for first group" do
-    groups = @start_page.start_page_groups.in_column(1).ordered.to_a
+    groups = @user.start_page_groups.in_column(1).ordered.to_a
     html = group_move_buttons(@group, groups, 1)
 
     assert_match %r{Move group down}, html
@@ -60,7 +59,7 @@ class StartPageHelperTest < ActionView::TestCase
   end
 
   test "group_move_buttons renders only up button for last group" do
-    groups = @start_page.start_page_groups.in_column(1).ordered.to_a
+    groups = @user.start_page_groups.in_column(1).ordered.to_a
     html = group_move_buttons(@last_group, groups, 1)
 
     assert_match %r{Move group up}, html
@@ -68,7 +67,7 @@ class StartPageHelperTest < ActionView::TestCase
   end
 
   test "group_move_buttons renders both buttons for a middle group" do
-    groups = @start_page.start_page_groups.in_column(1).ordered.to_a
+    groups = @user.start_page_groups.in_column(1).ordered.to_a
     html = group_move_buttons(@other_group, groups, 1)
 
     assert_match %r{Move group up}, html

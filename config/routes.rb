@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   resource :session
 
-  resource :start, controller: :start_pages, only: [ :show, :create, :edit, :update ] do
+  resource :start, controller: :start_pages, only: [ :show, :edit ] do
     resources :groups, controller: :start_page_groups, only: [ :create, :update, :destroy ] do
       member { post :move }
     end
@@ -19,7 +19,6 @@ Rails.application.routes.draw do
 
   namespace :settings do
     resource :password, only: [ :edit, :update ]
-    resource :start_page, only: [ :show ], path: "start-page"
     resource :tinylinks, only: [ :show, :create, :destroy ],
              controller: "tinylinks_connections" do
       get :poll

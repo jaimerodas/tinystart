@@ -22,7 +22,7 @@ module StartPageHelper
   def start_page_edit_actions
     [
       link_to("View Start Page", root_path, class: "button-link"),
-      link_to("Settings", settings_start_page_path, class: "button-link")
+      link_to("Settings", settings_path, class: "button-link")
     ]
   end
 

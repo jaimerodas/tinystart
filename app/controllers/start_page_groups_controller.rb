@@ -1,12 +1,11 @@
 class StartPageGroupsController < ApplicationController
   layout "start"
 
-  before_action :set_start_page
   before_action :set_group, only: [ :update, :destroy, :move ]
 
   # POST /start/groups
   def create
-    @group = @start_page.start_page_groups.build(group_params)
+    @group = current_user.start_page_groups.build(group_params)
 
     if @group.save
       redirect_to edit_start_path, notice: "Group created successfully."
@@ -39,7 +38,7 @@ class StartPageGroupsController < ApplicationController
       respond_to do |format|
         format.html { redirect_to edit_start_path, notice: "Group moved successfully." }
         format.json { render json: { status: "success", message: "Group moved successfully." } }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { start_page: @start_page, groups_by_column: @start_page.groups_by_column }) }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { user: current_user, groups_by_column: current_user.groups_by_column }) }
       end
     else
       respond_to do |format|
@@ -52,13 +51,8 @@ class StartPageGroupsController < ApplicationController
 
   private
 
-  def set_start_page
-    @start_page = current_user.start_page
-    redirect_to settings_start_page_path unless @start_page
-  end
-
   def set_group
-    @group = @start_page.start_page_groups.find(params[:id])
+    @group = current_user.start_page_groups.find(params[:id])
   end
 
   def group_params

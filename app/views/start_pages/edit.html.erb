@@ -11,7 +11,7 @@
       </div>
       <div class="form-field">
         <%= form.label :column, "Column" %>
-        <%= form.select :column, options_for_select(@start_page.column_range.map { |c| [c, c] }, 1) %>
+        <%= form.select :column, options_for_select(current_user.column_range.map { |c| [c, c] }, 1) %>
       </div>
       <%= form.hidden_field :position, value: 0 %>
       <div class="form-field">
@@ -21,7 +21,7 @@
   </section>
 
   <!-- Add a tile. TinyLinks had no equivalent: tiles came from its links list. -->
-  <% if @start_page.start_page_groups.any? %>
+  <% if current_user.start_page_groups.any? %>
     <section class="add-item-section">
       <h2>Add Tile</h2>
       <%= form_with model: StartPageItem.new, url: start_items_path, local: true, class: "add-item-form" do |form| %>
@@ -35,7 +35,7 @@
         </div>
         <div class="form-field">
           <%= label_tag :group_id, "Group" %>
-          <%= select_tag :group_id, options_from_collection_for_select(@start_page.start_page_groups.ordered, :id, :name) %>
+          <%= select_tag :group_id, options_from_collection_for_select(current_user.start_page_groups.ordered, :id, :name) %>
         </div>
         <div class="form-field">
           <%= form.submit "Add Tile", class: "button" %>
@@ -45,5 +45,5 @@
   <% end %>
 
   <!-- Groups Management Section -->
-  <%= render "grid", start_page: @start_page, groups_by_column: @groups_by_column %>
+  <%= render "grid", user: current_user, groups_by_column: @groups_by_column %>
 </main>
