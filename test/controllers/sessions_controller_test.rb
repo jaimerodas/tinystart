@@ -5,6 +5,58 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     @user = users(:one)
   end
 
+  # A brand new install has nobody to log in as, so the login form is a dead end.
+  # The first signup bootstraps itself as an approved admin.
+
+  test "GET new redirects to sign up when there are no users yet" do
+    User.destroy_all
+
+    get new_session_url
+
+    assert_redirected_to sign_up_path
+  end
+
+  test "POST create redirects to sign up when there are no users yet" do
+    User.destroy_all
+
+    post session_url, params: { email: "nobody@example.com", password: "password123" }
+
+    assert_redirected_to sign_up_path
+  end
+
+  test "GET new shows the login form once a user exists" do
+    get new_session_url
+
+    assert_response :success
+    assert_select "form"
+  end
+
+  # Anything behind the login wall should funnel to signup too, since that path
+  # goes through the session page.
+  test "a protected page sends a brand new install to sign up" do
+    User.destroy_all
+
+    get root_url
+    assert_redirected_to new_session_url
+    follow_redirect!
+    assert_redirected_to sign_up_path
+  end
+
+  test "the signup page does not offer a login link when there are no users" do
+    User.destroy_all
+
+    get sign_up_url
+
+    assert_response :success
+    assert_select "a", text: "Log in", count: 0
+  end
+
+  test "the signup page offers a login link once a user exists" do
+    get sign_up_url
+
+    assert_select "a", text: "Log in"
+  end
+
   test "GET new" do
     get new_session_url
     assert_response :success

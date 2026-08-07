@@ -9,6 +9,7 @@ class UsersController < ApplicationController
   def new
     redirect_to root_path and return if resume_session
     @user = User.new
+    @any_users = User.exists?
   end
 
   # POST /sign_up
@@ -20,6 +21,7 @@ class UsersController < ApplicationController
       if @user.save
         format.html { redirect_to root_path, notice: "User was successfully created." }
       else
+        @any_users = User.exists?
         format.html { render :new, status: :unprocessable_content }
         format.json { render json: @user.errors, status: :unprocessable_content }
       end
