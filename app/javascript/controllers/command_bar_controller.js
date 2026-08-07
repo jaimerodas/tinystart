@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { trackVisit } from "lib/track_visit"
+import { trackTileVisit, trackTinylinksVisit } from "lib/track_visit"
 
 export default class extends Controller {
   static targets = ["input", "suggestions"]
@@ -228,7 +228,12 @@ export default class extends Controller {
 
   selectSuggestion(index, openInNewTab) {
     const link = this.allResults[index];
-    trackVisit(link.id);
+    // Tiles are ours; everything under "All Links" belongs to tinylinks.
+    if (link.section === "startPage") {
+      trackTileVisit(link.id);
+    } else {
+      trackTinylinksVisit(link.id);
+    }
     this.navigateToUrlOrSearch(link.url, openInNewTab);
   }
 

@@ -12,6 +12,8 @@ Rails.application.routes.draw do
       end
     end
   end
+  resource :search, only: [ :show ], controller: "search"
+  resources :visits, only: [ :create ]
   resources :passwords, param: :token
   resource :settings, only: [ :show, :update ]
 

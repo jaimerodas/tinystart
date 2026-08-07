@@ -1,6 +1,15 @@
 <main class="start-page" data-controller="command-bar" data-command-bar-links-value="<%= @links_json %>">
   <%= start_page_header %>
 
+  <% if @tinylinks_connection&.needs_reconnect? %>
+    <%# Federated results failing quietly looks exactly like an empty archive,
+        so say so rather than showing nothing. %>
+    <p class="tinylinks-disconnected" role="status">
+      Search of your tinylinks archive is disconnected.
+      Run <code>bin/rails tinylinks:connect</code> to reconnect.
+    </p>
+  <% end %>
+
   <section class="command-bar">
     <input type="text"
            data-command-bar-target="input"

@@ -139,4 +139,32 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   def sign_out
     delete session_path
   end
+  # A lapsed token must be visible: silent federated failure is indistinguishable
+  # from an empty archive.
+  test "shows a reconnect notice when the tinylinks token was rejected" do
+    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
+    TinylinksConnection.create!(base_url: "https://links.example.com", token: "t")
+      .record_failure!("tinylinks rejected the token")
+
+    get start_path
+
+    assert_select ".tinylinks-disconnected", /disconnected/i
+  end
+
+  test "shows no reconnect notice while the connection is healthy" do
+    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
+    TinylinksConnection.create!(base_url: "https://links.example.com", token: "t")
+
+    get start_path
+
+    assert_select ".tinylinks-disconnected", false
+  end
+
+  test "shows no reconnect notice when the app was never connected" do
+    StartPage.create!(user: @user, name: "My Start Page", columns: 3)
+
+    get start_path
+
+    assert_select ".tinylinks-disconnected", false
+  end
 end

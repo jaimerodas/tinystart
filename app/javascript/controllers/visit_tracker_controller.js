@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { trackVisit } from "lib/track_visit"
+import { trackTileVisit } from "lib/track_visit"
 
 // Counts a visit when a tile is opened.
 //
@@ -26,6 +26,6 @@ export default class extends Controller {
     const tile = event.target.closest("a[data-item-id]")
     if (!tile || !this.element.contains(tile)) return
 
-    trackVisit(tile.dataset.itemId)
+    trackTileVisit(tile.dataset.itemId)
   }
 }
