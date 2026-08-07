@@ -1,0 +1,30 @@
+<% content_for :title, "Start Page Settings" %>
+
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li><%= link_to "Settings", settings_path %></li>
+      <li>Start Page</li>
+    </ol>
+    <%= settings_secondary_nav("Start Page") %>
+  </nav>
+
+  <section id="start-page" class="user-section">
+    <h2>Start Page</h2>
+    <% if @start_page.persisted? %>
+      <ul>
+        <li><b>Name:</b> <%= @start_page.name %></li>
+        <li><b>Groups:</b> <%= @start_page.start_page_groups.count %></li>
+        <li><b>Total Links:</b> <%= @start_page.start_page_items.count %></li>
+        <li><%= link_to "View Start Page", start_path %></li>
+        <li><%= link_to "Edit Start Page", edit_start_path %></li>
+      </ul>
+
+      <h3>Configuration</h3>
+      <%= render 'shared/start_page_form', start_page: @start_page, submit_text: "Update" %>
+    <% else %>
+      <p>Create a customized start page with your most important links organized in groups.</p>
+      <%= render 'shared/start_page_form', start_page: @start_page, submit_text: "Create Start Page" %>
+    <% end %>
+  </section>
+</main>

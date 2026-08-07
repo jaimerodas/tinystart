@@ -1,0 +1,36 @@
+<main class="start-page" data-controller="command-bar" data-command-bar-links-value="<%= @links_json %>">
+  <%= start_page_header %>
+
+  <section class="command-bar">
+    <input type="text"
+           data-command-bar-target="input"
+           data-action="input->command-bar#search keydown->command-bar#handleKeydown"
+           placeholder="Search links, web, or type URL..."
+           spellcheck="false"
+           autocomplete="off"
+           autofocus>
+    <div class="command-bar-suggestions" data-command-bar-target="suggestions">
+      <!-- Dynamic suggestions will be inserted here -->
+    </div>
+  </section>
+
+  <section class="start-page-grid" data-columns="<%= @start_page.columns %>" data-controller="visit-tracker">
+    <% @start_page.column_range.each do |column_number| %>
+      <div class="start-page-column">
+        <% groups_in_column = @groups_by_column[column_number] || [] %>
+        <% groups_in_column.each do |group| %>
+          <section>
+            <h2><%= group.name %></h2>
+            <ul>
+              <% group.ordered_items.each do |item| %>
+                <li>
+                  <%= link_to item.title, item.url, data: { item_id: item.id } %>
+                </li>
+              <% end %>
+            </ul>
+          </section>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+</main>

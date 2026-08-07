@@ -1,10 +1,23 @@
 Rails.application.routes.draw do
   resource :session
+
+  resource :start, controller: :start_pages, only: [ :show, :create, :edit, :update ] do
+    resources :groups, controller: :start_page_groups, only: [ :create, :update, :destroy ] do
+      member { post :move }
+    end
+    resources :items, controller: :start_page_items, only: [ :create, :update, :destroy ] do
+      member do
+        post :move
+        post :visit
+      end
+    end
+  end
   resources :passwords, param: :token
   resource :settings, only: [ :show, :update ]
 
   namespace :settings do
     resource :password, only: [ :edit, :update ]
+    resource :start_page, only: [ :show ], path: "start-page"
 
     scope :admin do
       resources :users, only: [ :index ] do
@@ -20,7 +33,5 @@ Rails.application.routes.draw do
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # The start page itself lands here in phase 4. Until then, settings is the
-  # only thing to look at.
-  root "settings#show"
+  root "start_pages#show"
 end

@@ -17,7 +17,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "logout button opts out of turbo so theme attributes reset after logout" do
     post session_url, params: { email: @user.email, password: "password123" }
-    get root_url
+    # root is the start page, which runs a chrome-free layout; the header with
+    # the logout button lives on the application layout.
+    get settings_url
     assert_select "header form[action=?][data-turbo=false]", session_path
   end
 
