@@ -1,22 +1,18 @@
-# The single credential this app holds for tinylinks, obtained through its
-# device flow (Settings → TinyLinks).
+# One user's credential for tinylinks, obtained through its device flow
+# (Settings → TinyLinks).
 #
-# There is only ever one row. Failures are recorded on it so the start page can
-# say "reconnect" instead of quietly showing no federated results — a lapsed
-# token and an empty archive look identical otherwise.
+# Scoped to a user on purpose: a token grants access to exactly one tinylinks
+# account, so it must only ever serve the person who approved it.
+#
+# Failures are recorded here so the start page can say "reconnect" instead of
+# quietly showing no federated results — a lapsed token and an empty archive
+# look identical otherwise.
 class TinylinksConnection < ApplicationRecord
+  belongs_to :user
+
   validates :base_url, presence: true
   validates :token, presence: true
-
-  def self.current
-    order(:created_at).last
-  end
-
-  # A 401 or 403 means the token is gone or was revoked; nothing the app can do
-  # but ask for a new one.
-  def self.needs_reconnect?
-    current.nil? || current.needs_reconnect?
-  end
+  validates :user_id, uniqueness: true
 
   def needs_reconnect?
     last_error.present?

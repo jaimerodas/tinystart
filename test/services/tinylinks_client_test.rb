@@ -3,6 +3,7 @@ require "test_helper"
 class TinylinksClientTest < ActiveSupport::TestCase
   setup do
     @connection = TinylinksConnection.create!(
+      user: users(:one),
       base_url: "https://links.example.com",
       token: "a-token",
       scopes: "search,visit"

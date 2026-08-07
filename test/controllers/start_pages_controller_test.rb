@@ -143,7 +143,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   # from an empty archive.
   test "shows a reconnect notice when the tinylinks token was rejected" do
     StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    TinylinksConnection.create!(base_url: "https://links.example.com", token: "t")
+    TinylinksConnection.create!(user: users(:one), base_url: "https://links.example.com", token: "t")
       .record_failure!("tinylinks rejected the token")
 
     get start_path
@@ -153,7 +153,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   test "shows no reconnect notice while the connection is healthy" do
     StartPage.create!(user: @user, name: "My Start Page", columns: 3)
-    TinylinksConnection.create!(base_url: "https://links.example.com", token: "t")
+    TinylinksConnection.create!(user: users(:one), base_url: "https://links.example.com", token: "t")
 
     get start_path
 

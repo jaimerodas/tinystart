@@ -11,7 +11,7 @@ class TinylinksClient
   OPEN_TIMEOUT = 2
   READ_TIMEOUT = 4
 
-  def initialize(connection = TinylinksConnection.current)
+  def initialize(connection)
     @connection = connection
   end
 

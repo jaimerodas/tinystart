@@ -8,7 +8,7 @@ class StartPagesController < ApplicationController
   def show
     @groups_by_column = @start_page.groups_by_column
     @links_json = @start_page.links_for_command_bar.to_json
-    @tinylinks_connection = TinylinksConnection.current
+    @tinylinks_connection = current_user.tinylinks_connection
   end
 
   # GET /start/edit

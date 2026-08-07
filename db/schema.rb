@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_170000) do
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -64,6 +64,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_140000) do
     t.string "token", null: false
     t.datetime "token_expires_at"
     t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_tinylinks_connections_on_user_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -82,4 +84,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_140000) do
   add_foreign_key "start_page_groups", "start_pages"
   add_foreign_key "start_page_items", "start_page_groups"
   add_foreign_key "start_pages", "users"
+  add_foreign_key "tinylinks_connections", "users"
 end

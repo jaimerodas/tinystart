@@ -5,6 +5,6 @@ class SearchController < ApplicationController
   # token never reaches the browser and there's no CORS to configure. Shape is
   # the bare array the command bar already expects.
   def show
-    render json: TinylinksClient.new.search(params[:q])
+    render json: TinylinksClient.new(current_user.tinylinks_connection).search(params[:q])
   end
 end

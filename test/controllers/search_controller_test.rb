@@ -43,4 +43,30 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal [], JSON.parse(response.body)
   end
+
+  # A token grants access to exactly one tinylinks account. Before connections
+  # were scoped to a user, any authenticated user's search reached whichever
+  # connection happened to exist — leaking one archive into another's command bar.
+  test "does not use another user's connection" do
+    users(:two).create_tinylinks_connection!(
+      base_url: "https://links.example.com", token: "user-twos-token"
+    )
+    # @user (users(:one)) has no connection of their own, so the client must be
+    # handed nil — not the row that happens to exist.
+    TinylinksClient.expects(:new).with(nil).returns(stub(search: []))
+
+    get search_url(format: :json), params: { q: "anything" }
+
+    assert_response :success
+    assert_equal [], JSON.parse(response.body)
+  end
+
+  test "uses your own connection when you have one" do
+    @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+    TinylinksClient.any_instance.stubs(:search).returns([ { id: 1, title: "Mine", url: "https://m.example" } ])
+
+    get search_url(format: :json), params: { q: "anything" }
+
+    assert_equal "Mine", JSON.parse(response.body).first["title"]
+  end
 end

@@ -54,10 +54,16 @@ That call goes **server-side**: the browser hits TinyStart's own `/search.json`,
 and Rails calls tinylinks with a bearer token. No token in the browser, no CORS.
 
 The token is obtained through tinylinks' OAuth 2.0 device flow (RFC 8628),
-requesting the `search` and `visit` scopes, from **Settings → TinyLinks** in the
-app (admin only). It's stored in TinyStart's database — **not** in Rails
-credentials — so rotating it never needs a redeploy. It renews itself on use and
-only expires after 90 days of inactivity.
+requesting the `search` and `visit` scopes, from **Settings → TinyLinks**. It's
+stored in TinyStart's database — **not** in Rails credentials — so rotating it
+never needs a redeploy. It renews itself on use and only expires after 90 days
+of inactivity.
+
+**Connections are per-user.** A tinylinks token grants access to exactly one
+tinylinks account, so `TinylinksConnection belongs_to :user` and every lookup
+goes through `current_user.tinylinks_connection`. Never reach for an app-wide
+"the connection" — that leaks one person's archive into another's command bar,
+and there's a regression test in `search_controller_test.rb` pinning it.
 
 ## Patterns & Conventions
 

@@ -6,6 +6,7 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_one :start_page, dependent: :destroy
+  has_one :tinylinks_connection, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :theme_preference, inclusion: { in: %w[system light dark], message: "%{value} is not a valid theme" }

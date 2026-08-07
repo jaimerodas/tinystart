@@ -1,12 +1,12 @@
 class Settings::TinylinksConnectionsController < ApplicationController
-  # There is one connection for the whole app, so connecting it is an admin act.
-  before_action :admin_only
-
+  # No admin gate: you connect your own tinylinks account, which needs no
+  # privilege. The scoping below is what keeps one user's archive out of
+  # another's command bar.
   DEFAULT_BASE_URL = "https://links.pati.to".freeze
 
   # GET /settings/tinylinks
   def show
-    @connection = TinylinksConnection.current
+    @connection = current_user.tinylinks_connection
     @pending = pending_grant
   end
 
@@ -57,7 +57,7 @@ class Settings::TinylinksConnectionsController < ApplicationController
 
   # DELETE /settings/tinylinks
   def destroy
-    TinylinksConnection.delete_all
+    current_user.tinylinks_connection&.destroy
     session.delete(:tinylinks_grant)
     redirect_to settings_tinylinks_path, notice: "Disconnected from tinylinks."
   end
@@ -65,7 +65,7 @@ class Settings::TinylinksConnectionsController < ApplicationController
   private
 
   def base_url
-    params[:base_url].presence || TinylinksConnection.current&.base_url || DEFAULT_BASE_URL
+    params[:base_url].presence || current_user.tinylinks_connection&.base_url || DEFAULT_BASE_URL
   end
 
   # Drops a grant that ran out while the tab sat open.
@@ -85,8 +85,8 @@ class Settings::TinylinksConnectionsController < ApplicationController
   end
 
   def store_connection(base_url, token)
-    TinylinksConnection.delete_all
-    TinylinksConnection.create!(
+    current_user.tinylinks_connection&.destroy
+    current_user.create_tinylinks_connection!(
       base_url: base_url,
       token: token["token"],
       scopes: Array(token["scopes"]).join(","),

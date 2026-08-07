@@ -2,16 +2,27 @@ require "test_helper"
 
 class TinylinksConnectionTest < ActiveSupport::TestCase
   setup do
-    @connection = TinylinksConnection.create!(base_url: "https://links.example.com", token: "t")
+    @connection = TinylinksConnection.create!(user: users(:one), base_url: "https://links.example.com", token: "t")
   end
 
-  test "current returns the most recently created row" do
-    newer = TinylinksConnection.create!(base_url: "https://other.example.com", token: "u")
-    assert_equal newer, TinylinksConnection.current
+  test "belongs to the user who approved it" do
+    assert_equal users(:one), @connection.user
+    assert_equal @connection, users(:one).tinylinks_connection
+  end
+
+  test "a user can only have one connection" do
+    duplicate = TinylinksConnection.new(user: users(:one), base_url: "https://other.example.com", token: "u")
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:user_id], "has already been taken"
+  end
+
+  test "different users can each have their own" do
+    other = TinylinksConnection.new(user: users(:two), base_url: "https://other.example.com", token: "u")
+    assert other.valid?
   end
 
   test "requires a base_url and a token" do
-    connection = TinylinksConnection.new
+    connection = TinylinksConnection.new(user: users(:two))
     assert_not connection.valid?
     assert_includes connection.errors[:base_url], "can't be blank"
     assert_includes connection.errors[:token], "can't be blank"
@@ -38,8 +49,8 @@ class TinylinksConnectionTest < ActiveSupport::TestCase
     assert_nil @connection.last_failed_at
   end
 
-  test "needs_reconnect? is true at class level when never connected" do
-    TinylinksConnection.delete_all
-    assert TinylinksConnection.needs_reconnect?
+  test "is destroyed along with its user" do
+    users(:one).destroy
+    assert_nil TinylinksConnection.find_by(id: @connection.id)
   end
 end
