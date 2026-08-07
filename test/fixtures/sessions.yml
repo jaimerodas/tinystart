@@ -1,0 +1,31 @@
+recent:
+  user: one
+  ip_address: "192.168.1.100"
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+  created_at: <%= 1.day.ago %>
+  updated_at: <%= 1.day.ago %>
+  expires_at: <%= 29.days.from_now %>
+
+expired:
+  user: two
+  ip_address: "192.168.1.101"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  created_at: <%= 35.days.ago %>
+  updated_at: <%= 35.days.ago %>
+  expires_at: <%= 5.days.ago %>
+
+another_recent:
+  user: one
+  ip_address: "10.0.0.1"
+  user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15"
+  created_at: <%= 7.days.ago %>
+  updated_at: <%= 7.days.ago %>
+  expires_at: <%= 23.days.from_now %>
+
+old_expired:
+  user: one
+  ip_address: "172.16.0.1"
+  user_agent: "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/88.0"
+  created_at: <%= 45.days.ago %>
+  updated_at: <%= 45.days.ago %>
+  expires_at: <%= 15.days.ago %>

@@ -1,0 +1,9 @@
+<% content_for :title, "New user" %>
+<article>
+  <h1>Create User</h1>
+  <%= render "form", user: @user %>
+  <div>
+    Already registered? <%= link_to "Log in", root_path %>
+  </div>
+</article>
+

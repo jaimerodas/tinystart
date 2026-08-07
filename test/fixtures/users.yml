@@ -1,0 +1,15 @@
+one:
+  email: one@example.com
+  password_digest: <%= BCrypt::Password.create('password123') %>
+  approved: true
+
+two:
+  email: two@example.com
+  password_digest: <%= BCrypt::Password.create('password123') %>
+  approved: true
+
+admin:
+  email: admin@example.com
+  password_digest: <%= BCrypt::Password.create('password123') %>
+  admin: true
+  approved: true

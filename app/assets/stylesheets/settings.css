@@ -1,0 +1,96 @@
+#user-adminland {
+  margin: 2em 0;
+  padding: 1em 1.5em 1.5em;
+  border: 0.125rem solid var(--highlight-color);
+  border-radius: 0.5em;
+}
+#user-sessions .session.current h3 {
+  color: var(--highlight-color);
+}
+.user-section {
+  margin: 2em 0;
+  ul {
+    margin: 0;
+  }
+  h2 {
+    font-weight: 900;
+    margin: 0 0 0.5em;
+    border-bottom: 0.0625rem solid var(--border-color);
+  }
+  #shortcut-token-token {
+    font-family: ui-monospace;
+    background: var(--bg-highlight-color);
+    padding: 0.5em 1em;
+    margin: 0;
+    border-radius: 1em;
+    cursor: copy;
+  }
+}
+#device-authorize {
+  text-align: center;
+  max-width: 24em;
+  margin: 0 auto;
+  form {
+    margin: 0 auto;
+  }
+  /* The section is centred; the list of grants reads better left aligned. */
+  .requested-scopes {
+    display: inline-block;
+    text-align: left;
+    margin: 0.5em auto 1.5em;
+  }
+  .full-access-warning {
+    color: var(--danger-color);
+  }
+  .deny-link {
+    display: inline-block;
+    font-weight: bold;
+    color: var(--mid-color);
+    &:hover {
+      color: var(--danger-color);
+    }
+  }
+}
+#device-success {
+  text-align: center;
+}
+
+/* Start page form styling */
+.start-page-form {
+  margin-top: 1em;
+
+  .form-row {
+    display: flex;
+    gap: 1em;
+    align-items: end;
+  }
+
+  .field {
+    label {
+      display: block;
+      margin-bottom: 0.25em;
+      font-size: 0.875em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5em;
+      border: 1px solid var(--border-color);
+      border-radius: 0.25em;
+    }
+
+    select {
+      padding: 0.5em;
+      border: 1px solid var(--border-color);
+      border-radius: 0.25em;
+    }
+  }
+
+  .field.flex-1 {
+    flex: 1;
+  }
+
+  input[type="submit"] {
+    margin: 0;
+  }
+}

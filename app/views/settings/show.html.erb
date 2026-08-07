@@ -1,0 +1,60 @@
+<% content_for :title, "Settings" %>
+
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li>Settings</li>
+    </ol>
+    <%= settings_secondary_nav("Main") %>
+  </nav>
+
+
+  <section id="user-details" class="user-section">
+    <h2>Details</h2>
+    <ul>
+      <li><b>Email:</b> <%= current_user.email %></li>
+      <li><%= link_to "Password Stuff", edit_settings_password_path %></li>
+      <li><b>User since:</b> <%= time_ago_in_words(current_user.created_at) %></li>
+    </ul>
+  </section>
+
+  <section id="user-preferences" class="user-section">
+    <h2>Preferences</h2>
+    <%= form_with model: current_user, url: settings_path, method: :patch, data: { controller: "theme", action: "turbo:submit-end->theme#updateTheme" } do |form| %>
+      <div class="form-group">
+        <label>Theme</label>
+        <div class="radio-group">
+          <div class="radio-field">
+            <%= form.radio_button :theme_preference, "system", id: "theme_system" %>
+            <%= form.label :theme_preference, "System", value: "system", for: "theme_system" %>
+          </div>
+          <div class="radio-field">
+            <%= form.radio_button :theme_preference, "light", id: "theme_light" %>
+            <%= form.label :theme_preference, "Light", value: "light", for: "theme_light" %>
+          </div>
+          <div class="radio-field">
+            <%= form.radio_button :theme_preference, "dark", id: "theme_dark" %>
+            <%= form.label :theme_preference, "Dark", value: "dark", for: "theme_dark" %>
+          </div>
+        </div>
+        <p class="help-text">Choose your preferred color scheme. System will follow your device's theme setting.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Accent Color</label>
+        <div class="color-picker">
+          <% User::VALID_COLORS.each do |color| %>
+            <div class="color-option">
+              <%= form.radio_button :color_preference, color, id: "color_#{color}" %>
+              <%= label_tag "color_#{color}", "", data: { color: color } %>
+            </div>
+          <% end %>
+        </div>
+        <p class="help-text">Choose your preferred accent color for links and interface elements.</p>
+      </div>
+
+      <%= form.submit "Update Preferences", class: "btn btn-primary" %>
+    <% end %>
+  </section>
+
+</main>

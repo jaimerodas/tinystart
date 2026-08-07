@@ -1,40 +1,33 @@
 <!DOCTYPE html>
-<html data-theme="<%= theme_data_attribute %>" data-color="<%= color_data_attribute %>">
+<html>
   <head>
     <title><%= [content_for(:title), "TinyStart"].select(&:present?).join(" - ") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
 
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes every stylesheet in app/assets/stylesheets %>
+    <%# Includes all stylesheet files in app/views/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body id="session">
     <% flash.each do |type, message| %>
       <%= render "shared/flash", type: type, message: message %>
     <% end %>
-
-    <%# Minimal for now. The real navigation arrives with the start page. %>
-    <% if authenticated? %>
-      <header>
-        <nav>
-          <%= main_menu_link(settings_path, "Settings") %>
-          <%= main_menu_logout_button %>
-        </nav>
-      </header>
-    <% end %>
-
-    <article><%= yield %></article>
+    <%= yield %>
   </body>
 </html>

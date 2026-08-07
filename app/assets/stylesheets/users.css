@@ -1,0 +1,5 @@
+#users-list {
+  .user-status.approved { color: var(--positive-color) }
+  .user-status.blocked { color: var(--danger-color) }
+  .user-admin { color: var(--link-hover-color) }
+}
