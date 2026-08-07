@@ -14,6 +14,33 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".start-page-grid[data-columns='3']"
   end
 
+  # A blank grid is indistinguishable from a broken one, so say which it is.
+  test "should tell a user with no tiles how to add some" do
+    get start_path
+
+    assert_response :success
+    assert_select ".start-page-empty", /No links added yet/
+    assert_select ".start-page-empty a[href=?]", edit_start_path, "edit the page"
+  end
+
+  test "should not show the empty notice once a tile exists" do
+    group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
+    group.start_page_items.create!(url: "https://example.com", title: "Example", position: 0)
+
+    get start_path
+
+    assert_select ".start-page-empty", false
+  end
+
+  # Groups without tiles still leave the page blank, so the notice has to stay.
+  test "should still show the empty notice for a group with no tiles" do
+    @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
+
+    get start_path
+
+    assert_select ".start-page-empty", /No links added yet/
+  end
+
   test "should lay the grid out with the user's column count" do
     @user.update!(columns: 5)
 

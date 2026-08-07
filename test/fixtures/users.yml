@@ -1,12 +1,17 @@
+# New users start at one column (see users.columns default). These two stand in
+# for people who have already widened their grid, so the group and tile tests
+# have somewhere to move things to.
 one:
   email: one@example.com
   password_digest: <%= BCrypt::Password.create('password123') %>
   approved: true
+  columns: 3
 
 two:
   email: two@example.com
   password_digest: <%= BCrypt::Password.create('password123') %>
   approved: true
+  columns: 3
 
 admin:
   email: admin@example.com

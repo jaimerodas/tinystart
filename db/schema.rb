@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_190000) do
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -63,7 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_180000) do
     t.boolean "admin", default: false, null: false
     t.boolean "approved", default: false, null: false
     t.string "color_preference", default: "teal", null: false
-    t.integer "columns", default: 3, null: false
+    t.integer "columns", default: 1, null: false
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "password_digest", null: false

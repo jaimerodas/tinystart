@@ -37,7 +37,7 @@ Nothing here exists yet. Recorded so the shape is clear.
 
 | Model | Purpose |
 |-------|---------|
-| User | Auth; theme, color and `columns` preferences; first user is bootstrapped as admin |
+| User | Auth; theme, color and `columns` preferences (columns defaults to 1); first user is bootstrapped as admin |
 | Session | Auth sessions with expiration |
 | StartPageGroup | A named group of tiles belonging to a user, placed at a column + position |
 | StartPageItem | A tile: owns its own `url` and `title` (no pointer to tinylinks) |

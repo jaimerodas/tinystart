@@ -65,7 +65,7 @@
 
       <div class="form-group">
         <%= form.label :columns, "Start Page Columns" %>
-        <%= form.select :columns, options_for_select((2..6).map { |c| [ c, c ] }, current_user.columns) %>
+        <%= form.select :columns, options_for_select((1..6).map { |c| [ c, c ] }, current_user.columns) %>
         <p class="help-text">How many columns of groups the start page grid lays out.</p>
       </div>
 

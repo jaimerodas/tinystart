@@ -3,8 +3,10 @@ class StartPagesController < ApplicationController
 
   # GET /
   def show
+    links = current_user.links_for_command_bar
     @groups_by_column = current_user.groups_by_column
-    @links_json = current_user.links_for_command_bar.to_json
+    @links_json = links.to_json
+    @has_tiles = links.any?
     @tinylinks_connection = current_user.tinylinks_connection
   end
 

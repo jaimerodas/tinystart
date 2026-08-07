@@ -23,6 +23,14 @@
     </div>
   </section>
 
+  <%# Without this an untouched start page is just a command bar over blank space,
+      with nothing saying the grid is empty rather than broken. %>
+  <% unless @has_tiles %>
+    <p class="start-page-empty">
+      No links added yet, <%= link_to "edit the page", edit_start_path %> to add some.
+    </p>
+  <% end %>
+
   <section class="start-page-grid" data-columns="<%= current_user.columns %>" data-controller="visit-tracker">
     <% current_user.column_range.each do |column_number| %>
       <div class="start-page-column">

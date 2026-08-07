@@ -238,18 +238,10 @@
 }
 
 .start-page-empty {
-  text-align: center;
+  margin: 0;
   padding: 3em 1em;
+  text-align: center;
   color: var(--mid-color);
-
-  h2 {
-    margin: 0 0 1em 0;
-    color: var(--fg-color);
-  }
-
-  p {
-    margin: 0.5em 0;
-  }
 }
 
 .empty-group,

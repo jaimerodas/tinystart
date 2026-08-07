@@ -6,7 +6,8 @@ class SettingsController < ApplicationController
     if current_user.update(user_params)
       redirect_to settings_path, notice: "Settings updated successfully."
     else
-      redirect_to settings_path, alert: "Failed to update settings."
+      redirect_to settings_path,
+                  alert: "Failed to update settings: #{current_user.errors.full_messages.join(', ')}"
     end
   end
 

@@ -206,8 +206,15 @@ class UserTest < ActiveSupport::TestCase
   # The start page used to be its own record. It is a column count on the user
   # now, and the grid is built straight off the user's groups.
 
-  test "defaults to three columns" do
-    assert_equal 3, User.new.columns
+  # One column, not three: a new grid is empty, and empty columns read as broken.
+  test "defaults to a single column" do
+    assert_equal 1, User.new.columns
+  end
+
+  test "persists the single column default without being told" do
+    user = User.create!(email: "fresh@example.com", password: "password123")
+
+    assert_equal 1, user.reload.columns
   end
 
   test "requires columns" do
@@ -273,6 +280,47 @@ class UserTest < ActiveSupport::TestCase
     theirs.start_page_items.create!(url: "https://theirs.example.com", title: "Theirs", position: 0)
 
     assert_equal [ "Mine" ], @user.links_for_command_bar.map { |l| l[:title] }
+  end
+
+  # Narrowing the grid used to hide any group past the new limit: gone from the
+  # start page and gone from the edit page, so its move and delete buttons were
+  # unreachable, while its tiles still showed up in the command bar.
+  test "refuses to shrink past a column that still holds a group" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+
+    @user.columns = 2
+
+    assert_not @user.valid?
+    assert_includes @user.errors[:columns], "can't be fewer than 3 — that would hide \"Reading\". Move them first."
+  end
+
+  test "names every group that a shrink would hide" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+    @user.start_page_groups.create!(name: "Work", column: 2, position: 0)
+
+    @user.columns = 1
+
+    assert_not @user.valid?
+    assert_includes @user.errors[:columns].first, "\"Work\" and \"Reading\""
+  end
+
+  test "allows a shrink that strands nothing" do
+    @user.start_page_groups.create!(name: "Reading", column: 1, position: 0)
+
+    assert @user.update(columns: 1)
+  end
+
+  test "allows widening whatever the groups look like" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+
+    assert @user.update(columns: 6)
+  end
+
+  # The check costs a query, so it must not run on unrelated saves.
+  test "leaves other updates alone when the column count is untouched" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+
+    assert @user.update(theme_preference: "dark")
   end
 
   test "destroying a user takes its groups and tiles with it" do

@@ -15,6 +15,8 @@ class User < ApplicationRecord
   validates :columns, presence: true,
             numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 6 }
 
+  validate :columns_leave_no_group_stranded
+
   normalizes :email, with: ->(e) { e.strip.downcase }
 
   before_create :bootstrap_first_user
@@ -51,6 +53,20 @@ class User < ApplicationRecord
 
   def validate_new_password
     new_password.present? && new_password.length > 6
+  end
+
+  # The grid only renders column_range, so a group left beyond the limit would
+  # disappear from the start page and the edit page both, taking its move and
+  # delete buttons with it. Refuse the change rather than hide someone's work.
+  def columns_leave_no_group_stranded
+    return unless persisted? && columns.present? && columns_changed?
+
+    stranded = start_page_groups.where("\"column\" > ?", columns).order(:column)
+    return if stranded.empty?
+
+    names = stranded.map { |group| "\"#{group.name}\"" }.to_sentence
+    errors.add(:columns, "can't be fewer than #{stranded.maximum(:column)} — " \
+                         "that would hide #{names}. Move them first.")
   end
 
   def bootstrap_first_user
