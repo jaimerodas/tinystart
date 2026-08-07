@@ -5,8 +5,8 @@
     <%# Federated results failing quietly looks exactly like an empty archive,
         so say so rather than showing nothing. %>
     <p class="tinylinks-disconnected" role="status">
-      Search of your tinylinks archive is disconnected.
-      Run <code>bin/rails tinylinks:connect</code> to reconnect.
+      Search of your TinyLinks archive is disconnected.
+      <%= link_to "Reconnect", settings_tinylinks_path %>.
     </p>
   <% end %>
 

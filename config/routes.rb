@@ -20,6 +20,10 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :password, only: [ :edit, :update ]
     resource :start_page, only: [ :show ], path: "start-page"
+    resource :tinylinks, only: [ :show, :create, :destroy ],
+             controller: "tinylinks_connections" do
+      get :poll
+    end
 
     scope :admin do
       resources :users, only: [ :index ] do

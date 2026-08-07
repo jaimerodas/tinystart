@@ -1,0 +1,70 @@
+<% content_for :title, "TinyLinks" %>
+
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li><%= link_to "Settings", settings_path %></li>
+      <li>TinyLinks</li>
+    </ol>
+
+    <%= settings_secondary_nav("TinyLinks") %>
+  </nav>
+
+  <section class="user-section" id="tinylinks-connection">
+    <h2>Search federation</h2>
+    <p>The command bar searches your tiles instantly, then asks TinyLinks for
+      matches from your bookmark archive. That needs a token, which TinyLinks
+      grants by asking you to approve this app.</p>
+
+    <% if @pending %>
+      <%# Waiting on approval in the other tab. The poller flips this itself. %>
+      <div class="connection-status pending"
+           data-controller="device-flow"
+           data-device-flow-url-value="<%= poll_settings_tinylinks_path %>">
+        <p>
+          <strong>Waiting for approval.</strong>
+          Approve this app on TinyLinks, then come back — this page updates on its own.
+        </p>
+        <p>
+          <%= link_to "Open the approval page", @pending["verification_url"],
+                target: "_blank", rel: "noopener", class: "button-link" %>
+        </p>
+        <p class="help-text" data-device-flow-target="status">Checking…</p>
+      </div>
+
+    <% elsif @connection && !@connection.needs_reconnect? %>
+      <div class="connection-status connected">
+        <p><strong>Connected</strong> to <%= @connection.base_url %></p>
+        <div class="item-meta">
+          <%= @connection.scopes.presence || "full access" %>
+          <% if @connection.token_expires_at %>
+            &middot; token expires <%= distance_of_time_in_words(Time.current, @connection.token_expires_at) %> from now
+          <% end %>
+        </div>
+        <p class="help-text">The token renews itself every time the command bar
+          uses it, so it only lapses after a long silence.</p>
+      </div>
+
+      <%= button_to "Disconnect", settings_tinylinks_path, method: :delete,
+            class: "danger",
+            data: { turbo_confirm: "Disconnect from TinyLinks? Federated search will stop working." } %>
+
+    <% else %>
+      <% if @connection&.needs_reconnect? %>
+        <div class="connection-status disconnected">
+          <p><strong>Disconnected.</strong> <%= @connection.last_error %></p>
+        </div>
+      <% end %>
+
+      <%= form_with url: settings_tinylinks_path, method: :post, class: "connect-form" do |form| %>
+        <div class="field">
+          <%= form.label :base_url, "TinyLinks address" %>
+          <%= form.url_field :base_url,
+                value: @connection&.base_url || Settings::TinylinksConnectionsController::DEFAULT_BASE_URL,
+                required: true %>
+        </div>
+        <%= form.submit "Connect" %>
+      <% end %>
+    <% end %>
+  </section>
+</main>

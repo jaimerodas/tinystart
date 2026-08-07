@@ -1,5 +1,5 @@
 # The single credential this app holds for tinylinks, obtained through its
-# device flow (see `rails tinylinks:connect`).
+# device flow (Settings → TinyLinks).
 #
 # There is only ever one row. Failures are recorded on it so the start page can
 # say "reconnect" instead of quietly showing no federated results — a lapsed
