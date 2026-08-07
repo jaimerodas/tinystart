@@ -34,3 +34,7 @@
 /config/*.key
 
 /coverage
+
+# Ignore per-machine Claude Code state. The shared bits — CLAUDE.md and
+# .claude/rules/ — stay in the repo on purpose.
+/.claude/**/*.local.json
