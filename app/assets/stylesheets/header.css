@@ -1,6 +1,5 @@
 header {
   display: flex;
-  flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
   align-items: center;
@@ -15,12 +14,7 @@ header {
 
   nav {
     display: flex;
-  }
-  nav.expandable-menu {
-    display: none;
-    &.visible {
-      display: flex;
-    }
+    gap: 1em;
   }
 
   form {
@@ -30,6 +24,7 @@ header {
 
   a, button {
     font: inherit;
+    font-weight: bold;
     cursor: pointer;
     color: var(--button-fg-color);
 
@@ -37,6 +32,8 @@ header {
     box-sizing: border-box;
     align-items: center;
     justify-content: center;
+    /* A phone reaches this bar with a thumb, so the label alone is not the
+       target — the whole 4em band is. */
     height: 4em;
     padding: 0 1em;
     min-width: 2em;
@@ -48,15 +45,6 @@ header {
       color: var(--button-fg-color);
       text-decoration: none;
     }
-
-    & > svg {
-      height: 2em;
-      fill: var(--button-fg-color);
-    }
-
-    & > span {
-      display: none;
-    }
   }
 
   button {
@@ -64,52 +52,15 @@ header {
   }
 }
 
-header #expandable-menu-link {
-  display: none;
-  &.visible {
-    display: flex;
-    flex-shrink: 0;
-  }
-}
-
-header .expandable-menu {
-  flex-direction: column;
-  width: 100vw;
-
-  a, button {
-    width: 100%;
-    & > svg {
-      margin-right: 0.5em;
-    }
-    & > span {
-      display: block;
-    }
-  }
-}
-
 @media screen and (min-width: 36em) {
   header {
     position: relative;
     background: none;
+    backdrop-filter: none;
     box-shadow: none;
     padding: 0 1em;
-    gap: 1em;
-
-    nav {
-      gap: 1em;
-    }
   }
 
-  header #expandable-menu-link.visible { display: none; }
-  header nav.expandable-menu {
-    display: flex;
-    flex-direction: row;
-    width: auto;
-
-    a, button {
-      width: auto;
-    }
-  }
   header :is(a, button) {
     height: auto;
     padding: 0.5em 0;
@@ -120,15 +71,5 @@ header .expandable-menu {
       color: var(--link-hover-color);
       text-decoration: underline;
     }
-
-    & > span { display: block; }
-    & > svg { display: none; }
-  }
-}
-
-@media screen and (min-width: 48em) {
-  header :is(a, button) {
-    & > span { display: block; }
-    & > svg { display: none; }
   }
 }

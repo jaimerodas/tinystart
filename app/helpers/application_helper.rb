@@ -5,20 +5,16 @@ module ApplicationHelper
     File.read(file_path).html_safe
   end
 
+  # Text, not icons. The menu holds two items at most, which fits on the
+  # narrowest phone, so there is nothing to compact away behind glyphs.
   def main_menu_link(path, title)
-    link_to path, class: "main-menu-link" do
-      concat icon(title.parameterize(separator: "_"))
-      concat content_tag("span", title)
-    end
+    link_to title, path, class: "main-menu-link"
   end
 
   # Turbo is off on purpose: logging out has to reload the document so the
   # theme and color attributes on <html> fall back to the logged-out defaults.
   def main_menu_logout_button
-    button_to session_path, method: :delete, form: { data: { turbo: false } } do
-      concat icon("logout")
-      concat content_tag("span", "Log out")
-    end
+    button_to "Log out", session_path, method: :delete, form: { data: { turbo: false } }
   end
 
   def theme_data_attribute

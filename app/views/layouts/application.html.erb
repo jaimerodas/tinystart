@@ -25,11 +25,12 @@
       <%= render "shared/flash", type: type, message: message %>
     <% end %>
 
-    <%# Minimal for now. The real navigation arrives with the start page. %>
+    <%# Only settings pages use this layout, so the menu's job is the way out:
+        back to the start page. A "Settings" link here would point at itself. %>
     <% if authenticated? %>
       <header>
         <nav>
-          <%= main_menu_link(settings_path, "Settings") %>
+          <%= main_menu_link(root_path, "Start") %>
           <%= main_menu_logout_button %>
         </nav>
       </header>
