@@ -168,6 +168,7 @@ input[type=text],
 input[type=email],
 input[type=password],
 textarea {
+  font-family: inherit;
   font-size: 0.875em;
   display: block;
   box-sizing: border-box;
@@ -196,6 +197,7 @@ textarea {
 /* Same tokens as the text inputs, but sized to its options rather than the
    form: a select holding "3" has no business being 40em wide. */
 select {
+  font-family: inherit;
   font-size: 0.875em;
   box-sizing: border-box;
   padding: 0.75em;
@@ -215,6 +217,7 @@ select {
 }
 
 input[type=submit] {
+  font-family: inherit;
   font-size: 1em;
   font-weight: bold;
   display: block;
