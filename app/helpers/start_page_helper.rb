@@ -33,6 +33,15 @@ module StartPageHelper
     ]
   end
 
+  # What the command bar should do about its "All Links" section. Nothing to
+  # search means no section at all; a rejected token means a notice rather than
+  # a query that will only be rejected again.
+  def tinylinks_federation_state(connection)
+    return "off" if connection.nil?
+
+    connection.needs_reconnect? ? "reconnect" : "active"
+  end
+
   def item_move_buttons(item, group)
     create_move_buttons(
       item: item,

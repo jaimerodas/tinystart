@@ -67,10 +67,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   end
 
   test "command bar filters the tiles on the page" do
-    group = @user.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
-    group.start_page_items.create!(url: "https://amazon.com", title: "Amazon Shopping", position: 0)
-    group.start_page_items.create!(url: "https://apple.com", title: "Apple", position: 1)
-    group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 2)
+    tiles_for_filtering
 
     visit start_path
 
@@ -96,6 +93,39 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
       assert_no_text "Amazon"
       assert_no_text "GitHub"
     end
+  end
+
+  # Nothing to federate to means no "All Links" at all — not a header that
+  # flashes "Searching..." and then quietly empties itself.
+  test "command bar offers no All Links section without a tinylinks connection" do
+    tiles_for_filtering
+
+    visit start_path
+    find(".command-bar input").fill_in(with: "a")
+
+    # The local results and the All Links header used to render in the same tick,
+    # so these have to be checked without waiting — a patient assertion passes
+    # either way once /search.json answers with an empty list.
+    within(".command-bar-suggestions") { assert_text "Amazon Shopping" }
+    assert_selector ".command-bar-section-header", count: 1, wait: 0
+    assert_no_selector ".command-bar-searching", wait: 0
+  end
+
+  # A rejected token is worth saying out loud, but retrying it isn't.
+  test "command bar says so instead of searching once the tinylinks token was rejected" do
+    tiles_for_filtering
+    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+    connection.record_failure!("tinylinks rejected the token")
+
+    visit start_path
+    find(".command-bar input").fill_in(with: "a")
+
+    within(".command-bar-suggestions") do
+      assert_text "Amazon Shopping"
+      assert_selector ".command-bar-notice", text: "links.example.com search disconnected — reconnect in Settings.", wait: 0
+    end
+    assert_selector ".command-bar-section-header", count: 1, wait: 0
+    assert_no_selector ".command-bar-searching", wait: 0
   end
 
   test "clicking a tile records a visit" do
@@ -130,6 +160,14 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   end
 
   private
+
+  def tiles_for_filtering
+    group = @user.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
+    group.start_page_items.create!(url: "https://amazon.com", title: "Amazon Shopping", position: 0)
+    group.start_page_items.create!(url: "https://apple.com", title: "Apple", position: 1)
+    group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 2)
+    group
+  end
 
   # Capybara retries DOM assertions, not the database, so poll the item until
   # the fire-and-forget visit POST lands (or the wait window elapses).

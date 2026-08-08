@@ -1,11 +1,14 @@
-<main class="start-page" data-controller="command-bar" data-command-bar-links-value="<%= @links_json %>">
+<main class="start-page" data-controller="command-bar"
+      data-command-bar-links-value="<%= @links_json %>"
+      data-command-bar-federation-value="<%= tinylinks_federation_state(@tinylinks_connection) %>"
+      data-command-bar-source-value="<%= @tinylinks_connection&.hostname %>">
   <%= start_page_header %>
 
   <% if @tinylinks_connection&.needs_reconnect? %>
     <%# Federated results failing quietly looks exactly like an empty archive,
         so say so rather than showing nothing. %>
     <p class="tinylinks-disconnected" role="status">
-      Search of your TinyLinks archive is disconnected.
+      Search of <%= @tinylinks_connection.hostname %> is disconnected.
       <%= link_to "Reconnect", settings_tinylinks_path %>.
     </p>
   <% end %>

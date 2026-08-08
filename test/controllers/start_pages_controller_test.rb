@@ -75,6 +75,36 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # The command bar can't tell "not connected" from "no matches" on its own, so
+  # the page has to hand it the state up front.
+  test "should tell the command bar federation is off without a tinylinks connection" do
+    get start_path
+
+    assert_select "main[data-command-bar-federation-value='off']"
+  end
+
+  # The federated section is named after the host it came from, so the page has
+  # to hand that over too.
+  test "should tell the command bar federation is active with a tinylinks connection" do
+    @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+
+    get start_path
+
+    assert_select "main[data-command-bar-federation-value='active']"
+    assert_select "main[data-command-bar-source-value='links.example.com']"
+  end
+
+  test "should tell the command bar to stop searching once the token was rejected" do
+    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+    connection.record_failure!("tinylinks rejected the token")
+
+    get start_path
+
+    assert_select "main[data-command-bar-federation-value='reconnect']"
+    assert_select ".tinylinks-disconnected", /Search of links\.example\.com is disconnected/
+    assert_select ".tinylinks-disconnected a[href=?]", settings_tinylinks_path, "Reconnect"
+  end
+
   # One person's tiles must never surface in another person's grid or command bar.
   test "should only show the signed-in user's tiles" do
     mine = @user.start_page_groups.create!(name: "Mine", column: 1, position: 0)

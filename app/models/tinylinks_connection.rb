@@ -14,6 +14,13 @@ class TinylinksConnection < ApplicationRecord
   validates :token, presence: true
   validates :user_id, uniqueness: true
 
+  # What the command bar calls the federated results: the bare host, no scheme.
+  def hostname
+    URI.parse(base_url).host
+  rescue URI::InvalidURIError
+    nil
+  end
+
   def needs_reconnect?
     last_error.present?
   end

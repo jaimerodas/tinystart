@@ -28,6 +28,17 @@ class TinylinksConnectionTest < ActiveSupport::TestCase
     assert_includes connection.errors[:token], "can't be blank"
   end
 
+  # The command bar names its federated section after the host it came from.
+  test "hostname drops the scheme from the base_url" do
+    assert_equal "links.example.com", @connection.hostname
+  end
+
+  test "hostname drops a port too" do
+    @connection.update!(base_url: "http://localhost:3500")
+
+    assert_equal "localhost", @connection.hostname
+  end
+
   test "a fresh connection does not need reconnecting" do
     assert_not @connection.needs_reconnect?
   end

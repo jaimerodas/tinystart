@@ -3,7 +3,10 @@ import { trackTileVisit, trackTinylinksVisit } from "lib/track_visit"
 
 export default class extends Controller {
   static targets = ["input", "suggestions"]
-  static values = { links: Array }
+  // federation: "active" federates to tinylinks, "reconnect" says the token was
+  // rejected, anything else (no connection) keeps the bar purely local.
+  // source: the host those results come from, which names the section.
+  static values = { links: Array, federation: String, source: String }
 
   connect() {
     this.selectedIndex = -1
@@ -27,6 +30,10 @@ export default class extends Controller {
     // Immediately filter and show start page links
     this.startPageLinks = this.filterLocalLinks(query)
     this.renderSuggestions()
+
+    // Nothing to ask tinylinks, or nothing it would answer: the local tiles are
+    // the whole result.
+    if (this.federationValue !== "active") return
 
     // Clear existing timeout and set new one for server search
     if (this.searchTimeout) {
@@ -157,12 +164,12 @@ export default class extends Controller {
       }).join('')
     }
 
-    // All Links section
+    // Federated section, named after where its results come from
     if (this.isSearching) {
-      html += '<div class="command-bar-section-header">All Links</div>'
+      html += this.federatedHeader()
       html += '<div class="command-bar-searching">Searching...</div>'
     } else if (this.serverLinks.length > 0) {
-      html += '<div class="command-bar-section-header">All Links</div>'
+      html += this.federatedHeader()
       const startOffset = this.startPageLinks.length
       html += this.serverLinks.map((link, index) => {
         const globalIndex = startOffset + index
@@ -173,6 +180,10 @@ export default class extends Controller {
           <span class="suggestion-url">${this.escapeHtml(link.url)}</span>
         </div>`
       }).join('')
+    } else if (this.federationValue === "reconnect") {
+      // No header: there is no section to head, just a word about why.
+      const what = this.sourceValue ? `${this.escapeHtml(this.sourceValue)} search` : "Search"
+      html += `<div class="command-bar-notice">${what} disconnected — reconnect in Settings.</div>`
     }
 
     this.suggestionsTarget.innerHTML = html;
@@ -185,6 +196,11 @@ export default class extends Controller {
         const index = parseInt(el.dataset.index, 10);
         el.addEventListener("click", () => this.selectSuggestion(index, false));
       });
+  }
+
+  federatedHeader() {
+    const label = this.sourceValue ? `From ${this.escapeHtml(this.sourceValue)}` : "All Links"
+    return `<div class="command-bar-section-header">${label}</div>`
   }
 
   navigateDown() {
