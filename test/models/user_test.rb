@@ -202,6 +202,14 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
+  # Gray was dropped from the palette. Anyone still holding it was migrated to
+  # teal, so nothing should be able to put it back.
+  test "should reject gray, which left the palette" do
+    user = User.new(email: "x@example.com", password: "password123", color_preference: "gray")
+    assert_not user.valid?
+    assert_includes user.errors[:color_preference], "gray is not a valid color"
+  end
+
   # --- start page ---
   # The start page used to be its own record. It is a column count on the user
   # now, and the grid is built straight off the user's groups.

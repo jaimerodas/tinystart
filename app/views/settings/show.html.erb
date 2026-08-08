@@ -56,7 +56,10 @@
           <% User::VALID_COLORS.each do |color| %>
             <div class="color-option">
               <%= form.radio_button :color_preference, color, id: "color_#{color}" %>
-              <%= label_tag "color_#{color}", "", data: { color: color } %>
+              <%# The swatch paints itself from the palette token, so adding an
+                  accent means touching VALID_COLORS and colors.css, nothing else. %>
+              <%= label_tag "color_#{color}", "", data: { color: color },
+                    style: "background: var(--accent-#{color})" %>
             </div>
           <% end %>
         </div>

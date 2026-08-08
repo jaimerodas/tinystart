@@ -156,42 +156,6 @@ form {
     input[type=radio]:checked + label::after {
       opacity: 1;
     }
-
-    label[data-color="red"] {
-      background: oklch(0.60 0.24 25);
-    }
-
-    label[data-color="orange"] {
-      background: oklch(0.75 0.25 50);
-    }
-
-    label[data-color="yellow"] {
-      background: oklch(0.82 0.14 90);
-    }
-
-    label[data-color="green"] {
-      background: oklch(0.75 0.16 130);
-    }
-
-    label[data-color="teal"] {
-      background: oklch(0.75 0.17 170);
-    }
-
-    label[data-color="blue"] {
-      background: oklch(0.58 0.22 250);
-    }
-
-    label[data-color="purple"] {
-      background: oklch(0.70 0.17 290);
-    }
-
-    label[data-color="pink"] {
-      background: oklch(0.72 0.28 345);
-    }
-
-    label[data-color="gray"] {
-      background: oklch(0.65 0.02 0);
-    }
   }
 }
 

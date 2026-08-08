@@ -1,7 +1,7 @@
 class User < ApplicationRecord
   attr_accessor :new_password, :existing_password
 
-  VALID_COLORS = %w[red orange yellow green teal blue purple pink gray].freeze
+  VALID_COLORS = %w[red orange yellow green teal blue purple pink].freeze
 
   has_secure_password
   has_many :sessions, dependent: :destroy
