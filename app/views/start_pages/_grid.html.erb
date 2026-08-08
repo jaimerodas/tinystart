@@ -1,55 +1,7 @@
 <section id="start_page_grid" class="start-page-grid" data-columns="<%= user.columns %>" data-controller="drag-drop">
   <% user.column_range.each do |column_number| %>
-    <div class="start-page-column"
-         data-column="<%= column_number %>"
-         data-drag-drop-target="column"
-         data-action="dragover->drag-drop#dragOver drop->drag-drop#drop">
-      <h3>Column <%= column_number %></h3>
-      <% groups_in_column = groups_by_column[column_number] || [] %>
-      <% if groups_in_column.any? %>
-        <% groups_in_column.each do |group| %>
-          <section class="start-page-group editable"
-                   data-group-id="<%= group.id %>"
-                   data-group-column="<%= group.column %>"
-                   data-drag-drop-target="group">
-            <div class="group-header">
-              <%= group_drag_handle %>
-              <%= group_name_form(group) %>
-              <div class="item-actions">
-                <%= group_move_buttons(group, groups_in_column, column_number) %>
-                <%= group_delete_button(group) %>
-              </div>
-            </div>
-            <div class="group-items"
-                 data-group-id="<%= group.id %>"
-                 data-action="dragover->drag-drop#dragItemOver drop->drag-drop#dropItem"
-                 data-drag-drop-target="itemDropZone">
-              <% if group.ordered_items.any? %>
-                <% group.ordered_items.each_with_index do |item, index| %>
-                  <div class="start-page-item editable"
-                       data-item-id="<%= item.id %>"
-                       data-group-id="<%= item.start_page_group.id %>"
-                       data-item-position="<%= item.position %>"
-                       data-drag-drop-target="item">
-                    <%= item_drag_handle %>
-                    <span>
-                      <%= item.title %>
-                    </span>
-                    <div class="item-actions">
-                      <%= item_move_buttons(item, group) %>
-                      <%= item_delete_button(item) %>
-                    </div>
-                  </div>
-                <% end %>
-              <% else %>
-                <p class="empty-group">No links in this group yet</p>
-              <% end %>
-            </div>
-          </section>
-        <% end %>
-      <% else %>
-        <p class="empty-column">No groups in this column</p>
-      <% end %>
-    </div>
+    <%= render "start_pages/column",
+               column_number: column_number,
+               groups: groups_by_column[column_number] || [] %>
   <% end %>
 </section>

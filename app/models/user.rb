@@ -33,6 +33,17 @@ class User < ApplicationRecord
     start_page_groups.in_column(column_number).ordered
   end
 
+  # Numbers a column's groups 0, 1, 2... closing any gaps. All of the positions
+  # land or none of them do. The mirror of StartPageGroup#reorder_positions!,
+  # which does the same job for a group's tiles.
+  def reorder_groups_in_column!(column_number)
+    transaction do
+      groups_in_column(column_number).each_with_index do |group, index|
+        group.update_column(:position, index) if group.position != index
+      end
+    end
+  end
+
   # Embedded in the page so the command bar can filter tiles without a round trip.
   def links_for_command_bar
     start_page_items.map do |item|

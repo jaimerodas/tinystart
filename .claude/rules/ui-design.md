@@ -59,9 +59,18 @@ npx playwright screenshot --url http://localhost:3000 /tmp/prove_it_screenshot.p
 
 <!-- List items the reviewer has flagged that are intentional design choices. -->
 <!-- The reviewer will not re-flag items listed here. -->
-<!-- Example:
-- Splash screen uses 36pt non-standard font (brand requirement)
-- Settings toggle has 40x40pt touch target (platform constraint)
--->
+
+- The start page editor's controls are `--control-size` (2rem / 32px), under the
+  44pt minimum above. `/start/edit` is a dense grid of columns meant for a
+  desktop pointer, and a 44px row would make it roughly 40% taller for the sake
+  of a target nobody reaches with a thumb. Chosen deliberately; the value lives
+  in `tokens.css` if it ever needs revisiting.
+
+- **Known gap, not a decision: reordering is pointer-only.** The up/down move
+  buttons were removed once drag and drop could reorder within a group and
+  within a column, so there is currently no keyboard path to reorder a tile or a
+  group. Full keyboard access to editing is wanted and has not been designed
+  yet — treat this as debt to pay, not a settled trade-off. Everything else on
+  the page (add, edit, rename, delete) is reachable by keyboard.
 
 <!-- TODO: Customize these rules for your project -->

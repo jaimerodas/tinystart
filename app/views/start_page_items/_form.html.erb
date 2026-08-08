@@ -1,0 +1,33 @@
+<%# The same form adds a link and edits one. The group is never asked for: when
+    adding, the form sits inside the group it belongs to. %>
+<%= form_with model: item,
+              url: item.persisted? ? start_item_path(item) : start_items_path,
+              class: "inline-form-body" do |form| %>
+  <%= render "shared/form_errors", record: item %>
+
+  <% unless item.persisted? %>
+    <%= hidden_field_tag :group_id, group.id %>
+  <% end %>
+
+  <%# data-pristine is what Cancel restores. After a rejected save the fields
+      hold the values that were refused, so "discard" cannot mean "reset to the
+      rendered value" — it has to mean the ones on disk. %>
+  <%= form.text_field :title,
+        class: "control",
+        required: true,
+        placeholder: "Title",
+        aria: { label: "Title" },
+        data: { inline_form_target: "field", pristine: item.title_in_database.to_s } %>
+
+  <%= form.url_field :url,
+        class: "control",
+        required: true,
+        placeholder: "https://example.com",
+        aria: { label: "URL" },
+        data: { pristine: item.url_in_database.to_s } %>
+
+  <div class="inline-form-actions">
+    <%= form.submit item.persisted? ? "Save" : "Add", class: "control" %>
+    <button type="button" class="control secondary" data-action="click->inline-form#close">Cancel</button>
+  </div>
+<% end %>

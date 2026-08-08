@@ -41,6 +41,122 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Failed to add tile/, flash[:alert])
   end
 
+  # --- update ---
+  #
+  # A tile owns its own title and url and there is no metadata to re-fetch, so
+  # a typo has to be fixable from the edit page.
+
+  test "should update item" do
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    patch start_item_path(item), params: {
+      start_page_item: { url: "https://example.com/uno", title: "Uno" }
+    }
+
+    assert_redirected_to edit_start_path
+    assert_equal "Tile updated.", flash[:notice]
+
+    item.reload
+    assert_equal "Uno", item.title
+    assert_equal "https://example.com/uno", item.url
+  end
+
+  test "should not update item with a malformed url" do
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    patch start_item_path(item), params: {
+      start_page_item: { url: "not a url", title: "One" }
+    }
+
+    assert_redirected_to edit_start_path
+    assert_match(/Failed to update tile/, flash[:alert])
+    assert_equal @item_url, item.reload.url
+  end
+
+  test "should not update item to a url another tile in the group already has" do
+    @group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 0)
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 1)
+
+    patch start_item_path(item), params: {
+      start_page_item: { url: "https://example.com/two", title: "One" }
+    }
+
+    assert_redirected_to edit_start_path
+    assert_equal @item_url, item.reload.url
+  end
+
+  test "should not let one user edit another user's tile" do
+    other_user = users(:two)
+    other_group = other_user.start_page_groups.create!(name: "Other Group", column: 1, position: 0)
+    other_item = other_group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 0)
+
+    patch start_item_path(other_item), params: { start_page_item: { title: "Mine now" } }
+
+    assert_response :not_found
+    assert_equal "Two", other_item.reload.title
+  end
+
+  # --- turbo stream responses ---
+
+  test "should replace the group and leave the add form open after creating an item" do
+    post start_items_path,
+         params: { start_page_item: { url: @item_url, title: "One" }, group_id: @group.id },
+         as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="group_#{@group.id}">}, response.body
+    # So a second link can be typed straight away
+    assert_match %r{data-inline-form-open-value="true"}, response.body
+  end
+
+  test "should re-render the add form with errors when a turbo stream create fails" do
+    @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    assert_no_difference("StartPageItem.count") do
+      post start_items_path,
+           params: { start_page_item: { url: @item_url, title: "Dupe" }, group_id: @group.id },
+           as: :turbo_stream
+    end
+
+    assert_response :unprocessable_content
+    assert_match %r{target="new_item_group_#{@group.id}"}, response.body
+    assert_match(/has already been taken/, response.body)
+  end
+
+  test "should replace only the item when a turbo stream updates it" do
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    patch start_item_path(item),
+          params: { start_page_item: { url: @item_url, title: "Uno" } },
+          as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="item_#{item.id}">}, response.body
+    assert_equal "Uno", item.reload.title
+  end
+
+  test "should keep the edit form open with its errors when an update fails" do
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    patch start_item_path(item),
+          params: { start_page_item: { url: "not a url", title: "One" } },
+          as: :turbo_stream
+
+    assert_response :unprocessable_content
+    assert_match %r{target="item_#{item.id}"}, response.body
+    assert_match(/must be a valid URL/, response.body)
+    assert_equal @item_url, item.reload.url
+  end
+
+  test "should replace the group when a turbo stream destroys an item" do
+    item = @group.start_page_items.create!(url: @item_url, title: "One", position: 0)
+
+    delete start_item_path(item), as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="group_#{@group.id}">}, response.body
+  end
+
   test "should destroy item" do
     item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
 

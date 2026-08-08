@@ -1,0 +1,17 @@
+<%# Replaced whole when a group is added, removed, or moved into it. The drag
+    and drop data attributes below are read by drag_drop_controller.js. %>
+<div class="start-page-column"
+     id="<%= column_dom_id(column_number) %>"
+     data-column="<%= column_number %>"
+     data-drag-drop-target="column"
+     data-action="dragover->drag-drop#dragOver drop->drag-drop#drop">
+  <h3>Column <%= column_number %></h3>
+
+  <% groups.each do |group| %>
+    <%= render "start_pages/group", group: group, column_number: column_number %>
+  <% end %>
+
+  <%= render "start_page_groups/new",
+             group: StartPageGroup.new,
+             column_number: column_number %>
+</div>

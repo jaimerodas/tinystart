@@ -167,6 +167,7 @@ label {
 input[type=text],
 input[type=email],
 input[type=password],
+input[type=url],
 textarea {
   font-family: inherit;
   font-size: 0.875em;

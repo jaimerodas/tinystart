@@ -82,12 +82,16 @@ Inherited deliberately from tinylinks; keep them.
 
 ### Frontend
 - Stimulus controllers in `app/javascript/controllers/`
-- Turbo Frames for async loading
+- **Turbo Streams, not Frames** — there are no Turbo Frames in the app. Writes
+  on `/start/edit` replace the smallest node that can have changed (`column_N`,
+  `group_N`, `item_N`); the ids are built by helpers in `StartPageHelper` so the
+  controllers, partials and tests all name them from one place.
 - CSS in `app/assets/stylesheets/` — `stylesheet_link_tag :app` bundles every
   file in that directory, so a new `.css` file needs no wiring
 - The design system pivots on one variable, `--base-accent` in `colors.css`,
   plus native `light-dark()`. Themes and colors are `data-theme` / `data-color`
-  attributes on `<html>`.
+  attributes on `<html>`. Sizing tokens live in `tokens.css` — `--control-size`
+  is the one height every control in the start page editor shares.
 
 ### Testing
 - Minitest + Mocha for mocking, SimpleCov for coverage

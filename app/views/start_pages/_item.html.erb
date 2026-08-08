@@ -1,0 +1,27 @@
+<%# The row and its edit form are both here from the start, so the pencil opens
+    the form without a round trip. open_form: :edit_item keeps it open after a
+    failed save so the errors stay with the values that caused them. %>
+<div class="start-page-item editable"
+     id="<%= item_dom_id(item) %>"
+     data-item-id="<%= item.id %>"
+     data-group-id="<%= group.id %>"
+     data-item-position="<%= item.position %>"
+     data-drag-drop-target="item"
+     data-controller="inline-form"
+     data-inline-form-open-value="<%= local_assigns[:open_form] == :edit_item %>">
+  <div class="item-row" data-inline-form-target="trigger">
+    <%= item_drag_handle %>
+    <span class="item-title"><%= item.saved_title %></span>
+    <div class="item-actions">
+      <%= item_edit_button %>
+      <%= item_delete_button(item) %>
+    </div>
+  </div>
+
+  <%= tag.div class: "inline-form",
+              hidden: true,
+              data: { inline_form_target: "form",
+                      action: "keydown.esc->inline-form#close" } do %>
+    <%= render "start_page_items/form", item: item, group: group %>
+  <% end %>
+</div>

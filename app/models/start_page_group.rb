@@ -10,6 +10,10 @@ class StartPageGroup < ApplicationRecord
 
   validate :column_within_user_limit
 
+  # The add-group form lives at the bottom of a column, so it says nothing
+  # about position — the column alone decides where the group lands.
+  before_validation :place_at_end_of_column, on: :create
+
   scope :in_column, ->(col) { where(column: col) }
   scope :ordered, -> { order(:column, :position) }
 
@@ -17,12 +21,44 @@ class StartPageGroup < ApplicationRecord
     start_page_items.order(:position)
   end
 
-  def move_to_column(new_column, new_position = nil)
-    return false if new_column > user.columns
+  # What the group is actually called. A rejected rename is still sitting in
+  # `name` so the form can show what was typed, but the header and the labels
+  # around it describe saved state, not an edit in flight.
+  def saved_name
+    name_in_database || name
+  end
 
-    self.column = new_column
-    self.position = new_position || next_position_in_column(new_column)
-    save
+  # Places this group at a position in a column, renumbering the groups it
+  # lands between and closing the gap it leaves behind. Nil position appends.
+  #
+  # Writing an absolute position without shifting anyone leaves two groups
+  # sharing it, and `ordered` then breaks the tie arbitrarily. That stayed
+  # invisible while the move buttons were the only caller — they only ever
+  # trade places with a neighbour — but a drag can drop a group anywhere.
+  def move_to_column(new_column, new_position = nil)
+    # The renumbering below uses update_column, which skips the numericality
+    # validation `save` used to enforce — so the bounds are checked here or not
+    # at all. A group parked outside column_range renders nowhere and has no UI
+    # left to bring it back.
+    new_column = new_column.to_i
+    return false unless new_column.positive? && new_column <= user.columns
+
+    source_column = column
+
+    transaction do
+      neighbours = user.start_page_groups.in_column(new_column).where.not(id: id).order(:position).to_a
+      index = new_position ? new_position.clamp(0, neighbours.length) : neighbours.length
+      neighbours.insert(index, self)
+
+      update_column(:column, new_column) if source_column != new_column
+      neighbours.each_with_index do |group, i|
+        group.update_column(:position, i) if group.position != i
+      end
+
+      user.reorder_groups_in_column!(source_column) if source_column != new_column
+    end
+
+    true
   end
 
   def move_item_to_position(item, new_position)
@@ -59,6 +95,12 @@ class StartPageGroup < ApplicationRecord
   end
 
   private
+
+  def place_at_end_of_column
+    return if position.present? || column.blank? || user.blank?
+
+    self.position = next_position_in_column(column)
+  end
 
   def next_position_in_column(col)
     max_position = user.start_page_groups.in_column(col).maximum(:position)

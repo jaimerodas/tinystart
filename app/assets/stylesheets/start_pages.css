@@ -245,109 +245,19 @@
   color: var(--mid-color);
 }
 
-.empty-group,
-.empty-column {
-  color: var(--mid-color);
-  font-style: italic;
-  text-align: center;
-  padding: 1em;
-}
-
-.add-group-section {
-  margin-bottom: 2em;
-  padding: 1em;
-  background: var(--bg-highlight-color);
-  border-radius: 0.5em;
-
-  h2 {
-    margin-top: 0;
-  }
-}
-
-.add-group-form {
-  display: flex;
-  gap: 0.5em;
-  align-items: end;
-
-  .form-field {
-    display: flex;
-    flex-direction: column;
-
-    &.name-field {
-      flex: 1;
-    }
-  }
-
-  label {
-    display: block;
-    margin-bottom: 0.25em;
-    font-size: 0.875em;
-  }
-
-  input[type="text"],
-  select {
-    width: 100%;
-    padding: 0.5em;
-    border: 1px solid var(--border-color);
-    border-radius: 0.25em;
-  }
-
-  input[type="submit"] {
-    margin: 0;
-  }
-}
-
 .group-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin: 0 0.5em 0.25em;
   border-bottom: 0.125rem solid var(--highlight-color);
-  gap: 0.25em;
+  gap: var(--control-gap);
+  min-height: var(--control-size);
 }
 
-.group-name-form {
+.group-name {
   flex: 1;
-
-  input[type=submit] {
-    font-size: 0.75em;
-    background: var(--highlight-color);
-    color: var(--highlight-contrast-color);
-    border: none;
-    border-radius: 0.25em;
-    cursor: pointer;
-    transition: 0.2s ease-out all;
-    width: 5em;
-    padding: 1em;
-    margin: 0;
-  }
-}
-
-.group-name-input {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-}
-
-.group-name-field {
-  flex: 1;
-  padding: 0.25em 0.5em;
-  border: 1px solid var(--border-color);
-  border-radius: 0.25em;
-  font-size: 1em;
   font-weight: 600;
-  background: var(--bg-color);
-  transition: 0.2s ease-out all;
-
-  &:focus {
-    outline: none;
-    border-color: var(--highlight-color);
-    box-shadow: 0 0 0 0.125em rgba(var(--highlight-color), 0.2);
-  }
-}
-
-.save-group-name:hover {
-  background: var(--link-hover-color);
+  overflow-wrap: break-word;
 }
 
 .start-page-group {
@@ -368,38 +278,54 @@
   }
 
   &.editable {
-    display: flex;
-    align-items: center;
-    padding: 0.5em;
     border: 1px solid transparent;
-    border-radius: 0.25em;
+    border-radius: var(--control-radius);
     transition: 0.2s ease-out all;
-    gap: 0.5em;
-
-    > span {
-      flex: 1;
-      overflow-wrap: break-word;
-    }
   }
 }
 
+/* The drop zone for a group's tiles. An empty group has nothing in here, and a
+   zero-height target cannot be dragged into — the placeholder text used to hold
+   it open by accident, so the floor has to be deliberate. */
+.group-items {
+  min-height: var(--control-size);
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--control-gap);
+  padding: 0.25em 0.5em;
+  min-height: var(--control-size);
+}
+
+.item-title {
+  flex: 1;
+  overflow-wrap: break-word;
+}
+
+/* One size for every control in the editor: handles, icon buttons, inputs and
+   submits alike. Anything that lands in a row with the others measures
+   --control-size and nothing else. */
 .drag-handle,
-.item-actions button,
-.group-actions button {
+.item-actions button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.75em;
-  height: 1.75em;
-  border-radius: 0.25em;
+  box-sizing: border-box;
+  flex: none;
+  height: var(--control-size);
+  border-radius: var(--control-radius);
   border: none;
   cursor: pointer;
   padding: 0;
 
   svg {
     display: block;
-    width: 1.75em;
-    height: 1.75em;
+    /* The icons are full-bleed in their viewBox, so the inset has to come from
+       here or the glyph runs edge to edge. */
+    width: 1.5rem;
+    height: 1.5rem;
     fill: var(--border-color);
     margin: 0;
   }
@@ -419,22 +345,142 @@
   }
 }
 
-.item-actions button,
-.group-actions button {
+.item-actions button {
   background: var(--bg-color);
   color: var(--fg-color);
   font-size: 1rem;
-  box-sizing: content-box;
 }
 
-.item-actions,
-.group-actions {
+.item-actions {
   display: flex;
-  gap: 0.25em;
+  gap: var(--control-gap);
 
   .remove-button:hover svg {
     fill: var(--danger-color);
   }
+}
+
+/* --- inline add / edit forms ---
+   The trigger and the form it guards are both in the DOM; inline_form_controller
+   swaps which one is hidden. */
+
+.inline-form-slot {
+  margin: 0.25em 0.5em 0;
+}
+
+.add-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  gap: 0.375em;
+  width: 100%;
+  height: var(--control-size);
+  padding: 0 0.5em;
+  font: inherit;
+  font-size: 0.875em;
+  color: var(--mid-color);
+  background: transparent;
+  border: 0.0625rem dashed var(--border-color);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+  transition: 0.2s ease-out all;
+
+  svg {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    /* The icons are solid chips with the glyph knocked out, so this has to
+       match the resting weight of the row's other buttons or the plus reads
+       as the heaviest thing in the column. */
+    fill: var(--border-color);
+    margin: 0;
+  }
+
+  &:hover {
+    color: var(--fg-color);
+    border-color: var(--highlight-color);
+    border-style: solid;
+
+    svg {
+      fill: var(--highlight-color);
+    }
+  }
+}
+
+.inline-form {
+  padding: 0.5em;
+  background: var(--bg-highlight-color);
+  border-radius: var(--control-radius);
+}
+
+.inline-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--control-gap);
+  max-width: none;
+}
+
+.inline-form-actions {
+  display: flex;
+  gap: var(--control-gap);
+}
+
+/* These beat forms.css's input[type=text] (0,1,1) on specificity rather than on
+   load order — the class-only .group-name-field this replaces lost that fight
+   and its padding never applied. */
+.start-page-grid input.control,
+.start-page-grid button.control {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control-size);
+  margin: 0;
+  padding: 0 0.5em;
+  font: inherit;
+  font-size: 0.875em;
+  border-radius: var(--control-radius);
+}
+
+.start-page-grid input[type="text"].control,
+.start-page-grid input[type="url"].control {
+  color: var(--fg-color);
+  background: var(--bg-color);
+  border: 0.0625rem solid var(--border-color);
+  outline: medium solid var(--bg-color);
+  transition: 0.3s ease outline;
+
+  &:focus {
+    border-color: var(--highlight-color);
+    outline: medium solid var(--highlight-color);
+  }
+}
+
+.start-page-grid input[type="submit"].control {
+  flex: 1;
+  font-weight: bold;
+  color: var(--button-fg-color);
+  background: var(--highlight-color);
+  border: none;
+  cursor: pointer;
+}
+
+.start-page-grid button.control.secondary {
+  flex: 1;
+  color: var(--fg-color);
+  background: var(--bg-color);
+  border: 0.0625rem solid var(--border-color);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-highlight-color);
+  }
+}
+
+.form-errors {
+  margin: 0 0 0.25em;
+  padding-left: 1.25em;
+  color: var(--danger-color);
+  font-size: 0.75em;
 }
 
 .potential-drop-target {

@@ -1,5 +1,11 @@
 require "application_system_test_case"
 
+# ⚠️ Reordering is not covered here, and cannot be. Dragging is the only way to
+# reorder a tile or a group since the move buttons were removed, and HTML5 drag
+# events do not respond to Selenium's synthetic mouse events. What the drag
+# posts to — `move` on both controllers, `move_item_to_position` and
+# `move_to_column` — is covered by the controller and model tests; the drag
+# handlers on top of that are verified by hand in a real browser.
 class StartPageIntegrationTest < ApplicationSystemTestCase
   def setup
     @user = users(:one)
@@ -23,47 +29,148 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     assert_selector ".start-page-grid[data-columns='5']"
   end
 
-  # The whole editing loop in one pass: make a group, put a tile in it, move the
-  # tile, then take it away again.
-  test "user can add a group, add a tile, reorder tiles and delete one" do
+  # The whole editing loop in one pass, each step done where the thing lives:
+  # a group from the foot of its column, tiles from the foot of the group.
+  # Every write swaps a node in place, so these wait on rendered state and the
+  # database rather than on a flash.
+  test "user can add a group, add tiles, edit them, reorder and delete" do
     visit edit_start_path
 
-    fill_in "Group Name", with: "Daily"
-    click_button "Add Group"
-    assert_text "Group created successfully"
-    dismiss_flash
-    assert_text "Daily"
+    within("#new_group_column_1") do
+      click_button "Add group"
+      fill_in "Group name", with: "Daily"
+      click_button "Add"
+    end
 
-    fill_in "Title", with: "GitHub"
-    fill_in "URL", with: "https://github.com"
-    click_button "Add Tile"
-    assert_text "Tile added"
-    dismiss_flash
-
-    fill_in "Title", with: "Apple"
-    fill_in "URL", with: "https://apple.com"
-    click_button "Add Tile"
-    assert_text "Tile added"
-    dismiss_flash
-
+    assert_selector "#column_1 .group-name", text: "Daily"
     group = @user.start_page_groups.find_by(name: "Daily")
+    assert_equal 1, group.column
+
+    within("#new_item_group_#{group.id}") do
+      click_button "Add link"
+      fill_in "Title", with: "GitHub"
+      fill_in "URL", with: "https://github.com"
+      click_button "Add"
+    end
+
+    assert_selector "#group_#{group.id} .item-title", text: "GitHub"
+
+    # The add form comes back open, so a second link needs no second click.
+    within("#new_item_group_#{group.id}") do
+      assert_selector ".inline-form"
+      fill_in "Title", with: "Apple"
+      fill_in "URL", with: "https://apple.com"
+      click_button "Add"
+    end
+
+    # Capybara retries the DOM, not the database, so wait on the render first.
+    assert_selector "#group_#{group.id} .item-title", text: "Apple"
     assert_equal [ "GitHub", "Apple" ], group.ordered_items.map(&:title)
 
-    # Move the second tile up. The drag handles need real pointer drags, so the
-    # move buttons are what a system test can drive; both hit the same endpoint.
-    within(".start-page-item", text: "Apple") { click_button "Move item up" }
-
-    # The grid is swapped in place, so wait on the rendered order rather than a flash.
-    assert_selector ".start-page-item:first-of-type", text: "Apple"
-    assert_equal [ "Apple", "GitHub" ], group.reload.ordered_items.map(&:title)
-
-    accept_confirm do
-      within(".start-page-item", text: "GitHub") { click_button "Remove tile" }
+    # Editing a tile opens the same form that added it, over its own row.
+    github = group.start_page_items.find_by(title: "GitHub")
+    within("#item_#{github.id}") do
+      click_button "Edit tile"
+      fill_in "Title", with: "GitHub Home"
+      click_button "Save"
     end
-    assert_text "Tile removed"
 
+    assert_selector "#item_#{github.id} .item-title", text: "GitHub Home"
+    assert_equal "GitHub Home", github.reload.title
+
+    within("#group_#{group.id} .group-heading") do
+      click_button "Rename group"
+      fill_in "Group name", with: "Every day"
+      click_button "Save"
+    end
+
+    assert_selector "#group_#{group.id} .group-name", text: "Every day"
+
+    # Reordering is drag-only now, and HTML5 drag events do not survive
+    # Selenium — the endpoint it posts to is covered in the controller and model
+    # tests instead. See the note at the top of this file.
+    accept_confirm do
+      within("#item_#{github.id}") { click_button "Remove tile" }
+    end
+
+    assert_no_selector "#item_#{github.id}"
     assert_equal [ "Apple" ], group.reload.ordered_items.map(&:title)
     assert_equal [ 0 ], group.ordered_items.map(&:position)
+  end
+
+  # A rejected save has to leave the form where it was, still holding what was
+  # typed, or the message has nothing to point at.
+  test "a rejected tile keeps its form open with the error and the typed values" do
+    group = @user.start_page_groups.create!(name: "Tools", column: 1, position: 0)
+    group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 0)
+
+    visit edit_start_path
+
+    within("#new_item_group_#{group.id}") do
+      click_button "Add link"
+      fill_in "Title", with: "Duplicate"
+      fill_in "URL", with: "https://github.com"
+      click_button "Add"
+
+      assert_selector ".form-errors", text: "Url has already been taken"
+      assert_field "Title", with: "Duplicate"
+      assert_selector ".inline-form"
+    end
+
+    assert_equal 1, group.reload.start_page_items.count
+  end
+
+  # The form keeps what was typed so the error has something to point at, but
+  # the row behind it describes what is actually saved — and Cancel has to
+  # discard the refused values, not adopt them.
+  test "a rejected edit leaves the row and a reopened form showing the saved values" do
+    group = @user.start_page_groups.create!(name: "Tools", column: 1, position: 0)
+    item = group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 0)
+
+    visit edit_start_path
+
+    within("#item_#{item.id}") do
+      click_button "Edit tile"
+      fill_in "Title", with: "Renamed"
+      # Passes the browser's own url validation, fails the model's
+      fill_in "URL", with: "ftp://example.com"
+      click_button "Save"
+
+      assert_selector ".form-errors", text: "Url must be a valid URL"
+      assert_field "Title", with: "Renamed"
+      # The row behind the open form still reports the saved title
+      assert_selector ".item-title", text: "GitHub", visible: :all
+
+      click_button "Cancel"
+      assert_no_selector ".form-errors"
+
+      click_button "Edit tile"
+      assert_field "Title", with: "GitHub"
+      assert_field "URL", with: "https://github.com"
+      assert_no_selector ".form-errors"
+    end
+
+    assert_equal "GitHub", item.reload.title
+    assert_equal "https://github.com", item.url
+  end
+
+  # Cancel closes the form and throws the edit away rather than saving it.
+  test "cancelling an edit leaves the tile alone" do
+    group = @user.start_page_groups.create!(name: "Tools", column: 1, position: 0)
+    item = group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 0)
+
+    visit edit_start_path
+
+    within("#item_#{item.id}") do
+      click_button "Edit tile"
+      fill_in "Title", with: "Something else"
+      click_button "Cancel"
+
+      assert_no_selector ".inline-form", visible: true
+      assert_selector ".item-title", text: "GitHub"
+    end
+
+    assert_equal "GitHub", item.reload.title
   end
 
   test "command bar filters the tiles on the page" do

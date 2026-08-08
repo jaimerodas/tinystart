@@ -1,0 +1,18 @@
+/* Sizing tokens. colors.css owns the palette; this owns the measurements that
+   more than one component has to agree on.
+
+   --control-size is the height every interactive control in the start page
+   editor shares. Before it existed that row held a 28px drag handle, a 41px
+   input and a 40px button, which is what made the layout look wobbly. */
+:root {
+  --control-size: 2rem;
+  --control-radius: 0.375rem;
+  --control-gap: 0.25rem;
+}
+
+/* The UA rule for [hidden] is display:none at the lowest possible specificity,
+   so any class that sets display — .group-header being flex, say — silently
+   beats it and the "hidden" element stays on screen. */
+[hidden] {
+  display: none !important;
+}

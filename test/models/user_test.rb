@@ -331,6 +331,39 @@ class UserTest < ActiveSupport::TestCase
     assert @user.update(theme_preference: "dark")
   end
 
+  # --- reorder_groups_in_column! ---
+
+  test "reorder_groups_in_column! closes the gap a deleted group leaves" do
+    first = @user.start_page_groups.create!(name: "First", column: 1, position: 0)
+    middle = @user.start_page_groups.create!(name: "Middle", column: 1, position: 1)
+    last = @user.start_page_groups.create!(name: "Last", column: 1, position: 2)
+    middle.destroy
+
+    @user.reorder_groups_in_column!(1)
+
+    assert_equal 0, first.reload.position
+    assert_equal 1, last.reload.position
+  end
+
+  test "reorder_groups_in_column! leaves the other columns alone" do
+    elsewhere = @user.start_page_groups.create!(name: "Elsewhere", column: 2, position: 3)
+    @user.start_page_groups.create!(name: "Here", column: 1, position: 1)
+
+    @user.reorder_groups_in_column!(1)
+
+    assert_equal 3, elsewhere.reload.position
+  end
+
+  # The check costs a write per group, so it must not run on positions that
+  # are already right.
+  test "reorder_groups_in_column! does not rewrite positions that are already correct" do
+    @user.start_page_groups.create!(name: "First", column: 1, position: 0)
+    @user.start_page_groups.create!(name: "Second", column: 1, position: 1)
+    StartPageGroup.any_instance.expects(:update_column).never
+
+    @user.reorder_groups_in_column!(1)
+  end
+
   test "destroying a user takes its groups and tiles with it" do
     group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
     group.start_page_items.create!(url: "https://example.com", title: "Example", position: 0)

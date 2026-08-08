@@ -1,0 +1,43 @@
+<%# open_form says which of this group's two forms the server wants showing:
+    :edit_group after a failed rename, :add_item after a link was added or a
+    failed add. Nil means both stay closed. %>
+<% open_form = local_assigns[:open_form] %>
+<section class="start-page-group editable"
+         id="<%= group_dom_id(group) %>"
+         data-group-id="<%= group.id %>"
+         data-group-column="<%= group.column %>"
+         data-drag-drop-target="group">
+  <div class="group-heading"
+       data-controller="inline-form"
+       data-inline-form-open-value="<%= open_form == :edit_group %>">
+    <div class="group-header" data-inline-form-target="trigger">
+      <%= group_drag_handle %>
+      <span class="group-name"><%= group.saved_name %></span>
+      <div class="item-actions">
+        <%= group_edit_button %>
+        <%= group_delete_button(group) %>
+      </div>
+    </div>
+
+    <%= tag.div class: "inline-form",
+                hidden: true,
+                data: { inline_form_target: "form",
+                        action: "keydown.esc->inline-form#close" } do %>
+      <%= render "start_page_groups/form", group: group, column_number: column_number %>
+    <% end %>
+  </div>
+
+  <div class="group-items"
+       data-group-id="<%= group.id %>"
+       data-action="dragover->drag-drop#dragItemOver drop->drag-drop#dropItem"
+       data-drag-drop-target="itemDropZone">
+    <% group.ordered_items.each do |item| %>
+      <%= render "start_pages/item", item: item, group: group %>
+    <% end %>
+  </div>
+
+  <%= render "start_page_items/new",
+             item: StartPageItem.new,
+             group: group,
+             open: open_form == :add_item %>
+</section>

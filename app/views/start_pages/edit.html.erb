@@ -1,49 +1,7 @@
 <main class="start-page">
   <%= start_page_header %>
 
-  <!-- Add Group Section -->
-  <section class="add-group-section">
-    <h2>Add New Group</h2>
-    <%= form_with model: StartPageGroup.new, url: start_groups_path, local: true, class: "add-group-form" do |form| %>
-      <div class="form-field name-field">
-        <%= form.label :name, "Group Name" %>
-        <%= form.text_field :name, placeholder: "Work Links", required: true %>
-      </div>
-      <div class="form-field">
-        <%= form.label :column, "Column" %>
-        <%= form.select :column, options_for_select(current_user.column_range.map { |c| [c, c] }, 1) %>
-      </div>
-      <%= form.hidden_field :position, value: 0 %>
-      <div class="form-field">
-        <%= form.submit "Add Group", class: "button" %>
-      </div>
-    <% end %>
-  </section>
-
-  <!-- Add a tile. TinyLinks had no equivalent: tiles came from its links list. -->
-  <% if current_user.start_page_groups.any? %>
-    <section class="add-item-section">
-      <h2>Add Tile</h2>
-      <%= form_with model: StartPageItem.new, url: start_items_path, local: true, class: "add-item-form" do |form| %>
-        <div class="form-field">
-          <%= form.label :title, "Title" %>
-          <%= form.text_field :title, placeholder: "GitHub", required: true %>
-        </div>
-        <div class="form-field url-field">
-          <%= form.label :url, "URL" %>
-          <%= form.url_field :url, placeholder: "https://github.com", required: true %>
-        </div>
-        <div class="form-field">
-          <%= label_tag :group_id, "Group" %>
-          <%= select_tag :group_id, options_from_collection_for_select(current_user.start_page_groups.ordered, :id, :name) %>
-        </div>
-        <div class="form-field">
-          <%= form.submit "Add Tile", class: "button" %>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
-
-  <!-- Groups Management Section -->
+  <%# Everything is edited where it lives: groups are added at the foot of a
+      column, links at the foot of a group. %>
   <%= render "grid", user: current_user, groups_by_column: @groups_by_column %>
 </main>

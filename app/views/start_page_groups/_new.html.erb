@@ -1,0 +1,15 @@
+<%# The add-group affordance at the foot of a column. A failed create replaces
+    this node alone, so the errors arrive without disturbing the rest of the page. %>
+<div id="<%= new_group_dom_id(column_number) %>"
+     class="inline-form-slot"
+     data-controller="inline-form"
+     data-inline-form-open-value="<%= local_assigns.fetch(:open, false) %>">
+  <%= add_group_trigger(column_number) %>
+
+  <%= tag.div class: "inline-form",
+              hidden: true,
+              data: { inline_form_target: "form",
+                      action: "keydown.esc->inline-form#close" } do %>
+    <%= render "start_page_groups/form", group: group, column_number: column_number %>
+  <% end %>
+</div>

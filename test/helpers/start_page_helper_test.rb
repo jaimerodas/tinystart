@@ -6,10 +6,7 @@ class StartPageHelperTest < ActionView::TestCase
   setup do
     @user = users(:one)
     @group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
-    @other_group = @user.start_page_groups.create!(name: "Play", column: 1, position: 1)
-    @last_group = @user.start_page_groups.create!(name: "Later", column: 1, position: 2)
     @item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
-    @item_two = @group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 1)
   end
 
   # --- start_page_header / actions ---
@@ -67,48 +64,6 @@ class StartPageHelperTest < ActionView::TestCase
     assert_equal "reconnect", tinylinks_federation_state(connection)
   end
 
-  # --- group_move_buttons ---
-
-  test "group_move_buttons renders only down button for first group" do
-    groups = @user.start_page_groups.in_column(1).ordered.to_a
-    html = group_move_buttons(@group, groups, 1)
-
-    assert_match %r{Move group down}, html
-    assert_no_match %r{Move group up}, html
-  end
-
-  test "group_move_buttons renders only up button for last group" do
-    groups = @user.start_page_groups.in_column(1).ordered.to_a
-    html = group_move_buttons(@last_group, groups, 1)
-
-    assert_match %r{Move group up}, html
-    assert_no_match %r{Move group down}, html
-  end
-
-  test "group_move_buttons renders both buttons for a middle group" do
-    groups = @user.start_page_groups.in_column(1).ordered.to_a
-    html = group_move_buttons(@other_group, groups, 1)
-
-    assert_match %r{Move group up}, html
-    assert_match %r{Move group down}, html
-  end
-
-  # --- item_move_buttons ---
-
-  test "item_move_buttons renders only down button for first item" do
-    html = item_move_buttons(@item, @group)
-
-    assert_match %r{Move item down}, html
-    assert_no_match %r{Move item up}, html
-  end
-
-  test "item_move_buttons renders only up button for last item" do
-    html = item_move_buttons(@item_two, @group)
-
-    assert_match %r{Move item up}, html
-    assert_no_match %r{Move item down}, html
-  end
-
   # --- delete buttons ---
 
   test "group_delete_button renders a delete form with confirm message" do
@@ -148,14 +103,51 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{data-drag-drop-target="itemHandle"}, html
   end
 
-  # --- group_name_form ---
+  # --- edit buttons ---
+  #
+  # These open a form that is already on the page rather than submitting one,
+  # so they are plain buttons, not button_to forms.
 
-  test "group_name_form renders a patch form for updating the group name" do
-    html = group_name_form(@group)
+  test "group_edit_button renders a plain button that opens the inline form" do
+    html = group_edit_button
 
-    assert_match %r{class="group-name-form"}, html
-    assert_match %r{action="#{start_group_path(@group)}"}, html
-    assert_match %r{value="#{@group.name}"}, html
-    assert_match %r{name="_method" value="patch"}, html
+    assert_match %r{<button}, html
+    assert_match %r{type="button"}, html
+    assert_match %r{class="edit-button"}, html
+    assert_match %r{Rename group}, html
+    assert_match %r{click-&gt;inline-form#open}, html
+    assert_no_match %r{<form}, html
+  end
+
+  test "item_edit_button renders a plain button that opens the inline form" do
+    html = item_edit_button
+
+    assert_match %r{type="button"}, html
+    assert_match %r{class="edit-button"}, html
+    assert_match %r{Edit tile}, html
+    assert_match %r{click-&gt;inline-form#open}, html
+    assert_no_match %r{<form}, html
+  end
+
+  # --- add triggers ---
+
+  # The trigger is the element that hides when the form opens, so it carries
+  # the target itself. An edit button only fires the action — the row it sits
+  # in is what gets replaced.
+  test "add_group_trigger names the column it will add to and is the trigger" do
+    html = add_group_trigger(2)
+
+    assert_match %r{class="add-trigger"}, html
+    assert_match %r{Add a group to column 2}, html
+    assert_match %r{click-&gt;inline-form#open}, html
+    assert_match %r{data-inline-form-target="trigger"}, html
+  end
+
+  test "add_item_trigger names the group it will add to" do
+    html = add_item_trigger(@group)
+
+    assert_match %r{class="add-trigger"}, html
+    assert_match %r{Add a link to Work}, html
+    assert_match %r{click-&gt;inline-form#open}, html
   end
 end

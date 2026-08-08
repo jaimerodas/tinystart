@@ -7,14 +7,20 @@ class StartPageItemsController < ApplicationController
   def create
     @group = current_user.start_page_groups.find(params[:group_id])
 
-    @item = @group.start_page_items.build(
-      item_params.merge(position: @group.start_page_items.count)
-    )
+    # Position comes from the group, not the form — see place_at_end_of_group.
+    @item = @group.start_page_items.build(item_params)
 
     if @item.save
-      redirect_to edit_start_path, notice: "Tile added."
+      respond_to do |format|
+        format.html { redirect_to edit_start_path, notice: "Tile added." }
+        # Left open so the next link can be typed straight away
+        format.turbo_stream { render turbo_stream: group_stream(@group, open_form: :add_item) }
+      end
     else
-      redirect_to edit_start_path, alert: "Failed to add tile: #{@item.errors.full_messages.join(', ')}"
+      respond_to do |format|
+        format.html { redirect_to edit_start_path, alert: "Failed to add tile: #{@item.errors.full_messages.join(', ')}" }
+        format.turbo_stream { render turbo_stream: new_item_stream(@item, @group), status: :unprocessable_content }
+      end
     end
   end
 
@@ -22,9 +28,17 @@ class StartPageItemsController < ApplicationController
   # There is no metadata to re-fetch here, so a typo'd title has to be fixable.
   def update
     if @item.update(item_params)
-      redirect_to edit_start_path, notice: "Tile updated."
+      respond_to do |format|
+        format.html { redirect_to edit_start_path, notice: "Tile updated." }
+        format.turbo_stream { render turbo_stream: item_stream(@item) }
+      end
     else
-      redirect_to edit_start_path, alert: "Failed to update tile: #{@item.errors.full_messages.join(', ')}"
+      respond_to do |format|
+        format.html { redirect_to edit_start_path, alert: "Failed to update tile: #{@item.errors.full_messages.join(', ')}" }
+        format.turbo_stream do
+          render turbo_stream: item_stream(@item, open_form: :edit_item), status: :unprocessable_content
+        end
+      end
     end
   end
 
@@ -36,7 +50,11 @@ class StartPageItemsController < ApplicationController
       @item.destroy
       group.reorder_positions!
     end
-    redirect_to edit_start_path, notice: "Tile removed."
+
+    respond_to do |format|
+      format.html { redirect_to edit_start_path, notice: "Tile removed." }
+      format.turbo_stream { render turbo_stream: group_stream(group.reload) }
+    end
   end
 
   # POST /start/items/1/visit
@@ -53,10 +71,9 @@ class StartPageItemsController < ApplicationController
     new_position = params[:position].to_i
 
     if group_id.present?
-      # Moving to a different group
+      # Moving to a different group. move_to_group renumbers both groups itself.
       new_group = current_user.start_page_groups.find(group_id)
       success = @item.move_to_group(new_group, new_position)
-      @item.reorder_group_positions! if success
     else
       # Moving within the same group
       success = @item.start_page_group.move_item_to_position(@item, new_position)
@@ -78,6 +95,32 @@ class StartPageItemsController < ApplicationController
   end
 
   private
+
+  # A group owns the tile rows and their positions, so anything that adds,
+  # removes or reorders a tile redraws the group rather than the tile.
+  def group_stream(group, open_form: nil)
+    turbo_stream.replace(
+      helpers.group_dom_id(group),
+      partial: "start_pages/group",
+      locals: { group: group, column_number: group.column, open_form: open_form }
+    )
+  end
+
+  def item_stream(item, open_form: nil)
+    turbo_stream.replace(
+      helpers.item_dom_id(item),
+      partial: "start_pages/item",
+      locals: { item: item, group: item.start_page_group, open_form: open_form }
+    )
+  end
+
+  def new_item_stream(item, group)
+    turbo_stream.replace(
+      helpers.new_item_dom_id(group),
+      partial: "start_page_items/new",
+      locals: { item: item, group: group, open: true }
+    )
+  end
 
   def set_item
     @item = current_user.start_page_items.find(params[:id])

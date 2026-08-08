@@ -1,15 +1,4 @@
 module StartPageHelper
-  def group_move_buttons(group, groups_in_column, column_number)
-    create_move_buttons(
-      item: group,
-      collection: groups_in_column,
-      up_params: { column: column_number, position: group.position - 1 },
-      down_params: { column: column_number, position: group.position + 1 },
-      path_method: :move_start_group_path,
-      item_type: "group"
-    )
-  end
-
   def start_page_header
     actions = request.fullpath.include?("edit") ? start_page_edit_actions : start_page_show_actions
     content_tag :header, class: "start-page-header" do
@@ -40,17 +29,6 @@ module StartPageHelper
     return "off" if connection.nil?
 
     connection.needs_reconnect? ? "reconnect" : "active"
-  end
-
-  def item_move_buttons(item, group)
-    create_move_buttons(
-      item: item,
-      collection: group.ordered_items,
-      up_params: { position: item.position - 1 },
-      down_params: { position: item.position + 1 },
-      path_method: :move_start_item_path,
-      item_type: "item"
-    )
   end
 
   def group_delete_button(group)
@@ -87,38 +65,65 @@ module StartPageHelper
     )
   end
 
-  def group_name_form(group)
-    form_with model: group, url: start_group_path(group), method: :patch, local: true, class: "group-name-form" do |form|
-      content_tag(:div, class: "group-name-input") do
-        concat(form.text_field(:name, value: group.name, required: true, class: "group-name-field"))
-        concat(form.submit("Save", class: "save-group-name"))
-      end
-    end
+  # Both edit buttons open a form that is already on the page rather than
+  # submitting one, so they are plain buttons — button_to would wrap them in a
+  # form of their own.
+  def group_edit_button
+    create_edit_button(title: "Rename group")
+  end
+
+  def item_edit_button
+    create_edit_button(title: "Edit tile")
+  end
+
+  def add_group_trigger(column_number)
+    create_add_trigger(label: "Add group", title: "Add a group to column #{column_number}")
+  end
+
+  def add_item_trigger(group)
+    create_add_trigger(label: "Add link", title: "Add a link to #{group.saved_name}")
+  end
+
+  # Turbo Stream targets. Every write on the edit page replaces the smallest
+  # node that can have changed, so these ids are named in the controllers, the
+  # partials and the tests alike — they live here so they only exist once.
+  def column_dom_id(column_number)
+    "column_#{column_number}"
+  end
+
+  def group_dom_id(group)
+    "group_#{group.id}"
+  end
+
+  def item_dom_id(item)
+    "item_#{item.id}"
+  end
+
+  def new_group_dom_id(column_number)
+    "new_group_column_#{column_number}"
+  end
+
+  def new_item_dom_id(group)
+    "new_item_group_#{group.id}"
   end
 
   private
 
-  def create_move_buttons(item:, collection:, up_params:, down_params:, path_method:, item_type:)
-    buttons = []
-    item_index = collection.index(item)
+  def create_edit_button(title:)
+    content_tag(:button, icon("pencil"),
+                type: "button",
+                class: "edit-button",
+                title: title,
+                data: { action: "click->inline-form#open" })
+  end
 
-    # Move up button (unless first in collection)
-    unless item_index == 0
-      buttons << button_to(send(path_method, item),
-                          method: :post,
-                          params: up_params,
-                          title: "Move #{item_type} up") { icon("up") }
-    end
-
-    # Move down button (unless last in collection)
-    unless item_index == collection.count - 1
-      buttons << button_to(send(path_method, item),
-                          method: :post,
-                          params: down_params,
-                          title: "Move #{item_type} down") { icon("down") }
-    end
-
-    safe_join(buttons)
+  def create_add_trigger(label:, title:)
+    content_tag(:button,
+                safe_join([ icon("plus"), content_tag(:span, label) ]),
+                type: "button",
+                class: "add-trigger",
+                title: title,
+                data: { action: "click->inline-form#open", inline_form_target: "trigger" })
   end
 
   def create_delete_button(item:, path:, title:, confirm_message:)
