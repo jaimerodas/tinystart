@@ -1,12 +1,12 @@
 require "net/http"
 
-# Talks to the tinylinks API on behalf of the command bar.
+# Talks to a connected app's API on behalf of the command bar.
 #
 # Everything here degrades to an empty result: federated search is a bonus on
-# top of the local tiles, so a slow or absent tinylinks must never break the
-# start page or hold up a keystroke. A rejected token is the one failure worth
+# top of the local tiles, so a slow or absent app must never break the start
+# page or hold up a keystroke. A rejected token is the one failure worth
 # surfacing, so it's recorded on the connection for the UI to pick up.
-class TinylinksClient
+class ConnectionClient
   MAX_RESULTS = 10
   OPEN_TIMEOUT = 2
   READ_TIMEOUT = 4
@@ -29,11 +29,11 @@ class TinylinksClient
       { id: link["id"], title: link["title"], url: link["url"] }
     end
   rescue JSON::ParserError => e
-    log_failure("tinylinks returned something that isn't JSON: #{e.message}")
+    log_failure("#{host} returned something that isn't JSON: #{e.message}")
     []
   end
 
-  # Fire-and-forget: true when tinylinks acknowledged, false otherwise.
+  # Fire-and-forget: true when the other app acknowledged, false otherwise.
   def record_visit(link_id)
     return false if @connection.nil? || link_id.blank?
 
@@ -71,10 +71,10 @@ class TinylinksClient
 
     handle(response)
   rescue Net::OpenTimeout, Net::ReadTimeout
-    log_failure("tinylinks timed out")
+    log_failure("#{host} timed out")
     nil
   rescue SocketError, SystemCallError, OpenSSL::SSL::SSLError => e
-    log_failure("could not reach tinylinks: #{e.class}")
+    log_failure("could not reach #{host}: #{e.class}")
     nil
   end
 
@@ -83,25 +83,32 @@ class TinylinksClient
     when 200..299
       response
     when 401
-      needs_reconnect("tinylinks rejected the token — reconnect to restore search")
+      needs_reconnect("#{host} rejected the token — reconnect to restore search")
     when 403
-      needs_reconnect("the tinylinks token is missing a scope — reconnect to restore search")
+      needs_reconnect("the #{host} token is missing a scope — reconnect to restore search")
     else
-      # A bad gateway or a 500 is tinylinks' problem, not a credential problem;
-      # asking the user to reconnect would be wrong.
-      log_failure("tinylinks answered #{response.code}")
+      # A bad gateway or a 500 is the other app's problem, not a credential
+      # problem; asking the user to reconnect would be wrong.
+      log_failure("#{host} answered #{response.code}")
       nil
     end
   end
 
+  # What the messages call the other end. These are read by a person — on the
+  # start page for a rejected token, in the log otherwise — so they name the
+  # host rather than a product.
+  def host
+    @connection&.hostname || "the connected app"
+  end
+
   def needs_reconnect(message)
-    Rails.logger.warn("[TinylinksClient] #{message}")
+    Rails.logger.warn("[ConnectionClient] #{message}")
     @connection.record_failure!(message)
     nil
   end
 
   def log_failure(message)
-    Rails.logger.warn("[TinylinksClient] #{message}")
+    Rails.logger.warn("[ConnectionClient] #{message}")
     nil
   end
 end

@@ -10,7 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_09_120000) do
+  create_table "connections", force: :cascade do |t|
+    t.string "base_url", null: false
+    t.datetime "created_at", null: false
+    t.string "last_error"
+    t.datetime "last_failed_at"
+    t.string "scopes"
+    t.string "token", null: false
+    t.datetime "token_expires_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_connections_on_user_id", unique: true
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -46,19 +59,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_210000) do
     t.index ["start_page_group_id"], name: "index_start_page_items_on_start_page_group_id"
   end
 
-  create_table "tinylinks_connections", force: :cascade do |t|
-    t.string "base_url", null: false
-    t.datetime "created_at", null: false
-    t.string "last_error"
-    t.datetime "last_failed_at"
-    t.string "scopes"
-    t.string "token", null: false
-    t.datetime "token_expires_at"
-    t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.index ["user_id"], name: "index_tinylinks_connections_on_user_id", unique: true
-  end
-
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
     t.boolean "approved", default: false, null: false
@@ -72,8 +72,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_210000) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "connections", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "start_page_groups", "users"
   add_foreign_key "start_page_items", "start_page_groups"
-  add_foreign_key "tinylinks_connections", "users"
 end

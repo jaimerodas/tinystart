@@ -64,7 +64,10 @@ npx playwright screenshot --url http://localhost:3000 /tmp/prove_it_screenshot.p
   44pt minimum above. `/start/edit` is a dense grid of columns meant for a
   desktop pointer, and a 44px row would make it roughly 40% taller for the sake
   of a target nobody reaches with a thumb. Chosen deliberately; the value lives
-  in `tokens.css` if it ever needs revisiting.
+  in `tokens.css` if it ever needs revisiting. This covers the toolbar above the
+  grid too — the column-count select is sized to `--control-size` so the toolbar
+  row's height is fixed by the control rather than by the legend, which is what
+  keeps the grid from shifting when the legend swaps halves.
 
 - **Known gap, not a decision: a keyboard move is silent.** Every action on
   `/start/edit` is now reachable by keyboard (see the model below), but the

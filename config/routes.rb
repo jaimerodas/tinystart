@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   resource :session
 
-  resource :start, controller: :start_pages, only: [ :show, :edit ] do
+  resource :start, controller: :start_pages, only: [ :show, :edit, :update ] do
     resources :groups, controller: :start_page_groups, only: [ :create, :update, :destroy ] do
       member { post :move }
     end
@@ -19,8 +19,11 @@ Rails.application.routes.draw do
 
   namespace :settings do
     resource :password, only: [ :edit, :update ]
-    resource :tinylinks, only: [ :show, :create, :destroy ],
-             controller: "tinylinks_connections" do
+    # Singular resource — there is one connection per user — but named in the
+    # plural, because that is what the section is called and what the URL
+    # should read.
+    resource :connections, only: [ :show, :create, :destroy ],
+             controller: "connections" do
       get :poll
     end
 

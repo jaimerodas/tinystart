@@ -1,0 +1,9 @@
+<%# How wide the grid is, edited where the grid is. A shrink can be refused —
+    it would strand groups off the end — and this is the only page where the
+    group the refusal names is on screen. %>
+<%= form_with model: user, url: start_path, method: :patch,
+      id: column_count_dom_id, class: "column-count",
+      data: { controller: "auto-submit", action: "change->auto-submit#submit" } do |form| %>
+  <%= form.label :columns, "Columns" %>
+  <%= form.select :columns, options_for_select((1..6).to_a, user.columns) %>
+<% end %>

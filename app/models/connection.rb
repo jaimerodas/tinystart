@@ -1,13 +1,13 @@
-# One user's credential for tinylinks, obtained through its device flow
-# (Settings → TinyLinks).
+# One user's credential for another app, obtained through that app's device
+# flow (Settings → Connections).
 #
-# Scoped to a user on purpose: a token grants access to exactly one tinylinks
-# account, so it must only ever serve the person who approved it.
+# Scoped to a user on purpose: a token grants access to exactly one account on
+# the other app, so it must only ever serve the person who approved it.
 #
 # Failures are recorded here so the start page can say "reconnect" instead of
 # quietly showing no federated results — a lapsed token and an empty archive
 # look identical otherwise.
-class TinylinksConnection < ApplicationRecord
+class Connection < ApplicationRecord
   belongs_to :user
 
   validates :base_url, presence: true

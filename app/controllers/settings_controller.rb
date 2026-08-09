@@ -14,6 +14,8 @@ class SettingsController < ApplicationController
   private
 
   def user_params
-    params.require(:user).permit(:theme_preference, :color_preference, :columns)
+    # No :columns — StartPagesController#update owns it, so that a refused
+    # shrink can answer on the page showing the groups it names.
+    params.require(:user).permit(:theme_preference, :color_preference)
   end
 end

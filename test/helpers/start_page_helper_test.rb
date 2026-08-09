@@ -45,23 +45,23 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{href="#{settings_path}"}, actions[1]
   end
 
-  # --- tinylinks_federation_state ---
+  # --- federation_state ---
 
-  test "tinylinks_federation_state is off without a connection" do
-    assert_equal "off", tinylinks_federation_state(nil)
+  test "federation_state is off without a connection" do
+    assert_equal "off", federation_state(nil)
   end
 
-  test "tinylinks_federation_state is active for a healthy connection" do
-    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+  test "federation_state is active for a healthy connection" do
+    connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
 
-    assert_equal "active", tinylinks_federation_state(connection)
+    assert_equal "active", federation_state(connection)
   end
 
-  test "tinylinks_federation_state is reconnect once the token was rejected" do
-    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
-    connection.record_failure!("tinylinks rejected the token")
+  test "federation_state is reconnect once the token was rejected" do
+    connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
+    connection.record_failure!("links.example.com rejected the token")
 
-    assert_equal "reconnect", tinylinks_federation_state(connection)
+    assert_equal "reconnect", federation_state(connection)
   end
 
   # --- delete buttons ---

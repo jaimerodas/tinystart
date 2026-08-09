@@ -1,29 +1,31 @@
-<% content_for :title, "TinyLinks" %>
+<% content_for :title, "Connections" %>
 
 <main>
   <nav class="dual-nav">
     <ol class="breadcrumbs">
       <li><%= link_to "Settings", settings_path %></li>
-      <li>TinyLinks</li>
+      <li>Connections</li>
     </ol>
 
-    <%= settings_secondary_nav("TinyLinks") %>
+    <%= settings_secondary_nav("Connections") %>
   </nav>
 
-  <section class="user-section" id="tinylinks-connection">
-    <h2>Search federation</h2>
-    <p>The command bar searches your tiles instantly, then asks TinyLinks for
-      matches from your bookmark archive. That needs a token, which TinyLinks
-      grants by asking you to approve this app.</p>
+  <%# No heading here: the tab, the breadcrumb and the title all say
+      Connections, so a fourth one would only repeat them. The paragraph does
+      the explaining a heading can't. %>
+  <section class="user-section" id="connection-settings">
+    <p>Connect other apps so the command bar can search them alongside your
+      tiles. Connecting asks the other app to approve TinyStart, which hands
+      back a token stored here.</p>
 
     <% if @pending %>
       <%# Waiting on approval in the other tab. The poller flips this itself. %>
       <div class="connection-status pending"
            data-controller="device-flow"
-           data-device-flow-url-value="<%= poll_settings_tinylinks_path %>">
+           data-device-flow-url-value="<%= poll_settings_connections_path %>">
         <p>
           <strong>Waiting for approval.</strong>
-          Approve this app on TinyLinks, then come back — this page updates on its own.
+          Approve TinyStart in the other app, then come back — this page updates on its own.
         </p>
         <p>
           <%= link_to "Open the approval page", @pending["verification_url"],
@@ -45,9 +47,9 @@
           uses it, so it only lapses after a long silence.</p>
       </div>
 
-      <%= button_to "Disconnect", settings_tinylinks_path, method: :delete,
+      <%= button_to "Disconnect", settings_connections_path, method: :delete,
             class: "danger",
-            data: { turbo_confirm: "Disconnect from TinyLinks? Federated search will stop working." } %>
+            data: { turbo_confirm: "Disconnect #{@connection.hostname}? Its results will stop appearing in the command bar." } %>
 
     <% else %>
       <% if @connection&.needs_reconnect? %>
@@ -56,11 +58,11 @@
         </div>
       <% end %>
 
-      <%= form_with url: settings_tinylinks_path, method: :post, class: "connect-form" do |form| %>
+      <%= form_with url: settings_connections_path, method: :post, class: "connect-form" do |form| %>
         <div class="field">
-          <%= form.label :base_url, "TinyLinks address" %>
+          <%= form.label :base_url, "App address" %>
           <%= form.url_field :base_url,
-                value: @connection&.base_url || Settings::TinylinksConnectionsController::DEFAULT_BASE_URL,
+                value: @connection&.base_url || Settings::ConnectionsController::DEFAULT_BASE_URL,
                 required: true %>
         </div>
         <%= form.submit "Connect" %>

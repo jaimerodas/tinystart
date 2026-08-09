@@ -35,6 +35,44 @@
   cursor: default;
 }
 
+/* How to drive the grid on the left, how wide it is on the right. The row's
+   height is set by the --control-size select, not by the legend, which is what
+   guarantees the grid below cannot shift when the legend swaps halves. */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+/* The one control on this page outside the grid, so it borrows the grid's
+   sizing rather than the settings forms'. forms.css gives a bare select 0.75em
+   padding, which is more than twice this row's line height. */
+.column-count {
+  display: flex;
+  align-items: center;
+  gap: var(--control-gap);
+  margin: 0;
+  /* forms.css gives every form width: 100%, which would take the whole row and
+     push the legend onto a second line. This one is as wide as its select. */
+  width: auto;
+  max-width: none;
+  color: var(--mid-color);
+  font-size: 0.75em;
+
+  label {
+    margin: 0;
+  }
+
+  select {
+    height: var(--control-size);
+    padding: 0 0.5em;
+    border-radius: var(--control-radius);
+    font-size: 1em;
+  }
+}
+
 /* Only one of the two halves is ever shown; both are a single line, so the
    grid below does not move when they swap. */
 .keyboard-legend {

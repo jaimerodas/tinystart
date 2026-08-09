@@ -7,7 +7,9 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :start_page_groups, dependent: :destroy
   has_many :start_page_items, through: :start_page_groups
-  has_one :tinylinks_connection, dependent: :destroy
+  # Reads like a database handle but isn't one: ActiveRecord dropped its
+  # #connection instance method in Rails 8, so this name is free.
+  has_one :connection, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :theme_preference, inclusion: { in: %w[system light dark], message: "%{value} is not a valid theme" }

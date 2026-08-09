@@ -12,8 +12,8 @@ class VisitsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_url
   end
 
-  test "forwards the visit to tinylinks and answers 204" do
-    TinylinksClient.any_instance.expects(:record_visit).with("7").returns(true)
+  test "forwards the visit to the connected app and answers 204" do
+    ConnectionClient.any_instance.expects(:record_visit).with("7").returns(true)
 
     post visits_url, params: { link_id: 7 }
 
@@ -22,8 +22,8 @@ class VisitsControllerTest < ActionDispatch::IntegrationTest
 
   # Tracking is fire-and-forget: a failure upstream must not surface as an error
   # on a click the user already made.
-  test "still answers 204 when tinylinks cannot be reached" do
-    TinylinksClient.any_instance.stubs(:record_visit).returns(false)
+  test "still answers 204 when the connected app cannot be reached" do
+    ConnectionClient.any_instance.stubs(:record_visit).returns(false)
 
     post visits_url, params: { link_id: 7 }
 

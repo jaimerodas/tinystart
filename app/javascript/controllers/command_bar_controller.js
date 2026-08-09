@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
-import { trackTileVisit, trackTinylinksVisit } from "lib/track_visit"
+import { trackTileVisit, trackFederatedVisit } from "lib/track_visit"
 
 export default class extends Controller {
   static targets = ["input", "suggestions"]
-  // federation: "active" federates to tinylinks, "reconnect" says the token was
+  // federation: "active" federates to the connected app, "reconnect" says the token was
   // rejected, anything else (no connection) keeps the bar purely local.
   // source: the host those results come from, which names the section.
   static values = { links: Array, federation: String, source: String }
@@ -31,7 +31,7 @@ export default class extends Controller {
     this.startPageLinks = this.filterLocalLinks(query)
     this.renderSuggestions()
 
-    // Nothing to ask tinylinks, or nothing it would answer: the local tiles are
+    // Nothing to ask the connected app, or nothing it would answer: the local tiles are
     // the whole result.
     if (this.federationValue !== "active") return
 
@@ -244,11 +244,11 @@ export default class extends Controller {
 
   selectSuggestion(index, openInNewTab) {
     const link = this.allResults[index];
-    // Tiles are ours; everything under "All Links" belongs to tinylinks.
+    // Tiles are ours; everything under "All Links" belongs to the connected app.
     if (link.section === "startPage") {
       trackTileVisit(link.id);
     } else {
-      trackTinylinksVisit(link.id);
+      trackFederatedVisit(link.id);
     }
     this.navigateToUrlOrSearch(link.url, openInNewTab);
   }

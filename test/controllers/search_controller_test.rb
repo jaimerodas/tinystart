@@ -14,7 +14,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
 
   test "returns the client's results as a bare array" do
     results = [ { id: 1, title: "Alpha", url: "https://a.example" } ]
-    TinylinksClient.any_instance.stubs(:search).returns(results)
+    ConnectionClient.any_instance.stubs(:search).returns(results)
 
     get search_url(format: :json), params: { q: "alpha" }
 
@@ -26,8 +26,8 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
 
   # The command bar treats an empty list as "no federated results" and keeps
   # showing local tiles, so every downstream failure has to land here as [].
-  test "returns an empty array when tinylinks is unreachable" do
-    TinylinksClient.any_instance.stubs(:search).returns([])
+  test "returns an empty array when the connected app is unreachable" do
+    ConnectionClient.any_instance.stubs(:search).returns([])
 
     get search_url(format: :json), params: { q: "alpha" }
 
@@ -36,7 +36,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "returns an empty array when the app was never connected" do
-    TinylinksConnection.delete_all
+    Connection.delete_all
 
     get search_url(format: :json), params: { q: "alpha" }
 
@@ -44,16 +44,16 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], JSON.parse(response.body)
   end
 
-  # A token grants access to exactly one tinylinks account. Before connections
+  # A token grants access to exactly one account on the other app. Before connections
   # were scoped to a user, any authenticated user's search reached whichever
   # connection happened to exist — leaking one archive into another's command bar.
   test "does not use another user's connection" do
-    users(:two).create_tinylinks_connection!(
+    users(:two).create_connection!(
       base_url: "https://links.example.com", token: "user-twos-token"
     )
     # @user (users(:one)) has no connection of their own, so the client must be
     # handed nil — not the row that happens to exist.
-    TinylinksClient.expects(:new).with(nil).returns(stub(search: []))
+    ConnectionClient.expects(:new).with(nil).returns(stub(search: []))
 
     get search_url(format: :json), params: { q: "anything" }
 
@@ -62,8 +62,8 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "uses your own connection when you have one" do
-    @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
-    TinylinksClient.any_instance.stubs(:search).returns([ { id: 1, title: "Mine", url: "https://m.example" } ])
+    @user.create_connection!(base_url: "https://links.example.com", token: "mine")
+    ConnectionClient.any_instance.stubs(:search).returns([ { id: 1, title: "Mine", url: "https://m.example" } ])
 
     get search_url(format: :json), params: { q: "anything" }
 

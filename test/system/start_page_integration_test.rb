@@ -13,20 +13,34 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   end
 
   # There is nothing to create any more — the grid is there from signup, and the
-  # only thing to configure is how wide it is.
-  test "user can change the start page column count from settings" do
-    visit start_path
+  # only thing to configure is how wide it is. That happens in the editor's
+  # toolbar, with no submit button: picking the value is the whole interaction.
+  test "user can change the column count from the editor" do
+    visit edit_start_path
     assert_selector ".start-page-grid[data-columns='3']"
 
-    visit settings_path
-    select "5", from: "Start Page Columns"
-    click_button "Update Preferences"
+    select "5", from: "Columns"
 
-    assert_current_path settings_path
-    assert_text "Settings updated successfully"
+    assert_selector ".start-page-grid[data-columns='5']"
+    assert_selector "#column_count select option[selected]", text: "5", visible: :all
 
     visit start_path
     assert_selector ".start-page-grid[data-columns='5']"
+  end
+
+  # The whole reason the control moved: a shrink can be refused, and the group
+  # the refusal names is only on screen here.
+  test "a shrink that would strand a group is refused on the page that shows it" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+
+    visit edit_start_path
+    select "1", from: "Columns"
+
+    assert_selector "#start_page_notice", text: /that would hide "Reading"/
+    assert_selector ".start-page-grid[data-columns='3']"
+    # A refusal redraws rather than only reporting, so the select goes back too.
+    assert_selector "#column_count select option[selected]", text: "3", visible: :all
+    assert_equal 3, @user.reload.columns
   end
 
   # The whole editing loop in one pass, each step done where the thing lives:
@@ -202,7 +216,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
 
   # Nothing to federate to means no "All Links" at all — not a header that
   # flashes "Searching..." and then quietly empties itself.
-  test "command bar offers no All Links section without a tinylinks connection" do
+  test "command bar offers no All Links section without a connection" do
     tiles_for_filtering
 
     visit start_path
@@ -217,10 +231,10 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   end
 
   # A rejected token is worth saying out loud, but retrying it isn't.
-  test "command bar says so instead of searching once the tinylinks token was rejected" do
+  test "command bar says so instead of searching once the token was rejected" do
     tiles_for_filtering
-    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
-    connection.record_failure!("tinylinks rejected the token")
+    connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
+    connection.record_failure!("links.example.com rejected the token")
 
     visit start_path
     find(".command-bar input").fill_in(with: "a")

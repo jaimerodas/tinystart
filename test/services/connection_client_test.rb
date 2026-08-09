@@ -1,14 +1,14 @@
 require "test_helper"
 
-class TinylinksClientTest < ActiveSupport::TestCase
+class ConnectionClientTest < ActiveSupport::TestCase
   setup do
-    @connection = TinylinksConnection.create!(
+    @connection = Connection.create!(
       user: users(:one),
       base_url: "https://links.example.com",
       token: "a-token",
       scopes: "search,visit"
     )
-    @client = TinylinksClient.new(@connection)
+    @client = ConnectionClient.new(@connection)
   end
 
   # Stubbed at Net::HTTP.start, which is where the socket would be opened, so no
@@ -116,7 +116,7 @@ class TinylinksClientTest < ActiveSupport::TestCase
     assert_equal [], @client.search("alpha")
   end
 
-  test "search survives tinylinks being unreachable" do
+  test "search survives the connected app being unreachable" do
     stub_raising(Errno::ECONNREFUSED)
 
     assert_equal [], @client.search("alpha")
@@ -153,6 +153,6 @@ class TinylinksClientTest < ActiveSupport::TestCase
   test "search returns nothing when the app was never connected" do
     expect_no_call
 
-    assert_equal [], TinylinksClient.new(nil).search("alpha")
+    assert_equal [], ConnectionClient.new(nil).search("alpha")
   end
 end

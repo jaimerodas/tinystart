@@ -413,9 +413,9 @@ class StartPageKeyboardTest < ApplicationSystemTestCase
     group.start_page_items.find_by(title: "Gmail")
   end
 
-  # Tab from the last link in the header, which is the stop before the grid.
+  # Tab from the toolbar's column picker, which is the stop before the grid.
   def enter_grid
-    find(".start-page-actions a", text: "Settings").send_keys(:tab)
+    find("#column_count select").send_keys(:tab)
     assert focus_inside_grid?
   end
 

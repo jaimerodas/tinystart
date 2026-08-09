@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Waits for a TinyLinks device authorization to be approved in another tab.
+// Waits for a connected app's device authorization to be approved in another tab.
 //
 // The server holds the pending grant in the session; this just asks where it
 // got to. On success the page reloads so the whole section re-renders from the

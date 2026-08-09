@@ -9,27 +9,41 @@
   </nav>
 
 
+  <%# Above the first heading on purpose: it is the one thing here worth a
+      glance rather than a read. Not links — the way to the page is "Start" in
+      the menu below, and Edit from there. %>
+  <% links = current_user.start_page_items.count %>
+  <% groups = current_user.start_page_groups.count %>
+  <section id="start-page-stats" aria-label="Start page contents">
+    <div class="stat">
+      <span class="stat-value"><%= links %></span>
+      <span class="stat-label"><%= "link".pluralize(links) %></span>
+    </div>
+    <div class="stat">
+      <span class="stat-value"><%= groups %></span>
+      <span class="stat-label"><%= "group".pluralize(groups) %></span>
+    </div>
+  </section>
+
   <section id="user-details" class="user-section">
-    <h2>Details</h2>
+    <h2>Account</h2>
     <ul>
       <li><b>Email:</b> <%= current_user.email %></li>
-      <li><%= link_to "Password Stuff", edit_settings_password_path %></li>
-      <li><b>User since:</b> <%= time_ago_in_words(current_user.created_at) %></li>
+      <%# The date is the fact; the relative span is the thing you actually
+          wanted to know. "User since: 3 months" was neither. %>
+      <li>
+        <b>Member since:</b>
+        <time datetime="<%= current_user.created_at.iso8601 %>">
+          <%= current_user.created_at.strftime("%-d %B %Y") %>
+        </time>
+        (<%= time_ago_in_words(current_user.created_at) %> ago)
+      </li>
+      <li><%= link_to "Change password", edit_settings_password_path %></li>
     </ul>
   </section>
 
-  <section id="start-page" class="user-section">
-    <h2>Start Page</h2>
-    <ul>
-      <li><b>Groups:</b> <%= current_user.start_page_groups.count %></li>
-      <li><b>Total Links:</b> <%= current_user.start_page_items.count %></li>
-      <li><%= link_to "View Start Page", start_path %></li>
-      <li><%= link_to "Edit Start Page", edit_start_path %></li>
-    </ul>
-  </section>
-
-  <section id="user-preferences" class="user-section">
-    <h2>Preferences</h2>
+  <section id="user-display" class="user-section">
+    <h2>Display</h2>
     <%= form_with model: current_user, url: settings_path, method: :patch, data: { controller: "theme", action: "turbo:submit-end->theme#updateTheme" } do |form| %>
       <div class="form-group">
         <label>Theme</label>
@@ -51,7 +65,7 @@
       </div>
 
       <div class="form-group">
-        <label>Accent Color</label>
+        <label>Accent color</label>
         <div class="color-picker">
           <% User::VALID_COLORS.each do |color| %>
             <div class="color-option">
@@ -66,13 +80,9 @@
         <p class="help-text">Choose your preferred accent color for links and interface elements.</p>
       </div>
 
-      <div class="form-group">
-        <%= form.label :columns, "Start Page Columns" %>
-        <%= form.select :columns, options_for_select((1..6).map { |c| [ c, c ] }, current_user.columns) %>
-        <p class="help-text">How many columns of groups the start page grid lays out.</p>
-      </div>
-
-      <%= form.submit "Update Preferences", class: "btn btn-primary" %>
+      <%# The column count is not here: it belongs on /start/edit, next to the
+          columns it describes and the groups a shrink would strand. %>
+      <%= form.submit "Update display" %>
     <% end %>
   </section>
 

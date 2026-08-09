@@ -1,7 +1,13 @@
 <main class="start-page">
   <%= start_page_header %>
 
-  <%= render "start_pages/keyboard_legend" %>
+  <%# One strip above the grid: how to drive it on the left, how wide it is on
+      the right. The legend focuses nothing, so the select stays the last tab
+      stop before the grid whichever way round they sit. %>
+  <div class="editor-toolbar">
+    <%= render "start_pages/keyboard_legend" %>
+    <%= render "start_pages/column_count", user: current_user %>
+  </div>
 
   <%= render "start_pages/notice_region" %>
 

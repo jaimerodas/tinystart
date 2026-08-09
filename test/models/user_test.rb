@@ -279,7 +279,7 @@ class UserTest < ActiveSupport::TestCase
     assert_includes links, { title: "Amazon Shopping", url: "https://amazon.com", id: amazon.id }
   end
 
-  # A tinylinks token grants one account; the grid must be just as private.
+  # A connection's token grants one account; the grid must be just as private.
   test "links_for_command_bar excludes another user's tiles" do
     mine = @user.start_page_groups.create!(name: "Mine", column: 1, position: 0)
     mine.start_page_items.create!(url: "https://mine.example.com", title: "Mine", position: 0)

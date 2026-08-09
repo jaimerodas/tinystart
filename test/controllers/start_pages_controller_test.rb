@@ -77,7 +77,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   # The command bar can't tell "not connected" from "no matches" on its own, so
   # the page has to hand it the state up front.
-  test "should tell the command bar federation is off without a tinylinks connection" do
+  test "should tell the command bar federation is off without a connection" do
     get start_path
 
     assert_select "main[data-command-bar-federation-value='off']"
@@ -85,8 +85,8 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   # The federated section is named after the host it came from, so the page has
   # to hand that over too.
-  test "should tell the command bar federation is active with a tinylinks connection" do
-    @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
+  test "should tell the command bar federation is active with a connection" do
+    @user.create_connection!(base_url: "https://links.example.com", token: "mine")
 
     get start_path
 
@@ -95,14 +95,14 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should tell the command bar to stop searching once the token was rejected" do
-    connection = @user.create_tinylinks_connection!(base_url: "https://links.example.com", token: "mine")
-    connection.record_failure!("tinylinks rejected the token")
+    connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
+    connection.record_failure!("links.example.com rejected the token")
 
     get start_path
 
     assert_select "main[data-command-bar-federation-value='reconnect']"
-    assert_select ".tinylinks-disconnected", /Search of links\.example\.com is disconnected/
-    assert_select ".tinylinks-disconnected a[href=?]", settings_tinylinks_path, "Reconnect"
+    assert_select ".search-disconnected", /Search of links\.example\.com is disconnected/
+    assert_select ".search-disconnected a[href=?]", settings_connections_path, "Reconnect"
   end
 
   # One person's tiles must never surface in another person's grid or command bar.
@@ -139,27 +139,106 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   # A lapsed token must be visible: silent federated failure is indistinguishable
   # from an empty archive.
-  test "shows a reconnect notice when the tinylinks token was rejected" do
-    TinylinksConnection.create!(user: @user, base_url: "https://links.example.com", token: "t")
-      .record_failure!("tinylinks rejected the token")
+  test "shows a reconnect notice when the token was rejected" do
+    Connection.create!(user: @user, base_url: "https://links.example.com", token: "t")
+      .record_failure!("links.example.com rejected the token")
 
     get start_path
 
-    assert_select ".tinylinks-disconnected", /disconnected/i
+    assert_select ".search-disconnected", /disconnected/i
   end
 
   test "shows no reconnect notice while the connection is healthy" do
-    TinylinksConnection.create!(user: @user, base_url: "https://links.example.com", token: "t")
+    Connection.create!(user: @user, base_url: "https://links.example.com", token: "t")
 
     get start_path
 
-    assert_select ".tinylinks-disconnected", false
+    assert_select ".search-disconnected", false
   end
 
   test "shows no reconnect notice when the app was never connected" do
     get start_path
 
-    assert_select ".tinylinks-disconnected", false
+    assert_select ".search-disconnected", false
+  end
+
+  # --- the column count ---
+  #
+  # It used to be a field on the Preferences form. It lives in the editor's
+  # toolbar now, so a refused shrink can answer on the page that is showing the
+  # group it names.
+
+  # The default is one column. If 1 were not on offer the browser would
+  # preselect the first option, and a user could never get back to one.
+  test "should offer every valid column count, with the current one selected" do
+    fresh = User.create!(email: "fresh@example.com", password: "password123", approved: true)
+    post session_url, params: { email: fresh.email, password: "password123" }
+
+    get edit_start_path
+
+    assert_equal 1, fresh.columns
+    assert_select "#column_count select[name='user[columns]']" do
+      assert_select "option", 6
+      assert_select "option[value='1'][selected='selected']"
+    end
+  end
+
+  test "should update the column count and send the editor back for a redraw" do
+    patch start_path, params: { user: { columns: 5 } }
+
+    assert_redirected_to edit_start_path
+    assert_equal 5, @user.reload.columns
+  end
+
+  # A refusal has to redraw, not just report: the select is already showing the
+  # value the database rejected, so it has to be sent back too.
+  test "should refuse a count outside the range and reset the select" do
+    patch start_path, params: { user: { columns: 9 } }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    assert_equal 3, @user.reload.columns
+    assert_match "start_page_notice", response.body
+    assert_match "column_count", response.body
+    assert_match %r{<option selected="selected" value="3">}, response.body
+  end
+
+  # Rails wraps the fields of a model carrying errors in a .field_with_errors
+  # div, which is a block element — it would break the one-line toolbar apart.
+  # The refusal is spoken by the notice, so the select comes back plain.
+  test "should send the select back without error wrappers" do
+    patch start_path, params: { user: { columns: 9 } }, as: :turbo_stream
+
+    assert_no_match(/field_with_errors/, response.body)
+  end
+
+  # There is no stream to apply without Turbo, so the refusal has to reach the
+  # user some other way rather than as raw <turbo-stream> markup on screen.
+  test "should refuse in a flash when the request is not a turbo stream" do
+    patch start_path, params: { user: { columns: 9 } }
+
+    assert_redirected_to edit_start_path
+    assert_match(/less than or equal to 6/, flash[:alert])
+    assert_equal 3, @user.reload.columns
+  end
+
+  # Saying only "failed" would leave you re-picking the same value forever.
+  test "should say which group blocks a shrink" do
+    @user.start_page_groups.create!(name: "Reading", column: 3, position: 0)
+
+    patch start_path, params: { user: { columns: 1 } }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    assert_match(/that would hide &quot;Reading&quot;/, response.body)
+    assert_equal 3, @user.reload.columns
+  end
+
+  test "should not let one user set another's column count" do
+    other = users(:two)
+
+    patch start_path, params: { user: { columns: 6 } }
+
+    assert_equal 3, other.reload.columns
+    assert_equal 6, @user.reload.columns
   end
 
   private

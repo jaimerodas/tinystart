@@ -5,10 +5,11 @@ organised into groups across columns.
 
 **Live**: not deployed yet — will be https://start.pati.to
 
-> **Status: scaffold only.** The app boots and CI is green, but none of the
-> features below exist yet. It is being extracted from `tinylinks`, where the
-> start page currently lives. Build order and design decisions are in the plan
-> at `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
+> **Status: built, not yet deployed.** Auth, the start page, the editor and
+> federated search all work and CI is green; what's left is the deploy. It was
+> extracted from `tinylinks`, where the start page used to live. The history and
+> the design decisions behind it are in the plan at
+> `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
 > starting work**, it records decisions that were already settled and shouldn't
 > be relitigated.
 
@@ -31,45 +32,60 @@ bin/brakeman         # Security scan (must be clean)
 bin/rails db:migrate # Run migrations
 ```
 
-## Planned architecture
-
-Nothing here exists yet. Recorded so the shape is clear.
+## Architecture
 
 | Model | Purpose |
 |-------|---------|
 | User | Auth; theme, color and `columns` preferences (columns defaults to 1); first user is bootstrapped as admin |
 | Session | Auth sessions with expiration |
 | StartPageGroup | A named group of tiles belonging to a user, placed at a column + position |
-| StartPageItem | A tile: owns its own `url` and `title` (no pointer to tinylinks) |
+| StartPageItem | A tile: owns its own `url` and `title` (no pointer anywhere else) |
+| Connection | One user's credential for another app, for federated search |
 
 There is no `StartPage` record. It only ever held a column count and a name
 nobody read, and it was already 1:1 with its user, so `columns` lives on
 `users` and groups belong to the user directly. The consequence worth
 remembering: **a start page is never created**, it exists from signup — so
-there is no "no start page yet" branch anywhere, and the column count is
-edited on the main Settings page alongside theme and color.
+there is no "no start page yet" branch anywhere.
 
-### The tinylinks relationship
+**The column count is edited on `/start/edit`, not in Settings.** It sits in
+the editor's toolbar (`_column_count.html.erb` → `StartPagesController#update`)
+because shrinking it can be refused — `User#columns_leave_no_group_stranded`
+names the group that would be hidden — and the editor is the only page where
+that group is on screen. `SettingsController` deliberately does **not** permit
+`:columns`; there's a test pinning that.
+
+### Connections (federated search)
 
 TinyStart is standalone: its own database, its own users, its own tiles. The
 single integration point is **search**. The command bar filters local tiles
-instantly, then federates a debounced query to the tinylinks API and shows those
-results in a second section.
+instantly, then federates a debounced query to a connected app and shows those
+results in a second section. In practice that app is tinylinks, but nothing
+user-facing says so — the section is **Settings → Connections**, and every
+message names the *host* it's talking to.
 
 That call goes **server-side**: the browser hits TinyStart's own `/search.json`,
-and Rails calls tinylinks with a bearer token. No token in the browser, no CORS.
+and Rails calls the other app with a bearer token. No token in the browser, no
+CORS.
 
-The token is obtained through tinylinks' OAuth 2.0 device flow (RFC 8628),
-requesting the `search` and `visit` scopes, from **Settings → TinyLinks**. It's
-stored in TinyStart's database — **not** in Rails credentials — so rotating it
-never needs a redeploy. It renews itself on use and only expires after 90 days
-of inactivity.
+The token is obtained through the other app's OAuth 2.0 device flow (RFC 8628),
+requesting the `search` and `visit` scopes. It's stored in TinyStart's database
+— **not** in Rails credentials — so rotating it never needs a redeploy. It
+renews itself on use and only expires after 90 days of inactivity.
 
-**Connections are per-user.** A tinylinks token grants access to exactly one
-tinylinks account, so `TinylinksConnection belongs_to :user` and every lookup
-goes through `current_user.tinylinks_connection`. Never reach for an app-wide
-"the connection" — that leaks one person's archive into another's command bar,
-and there's a regression test in `search_controller_test.rb` pinning it.
+The pieces: `Connection` (model), `ConnectionClient` (search + visit, degrades
+to `[]` on every failure), `DeviceFlow` (the RFC 8628 dance),
+`Settings::ConnectionsController` at `/settings/connections`.
+
+**Connections are per-user, and this matters.** A token grants access to
+exactly one account on the other app, so `Connection belongs_to :user` and every
+lookup goes through `current_user.connection`. Never reach for an app-wide "the
+connection" — that leaks one person's archive into another's command bar, and
+there's a regression test in `search_controller_test.rb` pinning it (verified
+to fail when an app-wide lookup is reintroduced).
+
+`User#connection` reads like a database handle but isn't one: ActiveRecord
+dropped its `#connection` instance method in Rails 8, so the name is free.
 
 ## Patterns & Conventions
 
@@ -112,7 +128,7 @@ Inherited deliberately from tinylinks; keep them.
 ### Testing
 - Minitest + Mocha for mocking, SimpleCov for coverage
 - Fixtures in `test/fixtures/`
-- Mock external APIs, don't call them in tests — especially the tinylinks client
+- Mock external APIs, don't call them in tests — especially `ConnectionClient`
 
 ### Code Style
 - RuboCop Rails Omakase

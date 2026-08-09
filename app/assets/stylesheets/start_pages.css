@@ -503,9 +503,9 @@
   display: none !important;
 }
 
-/* Shown when the tinylinks token has been rejected — federated search is off
+/* Shown when the connected app's token has been rejected — federated search is off
    until someone reconnects. */
-.tinylinks-disconnected {
+.search-disconnected {
   max-width: 40em;
   margin: 0 auto 1em;
   padding: 0.75em 1em;

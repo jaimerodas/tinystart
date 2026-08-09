@@ -1,11 +1,11 @@
 require "net/http"
 
-# Drives tinylinks' OAuth 2.0 Device Authorization Grant (RFC 8628) so this app
-# can get its own scoped token.
+# Drives a connected app's OAuth 2.0 Device Authorization Grant (RFC 8628) so
+# this app can get its own scoped token.
 #
 # Deliberately non-blocking: `start` opens a grant, `check` reports where it got
 # to. The waiting happens in the browser, not here.
-class TinylinksDeviceFlow
+class DeviceFlow
   SCOPES = "search,visit".freeze
   CLIENT_NAME = "tinystart".freeze
   OPEN_TIMEOUT = 2
@@ -17,7 +17,7 @@ class TinylinksDeviceFlow
     @base_url = base_url
   end
 
-  # => Grant, or nil if tinylinks couldn't be reached or refused.
+  # => Grant, or nil if the other app couldn't be reached or refused.
   def start
     body = post("/api/v1/device_authorizations", client_name: CLIENT_NAME, scopes: SCOPES)
     return nil if body.nil? || body["error"]
@@ -62,10 +62,10 @@ class TinylinksDeviceFlow
 
     JSON.parse(response.body)
   rescue JSON::ParserError
-    Rails.logger.warn("[TinylinksDeviceFlow] tinylinks returned something that isn't JSON")
+    Rails.logger.warn("[DeviceFlow] #{@base_url} returned something that isn't JSON")
     nil
   rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, SystemCallError, OpenSSL::SSL::SSLError => e
-    Rails.logger.warn("[TinylinksDeviceFlow] could not reach tinylinks: #{e.class}")
+    Rails.logger.warn("[DeviceFlow] could not reach #{@base_url}: #{e.class}")
     nil
   end
 end

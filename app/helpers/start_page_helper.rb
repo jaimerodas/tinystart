@@ -25,7 +25,7 @@ module StartPageHelper
   # What the command bar should do about its "All Links" section. Nothing to
   # search means no section at all; a rejected token means a notice rather than
   # a query that will only be rejected again.
-  def tinylinks_federation_state(connection)
+  def federation_state(connection)
     return "off" if connection.nil?
 
     connection.needs_reconnect? ? "reconnect" : "active"
@@ -110,6 +110,12 @@ module StartPageHelper
 
   def new_item_dom_id(group)
     "new_item_group_#{group.id}"
+  end
+
+  # The toolbar's column picker. A refused change replaces it, because it is
+  # left showing the value the database would not take.
+  def column_count_dom_id
+    "column_count"
   end
 
   # Not a stream target: this one names the group's <section> through

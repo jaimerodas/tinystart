@@ -1,8 +1,8 @@
 require "test_helper"
 
-class TinylinksDeviceFlowTest < ActiveSupport::TestCase
+class DeviceFlowTest < ActiveSupport::TestCase
   setup do
-    @flow = TinylinksDeviceFlow.new("https://links.example.com")
+    @flow = DeviceFlow.new("https://links.example.com")
   end
 
   def stub_response(body)
@@ -33,13 +33,13 @@ class TinylinksDeviceFlowTest < ActiveSupport::TestCase
     assert_equal 5, grant.interval
   end
 
-  test "start returns nothing when tinylinks refuses" do
+  test "start returns nothing when the app refuses" do
     stub_response({ error: "invalid_scope" }.to_json)
 
     assert_nil @flow.start
   end
 
-  test "start returns nothing when tinylinks is unreachable" do
+  test "start returns nothing when the app is unreachable" do
     stub_raising(Errno::ECONNREFUSED)
 
     assert_nil @flow.start
