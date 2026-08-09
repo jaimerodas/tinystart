@@ -260,6 +260,67 @@ class StartPageItemsControllerTest < ActionDispatch::IntegrationTest
     assert_equal new_group, item.reload.start_page_group
   end
 
+  # A group owns its tile rows and their positions, so a move redraws the group
+  # it left and the group it landed in. Redrawing the whole grid would take
+  # #start_page_grid with it, and that node carries the drag and keyboard
+  # controllers: replacing it drops the keyboard highlight on every move.
+  test "a turbo stream move replaces the source and destination groups, not the grid" do
+    item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+
+    post move_start_item_path(item), params: { group_id: new_group.id, position: 0 }, as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="group_#{@group.id}">}, response.body
+    assert_match %r{<turbo-stream action="replace" target="group_#{new_group.id}">}, response.body
+    assert_no_match %r{target="start_page_grid"}, response.body
+  end
+
+  test "a turbo stream reorder within one group replaces that group alone" do
+    first = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+    @group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 1)
+
+    post move_start_item_path(first), params: { position: 1 }, as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="group_#{@group.id}">}, response.body
+    assert_equal 1, response.body.scan("<turbo-stream").size
+  end
+
+  # The failure branch used to answer 200 with a stream aimed at #error_messages,
+  # an id that is rendered nowhere — so Turbo applied it to nothing and the
+  # client's response.ok check passed. A failed move was silent from both ends.
+  test "a rejected turbo stream move answers 422 with a message in the notice region" do
+    item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+
+    post move_start_item_path(item), params: { group_id: new_group.id, position: 0 }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    # update, not replace: the region is a live one, and a screen reader
+    # announces changes inside a region it already knows, not the arrival of a
+    # region with the text already in it.
+    assert_match %r{<turbo-stream action="update" target="start_page_notice">}, response.body
+    assert_match "Failed to move item.", response.body
+    assert_equal @group, item.reload.start_page_group
+  end
+
+  # The client moves the tile before it asks. A refusal that only says so leaves
+  # the page showing a position the database does not have — and the next move
+  # computes its index from that page.
+  test "a rejected move sends both groups back so the page matches the database" do
+    item = @group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+    new_group = @user.start_page_groups.create!(name: "New Group", column: 2, position: 0)
+    new_group.start_page_items.create!(url: "https://example.com/one", title: "One", position: 0)
+
+    post move_start_item_path(item), params: { group_id: new_group.id, position: 0 }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    assert_match %r{<turbo-stream action="replace" target="group_#{@group.id}">}, response.body
+    assert_match %r{<turbo-stream action="replace" target="group_#{new_group.id}">}, response.body
+  end
+
   test "should not allow access to other users items" do
     other_user = users(:two)
     other_group = other_user.start_page_groups.create!(name: "Other Group", column: 1, position: 0)

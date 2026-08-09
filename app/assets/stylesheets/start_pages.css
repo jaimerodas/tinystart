@@ -58,7 +58,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  margin: 2em 0;
+  margin: 2em 0 3.5em;
 
   section > h2 {
     margin: 0 1rem 0.5em;
@@ -90,8 +90,8 @@
     font-size: 1.125em;
     color: var(--fg-color);
     display: block;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.25rem 1rem;
+    border-radius: 1rem;
 
     &:hover {
       text-decoration: none;

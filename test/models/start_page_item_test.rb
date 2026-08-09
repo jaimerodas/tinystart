@@ -99,23 +99,6 @@ class StartPageItemTest < ActiveSupport::TestCase
     assert_equal new_group, @item.start_page_group
   end
 
-  test "should move to specific position" do
-    @item.save!
-
-    success = @item.move_to_position(5)
-
-    assert success
-    assert_equal 5, @item.position
-  end
-
-  test "should not move to negative position" do
-    @item.save!
-
-    success = @item.move_to_position(-1)
-
-    assert_not success
-  end
-
   test "should roll back the gap closing when a write fails midway" do
     @item.save!
     second = @group.start_page_items.create!(url: "https://example.com/two", title: "Two", position: 4)

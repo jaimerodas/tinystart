@@ -1,0 +1,16 @@
+<%# Two states, because the keys do nothing until focus is in the grid. Which
+    one shows is decided in CSS off .keyboard-mode on the grid itself, so the
+    controller never has to reach outside its own element. %>
+<div class="keyboard-legend">
+  <p class="keyboard-legend-enter"><kbd>Tab</kbd> to enter keyboard mode</p>
+
+  <%# The grid points aria-describedby here, so this is read on the way in. %>
+  <dl id="start_page_keys" class="keyboard-legend-keys">
+    <div><dt><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>move between tiles</dd></div>
+    <div><dt><kbd>Space</kbd></dt><dd>pick up / drop</dd></div>
+    <div><dt><kbd>Enter</kbd></dt><dd>edit</dd></div>
+    <div><dt><kbd>Del</kbd></dt><dd>delete</dd></div>
+    <div><dt><kbd>Esc</kbd></dt><dd>cancel a move</dd></div>
+    <div><dt><kbd>Tab</kbd></dt><dd>leave</dd></div>
+  </dl>
+</div>

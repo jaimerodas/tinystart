@@ -1,4 +1,10 @@
-<section id="start_page_grid" class="start-page-grid" data-columns="<%= user.columns %>" data-controller="drag-drop">
+<section id="start_page_grid"
+         class="start-page-grid"
+         aria-label="Start page tiles"
+         aria-describedby="start_page_keys"
+         data-columns="<%= user.columns %>"
+         data-controller="drag-drop grid-keyboard"
+         data-action="keydown->grid-keyboard#keydown focusin->grid-keyboard#enter focusout->grid-keyboard#leave">
   <% user.column_range.each do |column_number| %>
     <%= render "start_pages/column",
                column_number: column_number,

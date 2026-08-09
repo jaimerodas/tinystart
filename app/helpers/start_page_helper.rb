@@ -76,12 +76,17 @@ module StartPageHelper
     create_edit_button(title: "Edit tile")
   end
 
+  # The accessible name has to begin with the visible one. These are the only
+  # controls in the editor with visible text, and naming one "Add a group to
+  # column 2" while it reads "Add group" means saying "click Add group" matches
+  # nothing (WCAG 2.5.3, Label in Name). The column and group still belong in
+  # the name — five identical "Add link" buttons on a page name nothing at all.
   def add_group_trigger(column_number)
-    create_add_trigger(label: "Add group", title: "Add a group to column #{column_number}")
+    create_add_trigger(label: "Add group", title: "Add group to column #{column_number}")
   end
 
   def add_item_trigger(group)
-    create_add_trigger(label: "Add link", title: "Add a link to #{group.saved_name}")
+    create_add_trigger(label: "Add link", title: "Add link to #{group.saved_name}")
   end
 
   # Turbo Stream targets. Every write on the edit page replaces the smallest
@@ -107,37 +112,60 @@ module StartPageHelper
     "new_item_group_#{group.id}"
   end
 
+  # Not a stream target: this one names the group's <section> through
+  # aria-labelledby, which is what makes it a region at all.
+  def group_name_dom_id(group)
+    "group_name_#{group.id}"
+  end
+
   private
 
+  # The row is the tab stop, and Enter reaches this by clicking it, so it leaves
+  # the tab order rather than adding a stop to every tile. title is the tooltip;
+  # aria-label is the accessible name, which title only ever supplied by
+  # fallback.
   def create_edit_button(title:)
     content_tag(:button, icon("pencil"),
                 type: "button",
                 class: "edit-button",
                 title: title,
+                tabindex: -1,
+                aria: { label: title },
                 data: { action: "click->inline-form#open" })
   end
 
+  # Unlike the edit and delete buttons this is a row in its own right — arrowing
+  # past the last tile in a group lands on it — so it joins the roving list.
   def create_add_trigger(label:, title:)
     content_tag(:button,
                 safe_join([ icon("plus"), content_tag(:span, label) ]),
                 type: "button",
                 class: "add-trigger",
                 title: title,
-                data: { action: "click->inline-form#open", inline_form_target: "trigger" })
+                tabindex: -1,
+                aria: { label: title },
+                data: { action: "click->inline-form#open",
+                        inline_form_target: "trigger",
+                        grid_keyboard_target: "row" })
   end
 
   def create_delete_button(item:, path:, title:, confirm_message:)
     button_to path, method: :delete,
               class: "remove-button",
               title: title,
+              tabindex: -1,
+              aria: { label: title },
               data: { turbo_confirm: confirm_message } do
       icon("xmark")
     end
   end
 
+  # A pointer affordance only. The row is what a keyboard picks up, so a handle
+  # left in the accessibility tree would just be a control that does nothing.
   def create_drag_handle(actions:, target:, title:)
     content_tag(:div, class: "drag-handle",
                 draggable: "true",
+                aria: { hidden: "true" },
                 data: { action: actions, drag_drop_target: target },
                 title: title) do
       icon("drag-handle")

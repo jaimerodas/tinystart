@@ -66,11 +66,67 @@ npx playwright screenshot --url http://localhost:3000 /tmp/prove_it_screenshot.p
   of a target nobody reaches with a thumb. Chosen deliberately; the value lives
   in `tokens.css` if it ever needs revisiting.
 
-- **Known gap, not a decision: reordering is pointer-only.** The up/down move
-  buttons were removed once drag and drop could reorder within a group and
-  within a column, so there is currently no keyboard path to reorder a tile or a
-  group. Full keyboard access to editing is wanted and has not been designed
-  yet — treat this as debt to pay, not a settled trade-off. Everything else on
-  the page (add, edit, rename, delete) is reachable by keyboard.
+- **Known gap, not a decision: a keyboard move is silent.** Every action on
+  `/start/edit` is now reachable by keyboard (see the model below), but the
+  moves are only shown, never announced — nothing says "picked up", "position 3
+  of 6 in Work" or "move cancelled". The live region they would speak through
+  already exists (`#start_page_notice`, `role="status"`), and
+  `grid_keyboard_controller` already knows the position and group at every
+  step, so this is a small addition rather than a design question. Treat it as
+  debt to pay: until it lands, the editor is keyboard-operable but not fully
+  accessible.
+
+## The start page editor's keyboard model
+
+`/start/edit` is a composite widget, not a run of tab stops. The grid is one
+Tab stop with a roving highlight; the rows are `.item-row`, `.group-header` and
+the "Add link" / "Add group" triggers, each rendered `tabindex="-1"` with
+exactly one promoted to `0` by `grid_keyboard_controller.js`. The icon buttons
+inside a row are `tabindex="-1"` and are reached by key, not by Tab — three
+stops per tile is what made crossing a full page take ~100 presses.
+
+| Key | Highlighted | Carrying |
+|---|---|---|
+| `↑` `↓` | previous / next row in the column | move one position |
+| `←` `→` | nearest row in the adjacent column | move to the adjacent column |
+| `Home` `End` | first / last row in the column | — |
+| `Enter` | edit | drop and save |
+| `Space` | pick up | drop and save |
+| `Delete` `Backspace` | delete | — |
+| `Esc` | (belongs to the inline forms) | cancel, put it back |
+| `Tab` | leave the grid | drop first, then leave |
+
+**Keyboard mode is a state the page shows.** None of the above does anything
+until focus is in the grid, so the grid carries a `.keyboard-mode` class while
+it is, and the page says so two ways: the legend above it swaps `Tab to enter
+keyboard mode` for the key list, and the drag handles withdraw. Both are pure
+CSS off that one class (`:has()` reaches the legend), so the controller never
+writes outside its own element.
+
+The handles go because in keyboard mode they are a second way to move a row
+that may already be carried, and a way no keyboard can reach. They hide with
+`visibility`, not `display` — collapsing a `--control-size` handle would shift
+every row on the page sideways on each Tab in and out.
+
+Entering is decided by `:focus-visible`, not by focus alone: clicking a row
+focuses it but must not cost a pointer user their handles. Once in, only focus
+leaving the grid turns it off — a programmatic `focus()` after a move need not
+match `:focus-visible`, and the handles must not flicker back mid-carry. A move
+or a delete is not "leaving" either, though focus does sit on `<body>` for the
+round trip, so the sync is suppressed while one is outstanding.
+
+Three rules worth keeping if this is ever reworked:
+
+- **A carried row moves in the DOM and nowhere else until it is dropped.** That
+  is what makes `Esc` a real cancel and a five-position move one save rather
+  than five.
+- **Letting go commits.** Tab drops rather than trapping, so there is no
+  keyboard trap, and so does clicking away — a move must never be left dangling
+  on screen to be committed by whatever the user does next, or lost when they
+  navigate. `Esc` is the only way to abandon one.
+- **A refusal has to redraw, not just report.** The client moves the row before
+  it asks, so a `move` that fails streams the affected groups or columns back
+  alongside the message. Reporting alone would leave the page showing an order
+  the database refused — and the next move takes its position from the page.
 
 <!-- TODO: Customize these rules for your project -->

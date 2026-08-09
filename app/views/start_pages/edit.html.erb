@@ -1,6 +1,10 @@
 <main class="start-page">
   <%= start_page_header %>
 
+  <%= render "start_pages/keyboard_legend" %>
+
+  <%= render "start_pages/notice_region" %>
+
   <%# Everything is edited where it lives: groups are added at the foot of a
       column, links at the foot of a group. %>
   <%= render "grid", user: current_user, groups_by_column: @groups_by_column %>

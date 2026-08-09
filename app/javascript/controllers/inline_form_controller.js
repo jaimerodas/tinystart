@@ -41,10 +41,12 @@ export default class extends Controller {
   }
 
   // The trigger is the button itself when adding, and the row holding the edit
-  // button when editing.
+  // button when editing. A row is focusable in its own right — it is the grid's
+  // roving tab stop — so focus goes back to the row, not to the pencil inside
+  // it, which would leave the highlight pointing at something Tab cannot reach.
   triggerButton() {
     const trigger = this.triggerTarget
-    return trigger.matches("button") ? trigger : trigger.querySelector("button")
+    return trigger.matches("button, [tabindex]") ? trigger : trigger.querySelector("button")
   }
 
   render({ focus }) {

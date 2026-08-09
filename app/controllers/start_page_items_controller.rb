@@ -1,4 +1,6 @@
 class StartPageItemsController < ApplicationController
+  include StartPageNotice
+
   before_action :set_item, only: [ :update, :destroy, :move, :visit ]
 
   layout "start"
@@ -69,6 +71,7 @@ class StartPageItemsController < ApplicationController
   def move
     group_id = params[:group_id]
     new_position = params[:position].to_i
+    source_group = @item.start_page_group
 
     if group_id.present?
       # Moving to a different group. move_to_group renumbers both groups itself.
@@ -76,25 +79,43 @@ class StartPageItemsController < ApplicationController
       success = @item.move_to_group(new_group, new_position)
     else
       # Moving within the same group
-      success = @item.start_page_group.move_item_to_position(@item, new_position)
+      new_group = source_group
+      success = source_group.move_item_to_position(@item, new_position)
     end
 
     if success
       respond_to do |format|
         format.html { redirect_to edit_start_path, notice: "Item moved successfully." }
         format.json { render json: { status: "success", message: "Item moved successfully." } }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { user: current_user, groups_by_column: current_user.groups_by_column }) }
+        format.turbo_stream { render turbo_stream: move_streams(source_group, new_group) }
       end
     else
       respond_to do |format|
         format.html { redirect_to edit_start_path, alert: "Failed to move item." }
         format.json { render json: { status: "error", message: "Failed to move item." }, status: 422 }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("error_messages", partial: "shared/error_message", locals: { message: "Failed to move item." }) }
+        format.turbo_stream do
+          # The client moved the tile before it asked, so saying no is not
+          # enough — the groups have to be redrawn from what is actually stored,
+          # or the page keeps an order the database never accepted and the next
+          # move takes its index from it.
+          render turbo_stream: [ notice_stream("Failed to move item.") ] + move_streams(source_group, new_group),
+                 status: :unprocessable_content
+        end
       end
     end
   end
 
   private
+
+  # A move renumbers the group the tile left and the group it landed in, and
+  # nothing else. Redrawing the whole grid instead would replace
+  # #start_page_grid, the node carrying the drag and keyboard controllers, and
+  # take the keyboard highlight with it on every move.
+  def move_streams(source_group, destination_group)
+    streams = [ group_stream(destination_group.reload) ]
+    streams << group_stream(source_group.reload) if source_group != destination_group
+    streams
+  end
 
   # A group owns the tile rows and their positions, so anything that adds,
   # removes or reorders a tile redraws the group rather than the tile.

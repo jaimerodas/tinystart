@@ -1,11 +1,11 @@
 require "application_system_test_case"
 
-# ⚠️ Reordering is not covered here, and cannot be. Dragging is the only way to
-# reorder a tile or a group since the move buttons were removed, and HTML5 drag
-# events do not respond to Selenium's synthetic mouse events. What the drag
-# posts to — `move` on both controllers, `move_item_to_position` and
-# `move_to_column` — is covered by the controller and model tests; the drag
-# handlers on top of that are verified by hand in a real browser.
+# Reordering lives in start_page_keyboard_test.rb. Dragging still cannot be
+# driven here — HTML5 drag events do not respond to Selenium's synthetic mouse
+# events — but the keyboard reaches the same endpoints through the same
+# lib/start_page_moves, so the reorder behaviour is covered end to end. What is
+# left unverified by machine is narrow: the browser's own decision to begin a
+# drag from a mousedown on a `draggable` handle.
 class StartPageIntegrationTest < ApplicationSystemTestCase
   def setup
     @user = users(:one)
@@ -33,7 +33,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   # a group from the foot of its column, tiles from the foot of the group.
   # Every write swaps a node in place, so these wait on rendered state and the
   # database rather than on a flash.
-  test "user can add a group, add tiles, edit them, reorder and delete" do
+  test "user can add a group, add tiles, edit them and delete" do
     visit edit_start_path
 
     within("#new_group_column_1") do
@@ -86,9 +86,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
 
     assert_selector "#group_#{group.id} .group-name", text: "Every day"
 
-    # Reordering is drag-only now, and HTML5 drag events do not survive
-    # Selenium — the endpoint it posts to is covered in the controller and model
-    # tests instead. See the note at the top of this file.
+    # Reordering has a file of its own — see the note at the top.
     accept_confirm do
       within("#item_#{github.id}") { click_button "Remove tile" }
     end
@@ -294,7 +292,11 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     fill_in "email", with: user[:email]
     fill_in "password", with: "password123"
     click_button "Sign in"
+    # Waits on the page it lands on rather than the absence of the one it left.
+    # A negative assertion makes Capybara re-check visibility on nodes it has
+    # already found, and a node the navigation swapped out raises "Node with
+    # given id does not belong to the document" rather than simply missing.
     # Generous wait: logins get slow when the whole suite runs in parallel.
-    assert_no_selector "#login", wait: 10
+    assert_selector "main.start-page", wait: 10
   end
 end

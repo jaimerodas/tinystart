@@ -84,7 +84,23 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{action="#{start_item_path(@item)}"}, html
   end
 
+  # --- the row buttons leave the tab order ---
+  #
+  # The row itself is the tab stop, and Enter and Delete reach these by clicking
+  # them. Leaving them tabbable would put three stops on every tile, which is
+  # the ~100 stops per page the roving highlight exists to remove.
+
+  test "the edit and delete buttons are labelled and out of the tab order" do
+    [ group_edit_button, item_edit_button, group_delete_button(@group), item_delete_button(@item) ].each do |html|
+      assert_match %r{tabindex="-1"}, html
+      assert_match %r{aria-label="}, html
+    end
+  end
+
   # --- drag handles ---
+  #
+  # A pointer affordance only: the row is what a keyboard picks up, so a handle
+  # in the accessibility tree would just be a control that does nothing.
 
   test "group_drag_handle renders a draggable element with group drag actions" do
     html = group_drag_handle
@@ -101,6 +117,11 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{class="drag-handle"}, html
     assert_match %r{dragstart-&gt;drag-drop#dragItemStart}, html
     assert_match %r{data-drag-drop-target="itemHandle"}, html
+  end
+
+  test "drag handles are hidden from assistive technology" do
+    assert_match %r{aria-hidden="true"}, group_drag_handle
+    assert_match %r{aria-hidden="true"}, item_drag_handle
   end
 
   # --- edit buttons ---
@@ -138,7 +159,7 @@ class StartPageHelperTest < ActionView::TestCase
     html = add_group_trigger(2)
 
     assert_match %r{class="add-trigger"}, html
-    assert_match %r{Add a group to column 2}, html
+    assert_match %r{Add group to column 2}, html
     assert_match %r{click-&gt;inline-form#open}, html
     assert_match %r{data-inline-form-target="trigger"}, html
   end
@@ -147,7 +168,26 @@ class StartPageHelperTest < ActionView::TestCase
     html = add_item_trigger(@group)
 
     assert_match %r{class="add-trigger"}, html
-    assert_match %r{Add a link to Work}, html
+    assert_match %r{Add link to Work}, html
     assert_match %r{click-&gt;inline-form#open}, html
+  end
+
+  # WCAG 2.5.3: these are the only controls in the editor with visible text, so
+  # the name a speech-input user says has to start what the name announces.
+  test "an add trigger's accessible name begins with its visible label" do
+    { "Add group" => add_group_trigger(2), "Add link" => add_item_trigger(@group) }.each do |label, html|
+      assert_match %r{<span>#{label}</span>}, html
+      assert_match %r{aria-label="#{label} }, html
+    end
+  end
+
+  # Unlike the edit and delete buttons, an add trigger is a row in its own right
+  # — arrowing past the last tile in a group lands on it — so it stays reachable
+  # and joins the roving list.
+  test "add triggers are rows in the roving list" do
+    [ add_group_trigger(2), add_item_trigger(@group) ].each do |html|
+      assert_match %r{tabindex="-1"}, html
+      assert_match %r{data-grid-keyboard-target="row"}, html
+    end
   end
 end

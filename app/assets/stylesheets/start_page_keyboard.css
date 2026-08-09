@@ -1,0 +1,133 @@
+/* Everything the keyboard path needs to be visible. The editor had no
+   :focus-visible rule of any kind before this — the icon buttons fell back to
+   the UA ring, which is close to invisible on the dark theme.
+
+   All of it keys off --highlight-color, so it follows the accent like the rest
+   of the design system. */
+
+/* The roving highlight. :focus-visible rather than :focus so a pointer user
+   clicking a row doesn't get a ring they never asked for. */
+.start-page-grid .item-row:focus-visible,
+.start-page-grid .group-header:focus-visible,
+.start-page-grid .add-trigger:focus-visible,
+.start-page-grid .edit-button:focus-visible,
+.start-page-grid .remove-button:focus-visible {
+  outline: 0.125rem solid var(--highlight-color);
+  outline-offset: 0.125rem;
+  border-radius: var(--control-radius);
+}
+
+/* Picked up and waiting to be moved. This has to read as distinct from the
+   focus ring above — the row is still focused while it is grabbed — so it
+   fills rather than outlines, and borrows .dragging's dashed language without
+   the rotate, which would only make a keyboard move harder to follow. */
+.start-page-item.grabbed > .item-row,
+.start-page-group.grabbed > .group-heading > .group-header {
+  background-color: oklch(from var(--highlight-color) l c h / 0.15);
+  outline: 0.125rem dashed var(--highlight-color);
+  outline-offset: 0.125rem;
+  border-radius: var(--control-radius);
+}
+
+/* A grab is a move in progress, so the row it came from should not also look
+   like the settled one. */
+.start-page-grid:has(.grabbed) .drag-handle {
+  cursor: default;
+}
+
+/* Only one of the two halves is ever shown; both are a single line, so the
+   grid below does not move when they swap. */
+.keyboard-legend {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: var(--mid-color);
+  font-size: 0.75em;
+  line-height: 1;
+
+  p {
+    margin: 0;
+  }
+
+  dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em 1em;
+    margin: 0;
+    padding: 0;
+  }
+
+  dl > div {
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+  }
+
+  dt, dd {
+    margin: 0;
+  }
+
+  dt {
+    display: flex;
+    gap: 0.125em;
+  }
+
+  kbd {
+    display: inline-block;
+    min-width: 1.25em;
+    padding: 0.0625em 0.3em;
+    border: 0.0625rem solid var(--border-color);
+    border-radius: var(--control-radius);
+    background: var(--bg-color);
+    color: var(--fg-color);
+    font-family: inherit;
+    font-size: 0.9em;
+    text-align: center;
+    line-height: 1.4;
+  }
+}
+
+/* Which half of the legend shows, and whether the drag handles do. The state
+   lives as one class on the grid; :has lets the legend above it read that
+   without the controller having to reach outside its own element. */
+.start-page:has(.start-page-grid.keyboard-mode) .keyboard-legend-enter,
+.start-page:not(:has(.start-page-grid.keyboard-mode)) .keyboard-legend-keys {
+  display: none;
+}
+
+/* Out of keyboard mode a handle is the only way to reorder with a pointer. In
+   it, it is a second way to move a row that may already be carried, and one no
+   keyboard can reach — so it withdraws.
+
+   visibility rather than display: the handle is --control-size wide, and
+   collapsing it would shift every row on the page sideways on each Tab in and
+   out. Hidden this way it is also untouchable, so the drag cannot start. */
+.start-page-grid.keyboard-mode .drag-handle {
+  visibility: hidden;
+}
+
+/* The region itself is unstyled on purpose: it is on the page from the start
+   and empty until a move fails, so all of its box has to come from the message
+   inside it. Anything here would leave a gap above the grid at rest. */
+.start-page-notice-error {
+  margin: 0 0 1em;
+  padding: 0.75em 1em;
+  border: 0.0625rem solid var(--danger-color);
+  border-radius: var(--control-radius);
+  background-color: oklch(from var(--danger-color) l c h / 0.1);
+  color: var(--danger-color);
+  font-size: 0.875em;
+}
+
+/* The drag transforms exist to make a move readable; for anyone who has asked
+   for less motion they do the opposite. */
+@media (prefers-reduced-motion: reduce) {
+  .start-page-item,
+  .start-page-group {
+    transition: none;
+
+    &.dragging {
+      transform: none;
+    }
+  }
+}

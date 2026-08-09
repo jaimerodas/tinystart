@@ -1,4 +1,6 @@
 class StartPageGroupsController < ApplicationController
+  include StartPageNotice
+
   layout "start"
 
   before_action :set_group, only: [ :update, :destroy, :move ]
@@ -59,23 +61,48 @@ class StartPageGroupsController < ApplicationController
   def move
     column = params[:column].to_i
     position = params[:position].to_i
+    source_column = @group.column
 
     if @group.move_to_column(column, position)
       respond_to do |format|
         format.html { redirect_to edit_start_path, notice: "Group moved successfully." }
         format.json { render json: { status: "success", message: "Group moved successfully." } }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("start_page_grid", partial: "start_pages/grid", locals: { user: current_user, groups_by_column: current_user.groups_by_column }) }
+        format.turbo_stream { render turbo_stream: move_streams(source_column, column) }
       end
     else
       respond_to do |format|
         format.html { redirect_to edit_start_path, alert: "Failed to move group." }
         format.json { render json: { status: "error", message: "Failed to move group." }, status: 422 }
-        format.turbo_stream { render turbo_stream: turbo_stream.replace("error_messages", partial: "shared/error_message", locals: { message: "Failed to move group." }) }
+        format.turbo_stream do
+          # The client moved the group before it asked, so saying no is not
+          # enough — the columns have to be redrawn from what is actually
+          # stored, or the page keeps a placement the database never accepted
+          # and the next move takes its index from it.
+          render turbo_stream: [ notice_stream("Failed to move group.") ] + resync_streams(source_column, column),
+                 status: :unprocessable_content
+        end
       end
     end
   end
 
   private
+
+  # A move renumbers the column the group left and the column it landed in, and
+  # nothing else. Redrawing the whole grid instead would replace
+  # #start_page_grid, the node carrying the drag and keyboard controllers, and
+  # take the keyboard highlight with it on every move.
+  def move_streams(source_column, destination_column)
+    streams = [ column_stream(destination_column) ]
+    streams << column_stream(source_column) if source_column != destination_column
+    streams
+  end
+
+  # The same two columns, but only the ones that exist. A move is refused
+  # precisely when the column asked for is off the end of the grid, and there is
+  # no node on the page to redraw for a column the user does not have.
+  def resync_streams(source_column, destination_column)
+    ([ source_column, destination_column ].uniq & current_user.column_range).map { |number| column_stream(number) }
+  end
 
   def column_stream(column_number)
     turbo_stream.replace(

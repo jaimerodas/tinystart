@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { moveGroup, moveItem } from "lib/start_page_moves"
 
 export default class extends Controller {
   static targets = ["group", "column", "handle", "item", "itemHandle", "itemDropZone"]
@@ -117,19 +118,16 @@ export default class extends Controller {
 
   requestMove(zone, position, dragType) {
     if (dragType === 'group') {
-      this.makeAPICall(`/start/groups/${this.draggedData.groupId}/move`, {
+      moveGroup(this.draggedData.groupId, {
         column: parseInt(zone.dataset.column),
         position: position
       })
     } else {
-      const params = { position: position }
-      const newGroupId = parseInt(zone.dataset.groupId)
-      // Omitted when it hasn't changed: that is how the server tells a reorder
-      // from a move between groups.
-      if (newGroupId !== parseInt(this.draggedData.originalGroupId)) {
-        params.group_id = newGroupId
-      }
-      this.makeAPICall(`/start/items/${this.draggedData.itemId}/move`, params)
+      moveItem(this.draggedData.itemId, {
+        position: position,
+        fromGroupId: this.draggedData.originalGroupId,
+        toGroupId: zone.dataset.groupId
+      })
     }
   }
 
@@ -157,43 +155,6 @@ export default class extends Controller {
   isValidDropZone(element, dragType) {
     const config = this.getDragConfig(dragType)
     return Boolean(config.draggedElement) && element.hasAttribute(config.targetAttribute)
-  }
-
-  async makeAPICall(url, params) {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/vnd.turbo-stream.html',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify(params)
-      })
-
-      if (response.ok) {
-        const turboStreamContent = await response.text()
-        Turbo.renderStreamMessage(turboStreamContent)
-      } else {
-        console.error('Failed to move:', response.statusText)
-        this.showErrorMessage('Failed to move. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error moving:', error)
-      this.showErrorMessage('Error moving. Please try again.')
-    }
-  }
-
-  showErrorMessage(message) {
-    const errorElement = document.createElement('div')
-    errorElement.className = 'alert alert-error'
-    errorElement.style.cssText = 'margin: 1em 0; padding: 1em; background: var(--danger-bg-color, #fef2f2); border: 1px solid var(--danger-color, #ef4444); border-radius: 0.5em; color: var(--danger-color, #ef4444);'
-    errorElement.textContent = message
-    
-    const main = document.querySelector('main')
-    main.insertBefore(errorElement, main.firstChild)
-    
-    setTimeout(() => errorElement.remove(), 5000)
   }
 
   // === UNIFIED DRAG METHODS ===

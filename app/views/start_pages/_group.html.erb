@@ -2,17 +2,24 @@
     :edit_group after a failed rename, :add_item after a link was added or a
     failed add. Nil means both stay closed. %>
 <% open_form = local_assigns[:open_form] %>
+<%# aria-labelledby is what makes this a region: a <section> with no accessible
+    name is not exposed as one at all, so the groups were invisible as structure. %>
 <section class="start-page-group editable"
          id="<%= group_dom_id(group) %>"
+         aria-labelledby="<%= group_name_dom_id(group) %>"
          data-group-id="<%= group.id %>"
          data-group-column="<%= group.column %>"
          data-drag-drop-target="group">
   <div class="group-heading"
        data-controller="inline-form"
        data-inline-form-open-value="<%= open_form == :edit_group %>">
-    <div class="group-header" data-inline-form-target="trigger">
+    <%# Focusable for the same reason .item-row is — see start_pages/_item. %>
+    <div class="group-header"
+         tabindex="-1"
+         data-grid-keyboard-target="row"
+         data-inline-form-target="trigger">
       <%= group_drag_handle %>
-      <span class="group-name"><%= group.saved_name %></span>
+      <span class="group-name" id="<%= group_name_dom_id(group) %>"><%= group.saved_name %></span>
       <div class="item-actions">
         <%= group_edit_button %>
         <%= group_delete_button(group) %>

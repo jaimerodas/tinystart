@@ -1,3 +1,8 @@
-<div id="error_messages" class="alert alert-error" style="margin: 1em 0; padding: 1em; background: var(--danger-bg-color, #fef2f2); border: 1px solid var(--danger-color, #ef4444); border-radius: 0.5em; color: var(--danger-color, #ef4444);">
-  <%= message %>
-</div>
+<%# The contents of the notice region, not the region itself — see
+    start_pages/_notice_region. A stream updates this into the live region that
+    is already on the page, because a screen reader announces a change inside a
+    region it already knows, not the arrival of a region with the text already
+    in it. %>
+<% if message.present? %>
+  <p class="start-page-notice-error"><%= message %></p>
+<% end %>

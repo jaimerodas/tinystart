@@ -53,12 +53,6 @@ class StartPageItem < ApplicationRecord
     moved
   end
 
-  def move_to_position(new_position)
-    return false if new_position < 0
-
-    update(position: new_position)
-  end
-
   def reorder_group_positions!
     start_page_group.reorder_positions!
   end

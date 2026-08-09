@@ -221,6 +221,64 @@ class StartPageGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, group.column
   end
 
+  # A move renumbers the column it left and the column it landed in, and nothing
+  # else — so those are what get redrawn. Redrawing the whole grid would take
+  # #start_page_grid with it, and that node carries the drag and keyboard
+  # controllers: replacing it drops the keyboard highlight on every move.
+  test "a turbo stream move replaces the source and destination columns, not the grid" do
+    @user.start_page_groups.create!(name: "Already there", column: 2, position: 0)
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+
+    post move_start_group_path(group), params: { column: 2, position: 1 }, as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="column_1">}, response.body
+    assert_match %r{<turbo-stream action="replace" target="column_2">}, response.body
+    assert_no_match %r{target="start_page_grid"}, response.body
+  end
+
+  test "a turbo stream reorder within one column replaces that column alone" do
+    @user.start_page_groups.create!(name: "First", column: 1, position: 0)
+    second = @user.start_page_groups.create!(name: "Second", column: 1, position: 1)
+
+    post move_start_group_path(second), params: { column: 1, position: 0 }, as: :turbo_stream
+
+    assert_response :success
+    assert_match %r{<turbo-stream action="replace" target="column_1">}, response.body
+    assert_equal 1, response.body.scan("<turbo-stream").size
+  end
+
+  # The failure branch used to answer 200 with a stream aimed at #error_messages,
+  # an id that is rendered nowhere — so Turbo applied it to nothing and the
+  # client's response.ok check passed. A failed move was silent from both ends.
+  test "a rejected turbo stream move answers 422 with a message in the notice region" do
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+
+    post move_start_group_path(group), params: { column: 5, position: 0 }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    # update, not replace: the region is a live one, and a screen reader
+    # announces changes inside a region it already knows, not the arrival of a
+    # region with the text already in it.
+    assert_match %r{<turbo-stream action="update" target="start_page_notice">}, response.body
+    assert_match "Failed to move group.", response.body
+    assert_equal 1, group.reload.column
+  end
+
+  # The client moves the group before it asks. A refusal that only says so
+  # leaves the page showing a column the database does not have — and the next
+  # move computes its index from that page. Only columns that exist are worth
+  # redrawing; the refused one may be off the end of the grid.
+  test "a rejected move sends the column back so the page matches the database" do
+    group = @user.start_page_groups.create!(name: "Test Group", column: 1, position: 0)
+
+    post move_start_group_path(group), params: { column: 5, position: 0 }, as: :turbo_stream
+
+    assert_response :unprocessable_content
+    assert_match %r{<turbo-stream action="replace" target="column_1">}, response.body
+    assert_no_match %r{target="column_5"}, response.body
+  end
+
 
   test "should require authentication" do
     sign_out

@@ -9,7 +9,14 @@
      data-drag-drop-target="item"
      data-controller="inline-form"
      data-inline-form-open-value="<%= local_assigns[:open_form] == :edit_item %>">
-  <div class="item-row" data-inline-form-target="trigger">
+  <%# The row is the focusable unit, not the buttons inside it: one highlight
+      walks the grid with the arrow keys, and Enter and Delete click through to
+      the buttons. tabindex -1 by default — grid_keyboard_controller promotes
+      exactly one row on the page to 0. %>
+  <div class="item-row"
+       tabindex="-1"
+       data-grid-keyboard-target="row"
+       data-inline-form-target="trigger">
     <%= item_drag_handle %>
     <span class="item-title"><%= item.saved_title %></span>
     <div class="item-actions">

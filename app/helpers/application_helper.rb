@@ -1,8 +1,12 @@
 module ApplicationHelper
+  # Every icon in the app sits inside a control that carries its own label, so
+  # the glyph is decorative in all of them and an unmarked <svg> only adds noise
+  # to what a screen reader reads out. Marking it here rather than in the files
+  # means a new icon can't forget to.
   def icon(name)
     file_path = Rails.root.join("app", "assets", "icons", "#{name}.svg")
     return unless File.exist?(file_path)
-    File.read(file_path).html_safe
+    File.read(file_path).sub("<svg", %(<svg aria-hidden="true" focusable="false")).html_safe
   end
 
   # Text, not icons. The menu holds two items at most, which fits on the

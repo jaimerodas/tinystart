@@ -85,7 +85,23 @@ Inherited deliberately from tinylinks; keep them.
 - **Turbo Streams, not Frames** — there are no Turbo Frames in the app. Writes
   on `/start/edit` replace the smallest node that can have changed (`column_N`,
   `group_N`, `item_N`); the ids are built by helpers in `StartPageHelper` so the
-  controllers, partials and tests all name them from one place.
+  controllers, partials and tests all name them from one place. This includes
+  the two `move` actions: they redraw the source and destination column (or
+  group) only, on success *and* on failure — the client moves the row before it
+  asks, so a refusal has to send the truth back or the page keeps an order the
+  database never accepted. Never widen them back to `start_page_grid` — that
+  node carries the drag and keyboard controllers, and replacing it drops the
+  keyboard highlight on every move.
+- **`#start_page_notice` is `update`d, never `replace`d.** It is a live region,
+  and one is only announced for changes made inside it while it is already in
+  the accessibility tree; replacing it delivers a region that arrives with its
+  text already in place, which readers stay silent about.
+- **Two ways to reorder, one way to save it.** Pointer drag lives in
+  `drag_drop_controller.js`, the keyboard in `grid_keyboard_controller.js`, and
+  neither knows about the other beyond sharing `lib/start_page_moves.js`. The
+  keyboard model is written down in `.claude/rules/ui-design.md`; the short
+  version is that the grid is one Tab stop with a roving highlight, and a
+  carried row moves in the DOM and nowhere else until it is dropped.
 - CSS in `app/assets/stylesheets/` — `stylesheet_link_tag :app` bundles every
   file in that directory, so a new `.css` file needs no wiring
 - The design system pivots on one variable, `--base-accent` in `colors.css`,
