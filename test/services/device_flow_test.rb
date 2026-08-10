@@ -17,7 +17,54 @@ class DeviceFlowTest < ActiveSupport::TestCase
     Net::HTTP.stubs(:start).raises(error)
   end
 
+  # The form data the block's request actually carried, decoded. Captured off the
+  # request object because the stub is at Net::HTTP.start, which is the last place
+  # the params are still visible.
+  def params_sent
+    sent = nil
+    response = mock
+    response.stubs(:body).returns({ device_code: "abc" }.to_json)
+    http = mock
+    http.stubs(:request).with { |request| sent = URI.decode_www_form(request.body).to_h }
+        .returns(response)
+    Net::HTTP.stubs(:start).yields(http).returns(response)
+
+    yield
+    sent
+  end
+
   # --- start ---
+
+  # One person can have two tinystarts pointed at the same app — a laptop and the
+  # real one — and the other app lists its tokens by this name. Without the host
+  # both read "tinystart" and revoking the right one is guesswork.
+  test "start names the host it is asking from" do
+    params = params_sent do
+      DeviceFlow.new("https://links.example.com", client_host: "start.pati.to").start
+    end
+
+    assert_equal "tinystart (start.pati.to)", params["client_name"]
+  end
+
+  test "start names a dev instance by its port" do
+    params = params_sent do
+      DeviceFlow.new("https://links.example.com", client_host: "localhost:3000").start
+    end
+
+    assert_equal "tinystart (localhost:3000)", params["client_name"]
+  end
+
+  test "start falls back to the bare name when no host is given" do
+    params = params_sent { DeviceFlow.new("https://links.example.com").start }
+
+    assert_equal "tinystart", params["client_name"]
+  end
+
+  test "start still asks for the scopes the command bar needs" do
+    params = params_sent { @flow.start }
+
+    assert_equal "search,visit", params["scopes"]
+  end
 
   test "start returns the grant details" do
     stub_response({

@@ -15,7 +15,10 @@ class Settings::ConnectionsController < ApplicationController
   # browser polls. Short-lived (10 minutes) and single-use, so it needs no
   # table.
   def create
-    grant = DeviceFlow.new(base_url).start
+    # host_with_port, so a dev instance names its port and the real one doesn't:
+    # "tinystart (localhost:3000)" against "tinystart (start.pati.to)" in the
+    # other app's list of tokens.
+    grant = DeviceFlow.new(base_url, client_host: request.host_with_port).start
 
     if grant.nil?
       redirect_to settings_connections_path,

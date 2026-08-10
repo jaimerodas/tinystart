@@ -102,7 +102,11 @@ and Rails calls the other app with a bearer token. No token in the browser, no
 CORS.
 
 The token is obtained through the other app's OAuth 2.0 device flow (RFC 8628),
-requesting the `search` and `visit` scopes. It's stored in TinyStart's database
+requesting the `search` and `visit` scopes. The `client_name` it asks under
+carries this instance's own host — `tinystart (localhost:3000)` against
+`tinystart (start.pati.to)` — because the other app lists its approved tokens by
+that name, and a dev instance and the real one are otherwise indistinguishable
+when you go to revoke one. It's stored in TinyStart's database
 — **not** in Rails credentials — so rotating it never needs a redeploy. It
 renews itself on use and only expires after 90 days of inactivity.
 

@@ -57,6 +57,18 @@ class Settings::ConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form.connect-form", false
   end
 
+  # So the other app's list of tokens says which tinystart asked for each one.
+  test "connecting tells the other app which host is asking" do
+    login_as @user
+    DeviceFlow.expects(:new)
+      .with("https://links.example.com", client_host: "www.example.com")
+      .returns(stub(start: grant))
+
+    post settings_connections_url, params: { base_url: "https://links.example.com" }
+
+    assert_redirected_to settings_connections_path
+  end
+
   # The three lines are three tiers: the state, the token's facts, a footnote.
   # They used to carry .item-meta and .help-text, which are scoped to
   # .item-list .item and to a form's .form-group respectively — so none of the
