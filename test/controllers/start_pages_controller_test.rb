@@ -8,15 +8,23 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
 
   # There is no start page to create any more: every user has one from signup.
   test "should show the start page without any setup" do
-    get start_path
+    get root_path
 
     assert_response :success
     assert_select ".start-page-grid[data-columns='3']"
   end
 
+  # The page has one URL. /start is still the PATCH target and the prefix every
+  # group and item route hangs off, but it is not somewhere you can go.
+  test "should not serve the start page at /start as well" do
+    get "/start"
+
+    assert_response :not_found
+  end
+
   # A blank grid is indistinguishable from a broken one, so say which it is.
   test "should tell a user with no tiles how to add some" do
-    get start_path
+    get root_path
 
     assert_response :success
     assert_select ".start-page-empty", /No links added yet/
@@ -27,7 +35,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     group = @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
     group.start_page_items.create!(url: "https://example.com", title: "Example", position: 0)
 
-    get start_path
+    get root_path
 
     assert_select ".start-page-empty", false
   end
@@ -36,7 +44,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   test "should still show the empty notice for a group with no tiles" do
     @user.start_page_groups.create!(name: "Work", column: 1, position: 0)
 
-    get start_path
+    get root_path
 
     assert_select ".start-page-empty", /No links added yet/
   end
@@ -44,7 +52,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   test "should lay the grid out with the user's column count" do
     @user.update!(columns: 5)
 
-    get start_path
+    get root_path
 
     assert_response :success
     assert_select ".start-page-grid[data-columns='5']"
@@ -56,7 +64,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     group.start_page_items.create!(url: "https://amazon.com", title: "Amazon", position: 0)
     group.start_page_items.create!(url: "https://github.com", title: "GitHub", position: 1)
 
-    get start_path
+    get root_path
     assert_response :success
 
     # Check command bar elements exist
@@ -65,7 +73,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".command-bar-suggestions[data-command-bar-target='suggestions']"
 
     # Check that the main element has the command bar controller and links data
-    assert_select "main[data-controller='command-bar']"
+    assert_select "main[data-controller~='command-bar']"
     assert_select "main[data-command-bar-links-value]" do |elements|
       links_json = elements.first["data-command-bar-links-value"]
       links_data = JSON.parse(links_json)
@@ -78,7 +86,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   # The command bar can't tell "not connected" from "no matches" on its own, so
   # the page has to hand it the state up front.
   test "should tell the command bar federation is off without a connection" do
-    get start_path
+    get root_path
 
     assert_select "main[data-command-bar-federation-value='off']"
   end
@@ -88,7 +96,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   test "should tell the command bar federation is active with a connection" do
     @user.create_connection!(base_url: "https://links.example.com", token: "mine")
 
-    get start_path
+    get root_path
 
     assert_select "main[data-command-bar-federation-value='active']"
     assert_select "main[data-command-bar-source-value='links.example.com']"
@@ -98,7 +106,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
     connection.record_failure!("links.example.com rejected the token")
 
-    get start_path
+    get root_path
 
     assert_select "main[data-command-bar-federation-value='reconnect']"
     assert_select ".search-disconnected", /Search of links\.example\.com is disconnected/
@@ -113,7 +121,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     theirs = users(:two).start_page_groups.create!(name: "Theirs", column: 1, position: 0)
     theirs.start_page_items.create!(url: "https://theirs.example.com", title: "Theirs", position: 0)
 
-    get start_path
+    get root_path
 
     assert_select ".start-page-grid", /Mine/
     assert_select ".start-page-grid", { text: /Theirs/, count: 0 }
@@ -133,7 +141,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   test "should require authentication" do
     sign_out
 
-    get start_path
+    get root_path
     assert_redirected_to new_session_path
   end
 
@@ -143,7 +151,7 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
     Connection.create!(user: @user, base_url: "https://links.example.com", token: "t")
       .record_failure!("links.example.com rejected the token")
 
-    get start_path
+    get root_path
 
     assert_select ".search-disconnected", /disconnected/i
   end
@@ -151,13 +159,13 @@ class StartPagesControllerTest < ActionDispatch::IntegrationTest
   test "shows no reconnect notice while the connection is healthy" do
     Connection.create!(user: @user, base_url: "https://links.example.com", token: "t")
 
-    get start_path
+    get root_path
 
     assert_select ".search-disconnected", false
   end
 
   test "shows no reconnect notice when the app was never connected" do
-    get start_path
+    get root_path
 
     assert_select ".search-disconnected", false
   end

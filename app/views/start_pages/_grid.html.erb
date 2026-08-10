@@ -4,7 +4,7 @@
          aria-describedby="start_page_keys"
          data-columns="<%= user.columns %>"
          data-controller="drag-drop grid-keyboard"
-         data-action="keydown->grid-keyboard#keydown focusin->grid-keyboard#enter focusout->grid-keyboard#leave">
+         data-action="keydown->grid-keyboard#keydown focusin->grid-keyboard#enter focusout->grid-keyboard#leave start-page:leaving@window->grid-keyboard#dropIfGrabbed">
   <% user.column_range.each do |column_number| %>
     <%= render "start_pages/column",
                column_number: column_number,

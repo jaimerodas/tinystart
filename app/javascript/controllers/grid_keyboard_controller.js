@@ -88,6 +88,14 @@ export default class extends Controller {
     // Reparenting a carried row drops focus to <body> for an instant, and the
     // restoration happens in the same task. Decide on the next one.
     queueMicrotask(() => {
+      // Opening the ? list is not letting go. It takes focus the way a click
+      // outside would, but reading the shortcuts is exactly when a carried row
+      // has to still be carried — half of what the list says is how to move it,
+      // and Esc is in there as the way to change your mind. Closing it hands
+      // focus straight back to the row, so this is a round trip like a move or
+      // a delete, and the mode must not flicker for it either.
+      if (document.activeElement?.closest("dialog[open]")) return
+
       // Focus left the grid entirely while something was still being carried —
       // a click on the page outside it. Letting go commits, the same rule Tab
       // follows, rather than leaving a move dangling to land later.
@@ -97,6 +105,22 @@ export default class extends Controller {
 
       this.syncKeyboardMode()
     })
+  }
+
+  // A shortcut that leaves the page is leaving. A carried row drops and saves,
+  // the same rule Tab and clicking away already follow.
+  //
+  // Not redundant with leave(): the body swap at the end of a Turbo visit does
+  // eventually take focus off the row, but by then the page being navigated to
+  // has already been fetched, so it renders the order the move was meant to
+  // replace. Handing the save back lets whoever is leaving wait for it — being
+  // dispatched first is not being processed first, and both requests read the
+  // same table.
+  dropIfGrabbed(event) {
+    if (!this.grabbed) return
+
+    this.drop({ refocus: false })
+    event.detail?.waitFor?.push(this.moveInFlight)
   }
 
   syncKeyboardMode() {
@@ -467,6 +491,10 @@ export default class extends Controller {
     // redraws nothing, and an unspent key would lie in wait to claim the next
     // row that happened to match it.
     answered.then(gotAnswer => { if (!gotAnswer) this.pendingFocusKey = null })
+
+    // Kept for anything that has to leave the page behind this move rather than
+    // alongside it. Nothing here waits on it.
+    this.moveInFlight = answered
 
     return true
   }

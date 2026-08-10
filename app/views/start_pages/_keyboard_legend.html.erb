@@ -1,16 +1,17 @@
 <%# Two states, because the keys do nothing until focus is in the grid. Which
     one shows is decided in CSS off .keyboard-mode on the grid itself, so the
-    controller never has to reach outside its own element. %>
+    controller never has to reach outside its own element.
+
+    Both halves are one short line: the toolbar row's height is set by the
+    --control-size select beside it, and a legend taller than that would move
+    the grid every time the two swap.
+
+    The keys themselves live in the ? dialog now. Reciting them here meant two
+    copies of the same list, and only one of them could be complete — ⌥S is a
+    page shortcut, not a grid one. %>
 <div class="keyboard-legend">
   <p class="keyboard-legend-enter"><kbd>Tab</kbd> to enter keyboard mode</p>
 
   <%# The grid points aria-describedby here, so this is read on the way in. %>
-  <dl id="start_page_keys" class="keyboard-legend-keys">
-    <div><dt><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>move between tiles</dd></div>
-    <div><dt><kbd>Space</kbd></dt><dd>pick up / drop</dd></div>
-    <div><dt><kbd>Enter</kbd></dt><dd>edit</dd></div>
-    <div><dt><kbd>Del</kbd></dt><dd>delete</dd></div>
-    <div><dt><kbd>Esc</kbd></dt><dd>cancel a move</dd></div>
-    <div><dt><kbd>Tab</kbd></dt><dd>leave</dd></div>
-  </dl>
+  <p id="start_page_keys" class="keyboard-legend-keys"><kbd>?</kbd> for all the shortcuts</p>
 </div>

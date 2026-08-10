@@ -1,0 +1,26 @@
+<%# Every key the page answers to, in one place. A native <dialog> opened with
+    showModal(), which is what gets the focus trap and Esc-to-close for free —
+    there is no modal.css in this app to borrow. %>
+<dialog class="shortcuts-dialog"
+        data-start-shortcuts-target="dialog"
+        aria-labelledby="shortcuts_dialog_title"
+        data-action="click->start-shortcuts#closeOnBackdrop">
+  <div class="shortcuts-dialog-body">
+    <h2 id="shortcuts_dialog_title">Keyboard shortcuts</h2>
+
+    <dl>
+      <% shortcuts.each do |keys, description| %>
+        <div>
+          <dt><% keys.each do |key| %><kbd><%= key %></kbd><% end %></dt>
+          <dd><%= description %></dd>
+        </div>
+      <% end %>
+    </dl>
+
+    <%# The dialog closes on Esc without this, but a pointer user needs a way
+        out too, and formmethod="dialog" is the one that needs no JavaScript. %>
+    <form method="dialog">
+      <button class="shortcuts-dialog-close" aria-label="Close">Close</button>
+    </form>
+  </div>
+</dialog>

@@ -102,6 +102,10 @@ export default class extends Controller {
         this.selectCurrent(event.metaKey || event.ctrlKey)
         break
       case 'Escape':
+        // The bar is autofocused, so nothing else on this page is reachable by
+        // keyboard while it holds focus — ? included. Clearing is the first
+        // press; stepping out is the second, or the first on an empty bar.
+        if (this.inputTarget.value === "") this.inputTarget.blur()
         this.clearAndHide()
         break
     }

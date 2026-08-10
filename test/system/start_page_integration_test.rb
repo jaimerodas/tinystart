@@ -24,7 +24,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     assert_selector ".start-page-grid[data-columns='5']"
     assert_selector "#column_count select option[selected]", text: "5", visible: :all
 
-    visit start_path
+    visit root_path
     assert_selector ".start-page-grid[data-columns='5']"
   end
 
@@ -188,7 +188,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   test "command bar filters the tiles on the page" do
     tiles_for_filtering
 
-    visit start_path
+    visit root_path
 
     assert_selector ".command-bar input[autofocus]"
     command_input = find(".command-bar input")
@@ -219,7 +219,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
   test "command bar offers no All Links section without a connection" do
     tiles_for_filtering
 
-    visit start_path
+    visit root_path
     find(".command-bar input").fill_in(with: "a")
 
     # The local results and the All Links header used to render in the same tick,
@@ -236,7 +236,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     connection = @user.create_connection!(base_url: "https://links.example.com", token: "mine")
     connection.record_failure!("links.example.com rejected the token")
 
-    visit start_path
+    visit root_path
     find(".command-bar input").fill_in(with: "a")
 
     within(".command-bar-suggestions") do
@@ -254,7 +254,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     # same-origin and resolves instantly (no external load).
     item = group.start_page_items.create!(url: "#{host}/up", title: "Health Check", position: 0)
 
-    visit start_path
+    visit root_path
     assert_equal 0, item.reload.visit_count
 
     click_link "Health Check"
@@ -267,7 +267,7 @@ class StartPageIntegrationTest < ApplicationSystemTestCase
     group = @user.start_page_groups.create!(name: "Shopping", column: 1, position: 0)
     item = group.start_page_items.create!(url: "#{host}/up", title: "Apple", position: 0)
 
-    visit start_path
+    visit root_path
     command_input = find(".command-bar input")
     command_input.fill_in(with: "Apple")
 

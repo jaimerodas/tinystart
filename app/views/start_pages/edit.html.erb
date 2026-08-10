@@ -1,5 +1,10 @@
-<main class="start-page">
+<main class="start-page"
+      data-controller="start-shortcuts"
+      data-start-shortcuts-view-value="<%= root_path %>"
+      data-action="keydown@window->start-shortcuts#keydown turbo:before-cache@window->start-shortcuts#closeDialog">
   <%= start_page_header %>
+
+  <%= render "start_pages/shortcuts_dialog", shortcuts: editor_shortcuts %>
 
   <%# One strip above the grid: how to drive it on the left, how wide it is on
       the right. The legend focuses nothing, so the select stays the last tab

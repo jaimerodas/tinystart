@@ -79,6 +79,59 @@ npx playwright screenshot --url http://localhost:3000 /tmp/prove_it_screenshot.p
   debt to pay: until it lands, the editor is keyboard-operable but not fully
   accessible.
 
+- **Entering the grid announces a pointer, not the keys.** `#start_page_grid`
+  points `aria-describedby` at the legend's keyboard-mode half, which now reads
+  "`?` for all the shortcuts" rather than reciting six keys. That is less said
+  on the way in, and it is deliberate: the legend has to stay one line or the
+  grid moves under it when the halves swap, and `⌥S` is a page shortcut that
+  never fitted there at all. The full list is one keypress away and the dialog
+  is a modal `<dialog>`, so it is reachable and readable by keyboard alone.
+
+## Moving between the two pages
+
+The start page and its editor are one thing in two states, so a chord moves
+between them rather than a trip to the header:
+
+| Key | On `/` | On `/start/edit` |
+|---|---|---|
+| `⌥E` | open the editor | — |
+| `⌥S` | — | back to the start page |
+| `?` | list every shortcut | list every shortcut |
+
+Four things about this that are decisions, not accidents:
+
+- **Matched on `event.code`, never `event.key`.** On a Mac `⌥E` is a dead key
+  and `⌥S` is `ß`; the character a chord produces says nothing about the key
+  that was pressed.
+- **Swallowed on both pages, including the one where it does nothing.** The
+  command bar is autofocused, so a chord that falls through types into the
+  search box.
+- **`?` is a shortcut only when nothing is being typed into**, or it could
+  never be searched for. Which is why `Esc` on an empty command bar now steps
+  out of it: the bar holds focus from page load, and nothing else on the page
+  was reachable by keyboard until it let go.
+- **Leaving by chord is leaving.** A row still carried in the editor is dropped
+  and saved before the visit is asked for — `start_shortcuts` announces
+  `start-page:leaving` on the window and `grid_keyboard` answers with the save
+  it started, so the two stay strangers and the visit can still wait for it.
+  Firing the POST first is not the same as it being processed first: both
+  requests read the same table, and landing before the move commits renders the
+  order it was about to replace.
+- **Opening the list is not leaving.** `showModal()` takes focus out of the
+  grid exactly the way a click outside it does, which is what commits a move —
+  but half of what the list says is how to move a carried row, and `Esc` is in
+  there as the way to change your mind. `leave()` bails when focus has gone
+  into a `dialog[open]`, so a carried row is still carried when the list
+  closes, and the mode does not flicker for the round trip.
+- **The list is closed before Turbo can photograph it.** `showModal()` sets the
+  `open` attribute; a snapshot taken with it set restores the panel rendered
+  inline — out of the top layer, so no backdrop, no focus trap, and `Esc` no
+  longer reaches it. Hence `turbo:before-cache`.
+
+The shortcut lists live in `StartPageHelper` as data (`grid_shortcuts`,
+`show_page_shortcuts`, `editor_shortcuts`) so the dialog cannot drift from the
+keys the controllers implement.
+
 ## The start page editor's keyboard model
 
 `/start/edit` is a composite widget, not a run of tab stops. The grid is one

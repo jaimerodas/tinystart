@@ -22,6 +22,44 @@ module StartPageHelper
     ]
   end
 
+  # The keyboard shortcuts, as data rather than as markup, because two views
+  # render them: the ? dialog on both pages, and the editor's toolbar legend
+  # points at it. Each entry is the keys to show and what they do.
+  #
+  # The page chords are matched on event.code in start_shortcuts_controller, so
+  # they are ⌥E and ⌥S whatever the keyboard layout puts under those keys.
+  def grid_shortcuts
+    [
+      [ %w[↑ ↓ ← →], "move between tiles" ],
+      [ %w[Home End], "first / last in the column" ],
+      [ [ "Space" ], "pick up / drop" ],
+      [ [ "Enter" ], "edit" ],
+      [ %w[Del ⌫], "delete" ],
+      [ [ "Esc" ], "cancel a move" ],
+      [ [ "Tab" ], "leave the grid" ]
+    ]
+  end
+
+  def show_page_shortcuts
+    [
+      [ [ "⌥", "E" ], "edit the start page" ],
+      [ [ "?" ], "show this list" ],
+      [ %w[↑ ↓], "move through results" ],
+      [ [ "Enter" ], "open" ],
+      [ [ "⌘", "Enter" ], "open in a new tab" ],
+      [ [ "Esc" ], "clear the bar, then leave it" ]
+    ]
+  end
+
+  # The grid's keys are only written down here now — the legend stopped
+  # listing them when it became a pointer to this list.
+  def editor_shortcuts
+    [
+      [ [ "⌥", "S" ], "back to the start page" ],
+      [ [ "?" ], "show this list" ]
+    ] + grid_shortcuts
+  end
+
   # What the command bar should do about its "All Links" section. Nothing to
   # search means no section at all; a rejected token means a notice rather than
   # a query that will only be rejected again.

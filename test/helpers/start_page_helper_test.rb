@@ -12,7 +12,7 @@ class StartPageHelperTest < ActionView::TestCase
   # --- start_page_header / actions ---
 
   test "start_page_header renders show actions by default" do
-    self.request.path_info = "/start"
+    self.request.path_info = "/"
     html = start_page_header
 
     assert_match %r{<header class="start-page-header">}, html
@@ -43,6 +43,31 @@ class StartPageHelperTest < ActionView::TestCase
     assert_match %r{href="#{edit_start_path}"}, actions[0]
     assert_match %r{Edit}, actions[0]
     assert_match %r{href="#{settings_path}"}, actions[1]
+  end
+
+  # --- shortcut lists ---
+  #
+  # The lists are data so the ? dialog can't drift from the keys the
+  # controllers actually implement. What's worth pinning is which chord each
+  # page teaches, and that the editor's list is a superset of the grid's.
+
+  test "the start page teaches the chord that opens the editor" do
+    assert_includes keys_in(show_page_shortcuts), [ "⌥", "E" ]
+  end
+
+  test "the editor teaches the chord that goes back" do
+    assert_includes keys_in(editor_shortcuts), [ "⌥", "S" ]
+  end
+
+  test "both pages say how to reopen the list" do
+    assert_includes keys_in(show_page_shortcuts), [ "?" ]
+    assert_includes keys_in(editor_shortcuts), [ "?" ]
+  end
+
+  # The legend stopped listing the grid keys when the dialog took them over, so
+  # the dialog is now the only place they are written down.
+  test "the editor's list carries every grid key" do
+    assert_equal grid_shortcuts, editor_shortcuts.last(grid_shortcuts.length)
   end
 
   # --- federation_state ---
@@ -189,5 +214,11 @@ class StartPageHelperTest < ActionView::TestCase
       assert_match %r{tabindex="-1"}, html
       assert_match %r{data-grid-keyboard-target="row"}, html
     end
+  end
+
+  private
+
+  def keys_in(shortcuts)
+    shortcuts.map(&:first)
   end
 end

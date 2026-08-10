@@ -1,7 +1,10 @@
 Rails.application.routes.draw do
   resource :session
 
-  resource :start, controller: :start_pages, only: [ :show, :edit, :update ] do
+  # No :show — the start page is served at "/" and nowhere else. /start survives
+  # as the PATCH target for the column count and as the prefix every group and
+  # item route hangs off; a GET there is a 404 on purpose.
+  resource :start, controller: :start_pages, only: [ :edit, :update ] do
     resources :groups, controller: :start_page_groups, only: [ :create, :update, :destroy ] do
       member { post :move }
     end

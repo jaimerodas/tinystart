@@ -83,7 +83,7 @@ class StartPageKeyboardTest < ApplicationSystemTestCase
 
     enter_grid
 
-    assert_selector ".keyboard-legend-keys", text: "pick up / drop"
+    assert_selector ".keyboard-legend-keys", text: "for all the shortcuts"
     assert_no_selector ".keyboard-legend-enter"
   end
 

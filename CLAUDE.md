@@ -48,6 +48,13 @@ nobody read, and it was already 1:1 with its user, so `columns` lives on
 remembering: **a start page is never created**, it exists from signup — so
 there is no "no start page yet" branch anywhere.
 
+**The start page is served at `/` and nowhere else.** `/start` used to answer
+too; it doesn't, and `routes.rb` says so. The path survives as the `PATCH`
+target for the column count and as the prefix every group and item route hangs
+off, so `start_path` is still a helper — just not somewhere you can go. `⌥E`
+and `⌥S` move between `/` and `/start/edit`; the model is in
+`.claude/rules/ui-design.md`.
+
 **The column count is edited on `/start/edit`, not in Settings.** It sits in
 the editor's toolbar (`_column_count.html.erb` → `StartPagesController#update`)
 because shrinking it can be refused — `User#columns_leave_no_group_stranded`
@@ -118,6 +125,11 @@ Inherited deliberately from tinylinks; keep them.
   keyboard model is written down in `.claude/rules/ui-design.md`; the short
   version is that the grid is one Tab stop with a roving highlight, and a
   carried row moves in the DOM and nowhere else until it is dropped.
+- **Page shortcuts are `start_shortcuts_controller.js`, grid keys are
+  `grid_keyboard_controller.js`,** and they talk only through a
+  `start-page:leaving` event on the window — leaving by chord has to drop and
+  save a carried row before the visit is asked for. `⌥E` / `⌥S` are matched on
+  `event.code`, because on a Mac they produce `´` and `ß`.
 - CSS in `app/assets/stylesheets/` — `stylesheet_link_tag :app` bundles every
   file in that directory, so a new `.css` file needs no wiring
 - The design system pivots on one variable, `--base-accent` in `colors.css`,

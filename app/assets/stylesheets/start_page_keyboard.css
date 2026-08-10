@@ -74,7 +74,8 @@
 }
 
 /* Only one of the two halves is ever shown; both are a single line, so the
-   grid below does not move when they swap. */
+   grid below does not move when they swap. How a <kbd> looks is shortcuts.css's
+   job — the legend and the ? dialog have to agree on that. */
 .keyboard-legend {
   display: flex;
   align-items: center;
@@ -85,43 +86,6 @@
 
   p {
     margin: 0;
-  }
-
-  dl {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25em 1em;
-    margin: 0;
-    padding: 0;
-  }
-
-  dl > div {
-    display: flex;
-    align-items: center;
-    gap: 0.375em;
-  }
-
-  dt, dd {
-    margin: 0;
-  }
-
-  dt {
-    display: flex;
-    gap: 0.125em;
-  }
-
-  kbd {
-    display: inline-block;
-    min-width: 1.25em;
-    padding: 0.0625em 0.3em;
-    border: 0.0625rem solid var(--border-color);
-    border-radius: var(--control-radius);
-    background: var(--bg-color);
-    color: var(--fg-color);
-    font-family: inherit;
-    font-size: 0.9em;
-    text-align: center;
-    line-height: 1.4;
   }
 }
 
