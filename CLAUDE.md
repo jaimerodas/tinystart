@@ -9,7 +9,9 @@ organised into groups across columns.
 > federated search all work, CI is green, and Kamal serves it over TLS on the
 > same droplet as `tinylinks`. Still outstanding: **backups** (`bin/backup_db`,
 > a `post-deploy` hook and a cron drop-in, staggered off tinylinks' 10:00 UTC)
-> and the **data migration** of the real tiles out of tinylinks. It was
+> and the **data migration** of the real tiles out of tinylinks — the importer
+> that migration needs is built and tested (Settings → Import & Export), so what is
+> left is running it against production and checking it by eye. It was
 > extracted from `tinylinks`, where the start page used to live. The history and
 > the design decisions behind it are in the plan at
 > `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
@@ -117,6 +119,45 @@ to fail when an app-wide lookup is reintroduced).
 
 `User#connection` reads like a database handle but isn't one: ActiveRecord
 dropped its `#connection` instance method in Rails 8, so the name is free.
+
+### Import & export (Settings → Import & Export)
+
+A start page goes in and out as a small YAML file: a mapping of column number →
+ordered list of groups, each group a `name` and an ordered `items` mapping of
+title → url. **The format is specified in `docs/start-page-format.md`; read it
+before touching either service.** `StartPageExporter`, `StartPageImporter` and
+`Settings::ImportExportController` at `/settings/import_export` are the whole
+feature. The download hangs off `/settings/export` rather than the resource, so
+the helper is `settings_export_path` and not `export_settings_import_export_path`.
+
+It carries the layout and nothing else — no visit counts, so the command bar's
+ranking starts cold after an import. It is not a backup format; `bin/backup_db`
+is.
+
+Five things that are decisions:
+
+- **Importing replaces.** The user's groups are destroyed and the page is rebuilt
+  from the file, all in one transaction, so the loop the format is for — export,
+  edit the YAML, import again — is idempotent, and a refused file changes
+  nothing. Everything is validated before the first write. A file with no groups
+  in it — including `1: []`, a mapping with a column and no groups — is refused
+  rather than obeyed, since it is only an instruction to delete the page.
+- **The header's counts warn, they don't refuse.** A mismatch is the only symptom
+  of a duplicate key Psych collapsed silently, but a hand-deleted tile lowers the
+  count identically and the file cannot say which happened — so refusing would
+  block export-edit-import, which is the point of the format.
+- **`users.columns` is set after the delete and before the first create.** It
+  defaults to 1 and `column_within_user_limit` rejects anything past it, so a
+  file using column 3 fails on its first group in any other order. A test pins
+  this.
+- **The column number is the literal key, never an index.** Empty columns are
+  omitted from the file, so `{1:, 3:}` means columns 1 and 3 of a three-column
+  page. Walking `data.values` with an index shifts the whole layout left,
+  silently; a test pins this too.
+- **The exporter numbers repeated titles** (`Fastmail`, then `Fastmail (2)`).
+  The unique index is on `(group, url)` and not on the title, so one group may
+  hold two tiles called the same thing — and a YAML mapping cannot. Psych keeps
+  the last of two identical keys and says nothing, so skipping this loses a tile.
 
 ## Patterns & Conventions
 

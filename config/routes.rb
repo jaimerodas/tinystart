@@ -22,6 +22,16 @@ Rails.application.routes.draw do
 
   namespace :settings do
     resource :password, only: [ :edit, :update ]
+
+    # Import and export of the interchange format in docs/start-page-format.md.
+    resource :import_export, only: [ :show, :create ], controller: "import_export"
+
+    # The download is its own action rather than a format on #show, because Rails
+    # registers the `yaml` extension and the file is a `.yml`. Declared out here
+    # rather than inside the resource so the helper is settings_export_path and
+    # not export_settings_import_export_path.
+    get :export, to: "import_export#export"
+
     # Singular resource — there is one connection per user — but named in the
     # plural, because that is what the section is called and what the URL
     # should read.

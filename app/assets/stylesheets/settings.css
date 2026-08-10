@@ -85,3 +85,139 @@
     }
   }
 }
+
+/* Two controls and a warning. The only heading is "Import", so the border under
+   it is what divides the halves — the export button used to have a heading of
+   its own that said nothing its own label didn't.
+
+   --import-control-height is local: this is the one row in the app where a file
+   picker and a submit sit side by side, and tokens.css already records what
+   happens when two controls in a row disagree about their height by a pixel.
+   44px is also the touch target ui-design.md asks for — the 2rem exception
+   there covers the start page editor's dense grid and nothing on this page. */
+#import-export {
+  --import-control-height: 2.75rem;
+
+  /* The picker's own button. Pinned rather than left to its content, because the
+     row's vertical centring is arithmetic — see input[type=file] below. */
+  --import-picker-height: 2rem;
+
+  h3 {
+    font-weight: 900;
+    margin: 2em 0 0.75em;
+    padding-bottom: 0.25em;
+    border-bottom: 0.0625rem solid var(--border-color);
+  }
+
+  /* A link that has to read as the page's primary action. Shaped like the
+     submit in .connect-form rather than reusing .button-link, which is the
+     start page's subdued icon-row style and reads as body text here. */
+  .export-action {
+    display: inline-block;
+    box-sizing: border-box;
+    height: var(--import-control-height);
+    padding: 0 1.5em;
+    line-height: var(--import-control-height);
+    border-radius: 0.5em;
+    font-weight: bold;
+    color: var(--button-fg-color);
+    background: var(--highlight-color);
+    transition: 0.2s ease all;
+
+    &:hover {
+      text-decoration: none;
+      color: var(--button-fg-color);
+      background: var(--link-hover-color);
+    }
+
+    &:active {
+      box-shadow: inset 0 0.125em 0.25em rgba(0, 0, 0, 0.4),
+                  inset 0 0.25em 0.5em rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  /* One row: the picker takes the space, the submit takes what it needs, and
+     the warning wraps to its own line under both. */
+  .import-form {
+    max-width: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+
+    /* The button inside a file input is centred by leaving it no room to be
+       off-centre, not by aligning it: the padding is exactly the space left over
+       once the pinned button height and the two borders are taken out of the
+       row height, so the content box and the button are the same size.
+       `display: flex; align-items: center` is the obvious thing and it does
+       nothing — WebKit lays a file input's shadow content out regardless of the
+       input's own `display`, so the button ends up flush against the top of the
+       content box with all the slack underneath. Measured: 0px above / 8px
+       below before this, 5px / 5px after. */
+    input[type=file] {
+      flex: 1 1 18em;
+      box-sizing: border-box;
+      height: var(--import-control-height);
+      padding: calc((var(--import-control-height) - var(--import-picker-height) - 0.125rem) / 2) 0.75em;
+      font-family: inherit;
+      font-size: 0.875em;
+      color: var(--fg-color);
+      background: var(--bg-color);
+      border: 0.0625rem solid var(--border-color);
+      border-radius: 0.5em;
+      outline: medium solid var(--bg-color);
+      transition: 0.3s ease outline;
+
+      &:focus {
+        border-color: var(--highlight-color);
+        outline: medium solid var(--highlight-color);
+      }
+
+      /* The native picker button, restyled to the same small bordered button
+         the item lists use. Cheaper than hiding the input behind a label and a
+         Stimulus controller, and it keeps the native affordance. */
+      &::file-selector-button {
+        box-sizing: border-box;
+        height: var(--import-picker-height);
+        /* Its own label centres on line-height, the height being fixed. */
+        line-height: calc(var(--import-picker-height) - 0.125rem);
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: bold;
+        margin-right: 0.75em;
+        padding: 0 1em;
+        color: var(--fg-color);
+        background: var(--bg-color);
+        border: 0.0625rem solid var(--border-color);
+        border-radius: var(--control-radius);
+        cursor: pointer;
+        transition: 0.2s ease all;
+      }
+
+      &::file-selector-button:hover {
+        background: var(--bg-highlight-color);
+      }
+    }
+
+    /* The global rule is a full-width 1em-padded slab, which is right for a
+       form whose submit is the whole point and wrong for one sharing a row.
+       box-sizing and the explicit height keep the 32em media query's padding
+       from growing it. */
+    input[type=submit] {
+      flex: 0 0 auto;
+      box-sizing: border-box;
+      width: auto;
+      height: var(--import-control-height);
+      margin: 0;
+      padding: 0 1.5em;
+    }
+
+    /* .help-text is only styled inside .form-group, and this one isn't in one. */
+    .help-text {
+      flex-basis: 100%;
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--mid-color);
+    }
+  }
+}
