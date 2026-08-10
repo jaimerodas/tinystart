@@ -1,255 +1,91 @@
 # TinyStart
 
 Personal browser start page: a command bar plus a grid of hand-curated tiles,
-organised into groups across columns.
+organised into groups across columns. Live at https://start.pati.to.
 
-**Live**: https://start.pati.to
+## Stack
 
-> **Status: live and finished, 2026-08-10.** Auth, the start page, the editor,
-> federated search and import/export all work, CI is green, and Kamal serves it
-> over TLS on the same droplet as `tinylinks`. The **real tiles have been
-> migrated** out of tinylinks through Settings → Import & Export, and **backups**
-> run weekly (see [Backups](#backups)) — the two things this file used to list as
-> outstanding. It was
-> extracted from `tinylinks`, where the start page used to live. The history and
-> the design decisions behind it are in the plan at
-> `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
-> starting work**, it records decisions that were already settled and shouldn't
-> be relitigated.
-
-## Tech Stack
-
-- Ruby 4.0.6 (`.tool-versions`) / Rails 8.1
-- SQLite (single-server), `schema_format :ruby`
+- Ruby 4.0.6 (`.tool-versions`) / Rails 8.1, SQLite, `schema_format :ruby`
 - Hotwire (Turbo + Stimulus, importmap), Propshaft
-- Custom session-based auth (not Devise), ported from tinylinks
-- Kamal 2 → DigitalOcean (same droplet as tinylinks, different service/volume)
+- Custom session-based auth, not Devise
+- Kamal 2 → DigitalOcean, sharing a droplet with `tinylinks` and `gastitos`
 
-## Quick Reference
+## Commands
 
 ```bash
-bin/dev              # Start local server
-bin/rails test       # Unit/controller/integration tests
-./script/test        # What the pre-commit hook runs: rails test:all + rubocop + brakeman
-bin/rubocop          # Code quality
-bin/brakeman         # Security scan (must be clean)
-bin/rails db:migrate # Run migrations
-kamal deploy         # Ship to production (kamal setup the first time)
+bin/dev              # local server
+bin/rails test       # everything but system tests
+./script/test        # the gate: test:all + rubocop + brakeman
+kamal deploy         # ship (kamal setup the first time)
 ```
 
-## Deploy
+Nothing runs `./script/test` for you — no git hook is installed. Run it before
+every commit and keep it green; a Brakeman warning is a blocker, not a note.
 
-Kamal 2 to the same DigitalOcean droplet as `tinylinks`; kamal-proxy splits
-:443 by Host header. Secrets come from 1Password at deploy time
-(`.kamal/secrets`), so only `RAILS_MASTER_KEY` and `POSTMARK_API_TOKEN` are
-injected — the federated-search token lives in the database, not in env.
+## Map
 
-Two things that are load-bearing and not obvious:
+| Model | |
+|---|---|
+| User | auth; `theme_preference`, `color_preference`, `columns` (defaults to 1); the first user is bootstrapped as admin |
+| Session | an auth session, with expiry |
+| StartPageGroup | a named group of tiles at a `column` + `position`, belonging to a user |
+| StartPageItem | a tile; owns its own `title` and `url` |
+| Connection | one user's token for another app, for federated search |
 
-- **The volume must stay `tinystart_storage`.** A Docker named volume is
-  host-side storage, independent of the image, so pointing this at
-  `tinylinks_storage` would put both apps on one
-  `/rails/storage/production.sqlite3`. `db:prepare` would then run tinystart's
-  migrations against tinylinks' database and die on `table "users" already
-  exists`.
-- **The build stage needs `libssl-dev`.** The `openssl` gem (there for Kamal's
-  net-ssh on Ruby 4) compiles a native extension against the OpenSSL headers.
-  The stock Rails Dockerfile doesn't install them, and the first deploy failed
-  on exactly this.
+| Feature | Where |
+|---|---|
+| Start page and editor | `StartPagesController`, `StartPageGroups`/`ItemsController`, `app/views/start_pages/` |
+| Command bar, federated search | `command_bar_controller.js`, `SearchController`, `ConnectionClient` |
+| Connections (OAuth device flow) | `Settings::ConnectionsController`, `DeviceFlow`, `/settings/connections` |
+| Import & export | `StartPageImporter`, `StartPageExporter`, `/settings/import_export` |
+| Backups | `bin/backup_db`, installed by `.kamal/hooks/post-deploy`, weekly |
 
-## Backups
+## Invariants
 
-`bin/backup_db` → Backblaze B2, at `s3://$B2_BUCKET/tinystart/weekly/`.
-`.kamal/hooks/post-deploy` installs it as `/usr/local/bin/tinystart-backup`,
-writes `/etc/tinystart-backup.env` from the `B2_*` entries in `.kamal/secrets`,
-and drops `/etc/cron.d/tinystart-backup`. **Every deploy re-installs all three**,
-so the schedule is whatever this repo says rather than whatever was last edited
-on the server. The same droplet does this for `tinylinks` and `gastitos` too,
-which is why every path is namespaced and the cron is a drop-in file.
+Violate one of these and the app breaks quietly rather than loudly. Each is
+explained at the place it lives; this is the list, not the reasoning.
 
-**Weekly, Sundays 10:30 UTC** — half an hour clear of the other two apps, which
-both run daily at 10:00. Weekly rather than nightly because a start page is a few
-dozen hand-curated tiles that change when you decide to change them; a lost week
-is a few minutes of retyping.
+- **There is no `StartPage` record.** `columns` is a column on `users` and
+  groups belong to the user. A start page is never created — it exists from
+  signup, so there is no "no start page yet" branch anywhere.
+- **The start page is served at `/` and nowhere else.** `/start` survives as the
+  `PATCH` target for the column count and as the prefix every group and item
+  route hangs off; a `GET` there is a 404 on purpose.
+- **The column count is edited on `/start/edit`, not in Settings.**
+  `SettingsController` deliberately does not permit `:columns`; a test pins it.
+- **Connections are per-user.** Always `current_user.connection`, never an
+  app-wide lookup — that leaks one person's results into another's command bar.
+  A regression test in `search_controller_test.rb` pins it.
+- **Turbo Streams, never Frames.** Writes on `/start/edit` replace the smallest
+  node that can have changed (`column_N`, `group_N`, `item_N`), with the ids
+  built by `StartPageHelper`. Never widen a target back to `start_page_grid` —
+  it carries the drag and keyboard controllers.
+- **`#start_page_notice` is `update`d, never `replace`d.** It is a live region.
+- **Pointer and keyboard reordering stay strangers.**
+  `drag_drop_controller.js` and `grid_keyboard_controller.js` share
+  `lib/start_page_moves.js` and nothing else.
+- **The Kamal volume stays `tinystart_storage`** (`config/deploy.yml` says why).
 
-Two things worth not re-deriving:
+## Conventions
 
-- **Backing up only when the data changed does not work here.** It was the first
-  design, and `visit_count` kills it: the command bar increments it on every tile
-  click, so the file differs from the last snapshot almost always. A content hash
-  would upload every week anyway and cost a comparison to learn nothing.
-- **The snapshot is checked before it is uploaded** — `PRAGMA integrity_check`,
-  and a refusal if it holds zero tiles. `tinylinks`' script doesn't do this;
-  this data was curated by hand and a corrupt backup that uploaded cleanly says
-  nothing until the day you need it. The zero-tile guard is the one that would
-  catch a restore-shaped disaster being immortalised as a backup.
+- **Services**: the constructor takes dependencies, `call` does the work, and
+  failure degrades to an empty array or hash rather than raising.
+- **CSS**: one file per concern in `app/assets/stylesheets/`; `stylesheet_link_tag
+  :app` bundles the whole directory, so a new file needs no wiring. The palette
+  pivots on `--base-accent` in `colors.css` plus native `light-dark()`; theme and
+  colour are `data-theme` / `data-color` on `<html>`. Measurements live in
+  `tokens.css` — `--control-size` for the editor's dense grid, `--button-height`
+  for Settings. `.action-button` in `buttons.css` is the one button shape in
+  Settings, with a `.danger` modifier.
+- **Tests**: Minitest + Mocha, SimpleCov, fixtures in `test/fixtures/`. Never
+  call a real external API — mock `ConnectionClient` and `DeviceFlow`.
+- **Style**: RuboCop Rails Omakase. Vanilla Rails over gems. Simple over clever.
+  Spanish commit messages, committed straight to `main` — solo repo.
 
-Only `production.sqlite3`. `production_cache.sqlite3` is Solid Cache and rebuilds
-itself.
+## Read before touching
 
-## Architecture
-
-| Model | Purpose |
-|-------|---------|
-| User | Auth; theme, color and `columns` preferences (columns defaults to 1); first user is bootstrapped as admin |
-| Session | Auth sessions with expiration |
-| StartPageGroup | A named group of tiles belonging to a user, placed at a column + position |
-| StartPageItem | A tile: owns its own `url` and `title` (no pointer anywhere else) |
-| Connection | One user's credential for another app, for federated search |
-
-There is no `StartPage` record. It only ever held a column count and a name
-nobody read, and it was already 1:1 with its user, so `columns` lives on
-`users` and groups belong to the user directly. The consequence worth
-remembering: **a start page is never created**, it exists from signup — so
-there is no "no start page yet" branch anywhere.
-
-**The start page is served at `/` and nowhere else.** `/start` used to answer
-too; it doesn't, and `routes.rb` says so. The path survives as the `PATCH`
-target for the column count and as the prefix every group and item route hangs
-off, so `start_path` is still a helper — just not somewhere you can go. `⌥E`
-and `⌥S` move between `/` and `/start/edit`; the model is in
-`.claude/rules/ui-design.md`.
-
-**The column count is edited on `/start/edit`, not in Settings.** It sits in
-the editor's toolbar (`_column_count.html.erb` → `StartPagesController#update`)
-because shrinking it can be refused — `User#columns_leave_no_group_stranded`
-names the group that would be hidden — and the editor is the only page where
-that group is on screen. `SettingsController` deliberately does **not** permit
-`:columns`; there's a test pinning that.
-
-### Connections (federated search)
-
-TinyStart is standalone: its own database, its own users, its own tiles. The
-single integration point is **search**. The command bar filters local tiles
-instantly, then federates a debounced query to a connected app and shows those
-results in a second section. In practice that app is tinylinks, but nothing
-user-facing says so — the section is **Settings → Connections**, and every
-message names the *host* it's talking to.
-
-That call goes **server-side**: the browser hits TinyStart's own `/search.json`,
-and Rails calls the other app with a bearer token. No token in the browser, no
-CORS.
-
-The token is obtained through the other app's OAuth 2.0 device flow (RFC 8628),
-requesting the `search` and `visit` scopes. The `client_name` it asks under
-carries this instance's own host — `tinystart (localhost:3000)` against
-`tinystart (start.pati.to)` — because the other app lists its approved tokens by
-that name, and a dev instance and the real one are otherwise indistinguishable
-when you go to revoke one. It's stored in TinyStart's database
-— **not** in Rails credentials — so rotating it never needs a redeploy. It
-renews itself on use and only expires after 90 days of inactivity.
-
-The pieces: `Connection` (model), `ConnectionClient` (search + visit, degrades
-to `[]` on every failure), `DeviceFlow` (the RFC 8628 dance),
-`Settings::ConnectionsController` at `/settings/connections`.
-
-**Connections are per-user, and this matters.** A token grants access to
-exactly one account on the other app, so `Connection belongs_to :user` and every
-lookup goes through `current_user.connection`. Never reach for an app-wide "the
-connection" — that leaks one person's archive into another's command bar, and
-there's a regression test in `search_controller_test.rb` pinning it (verified
-to fail when an app-wide lookup is reintroduced).
-
-`User#connection` reads like a database handle but isn't one: ActiveRecord
-dropped its `#connection` instance method in Rails 8, so the name is free.
-
-### Import & export (Settings → Import & Export)
-
-A start page goes in and out as a small YAML file: a mapping of column number →
-ordered list of groups, each group a `name` and an ordered `items` mapping of
-title → url. **The format is specified in `docs/start-page-format.md`; read it
-before touching either service.** `StartPageExporter`, `StartPageImporter` and
-`Settings::ImportExportController` at `/settings/import_export` are the whole
-feature. The download hangs off `/settings/export` rather than the resource, so
-the helper is `settings_export_path` and not `export_settings_import_export_path`.
-
-It carries the layout and nothing else — no visit counts, so the command bar's
-ranking starts cold after an import. It is not a backup format; `bin/backup_db`
-is.
-
-Five things that are decisions:
-
-- **Importing replaces.** The user's groups are destroyed and the page is rebuilt
-  from the file, all in one transaction, so the loop the format is for — export,
-  edit the YAML, import again — is idempotent, and a refused file changes
-  nothing. Everything is validated before the first write. A file with no groups
-  in it — including `1: []`, a mapping with a column and no groups — is refused
-  rather than obeyed, since it is only an instruction to delete the page.
-- **The header's counts warn, they don't refuse.** A mismatch is the only symptom
-  of a duplicate key Psych collapsed silently, but a hand-deleted tile lowers the
-  count identically and the file cannot say which happened — so refusing would
-  block export-edit-import, which is the point of the format.
-- **`users.columns` is set after the delete and before the first create.** It
-  defaults to 1 and `column_within_user_limit` rejects anything past it, so a
-  file using column 3 fails on its first group in any other order. A test pins
-  this.
-- **The column number is the literal key, never an index.** Empty columns are
-  omitted from the file, so `{1:, 3:}` means columns 1 and 3 of a three-column
-  page. Walking `data.values` with an index shifts the whole layout left,
-  silently; a test pins this too.
-- **The exporter numbers repeated titles** (`Fastmail`, then `Fastmail (2)`).
-  The unique index is on `(group, url)` and not on the title, so one group may
-  hold two tiles called the same thing — and a YAML mapping cannot. Psych keeps
-  the last of two identical keys and says nothing, so skipping this loses a tile.
-
-## Patterns & Conventions
-
-Inherited deliberately from tinylinks; keep them.
-
-### Services
-- Constructor takes dependencies, `call` method does the work
-- Return empty array/hash on failure (graceful degradation)
-- Use `Rails.logger` for debugging
-
-### Frontend
-- Stimulus controllers in `app/javascript/controllers/`
-- **Turbo Streams, not Frames** — there are no Turbo Frames in the app. Writes
-  on `/start/edit` replace the smallest node that can have changed (`column_N`,
-  `group_N`, `item_N`); the ids are built by helpers in `StartPageHelper` so the
-  controllers, partials and tests all name them from one place. This includes
-  the two `move` actions: they redraw the source and destination column (or
-  group) only, on success *and* on failure — the client moves the row before it
-  asks, so a refusal has to send the truth back or the page keeps an order the
-  database never accepted. Never widen them back to `start_page_grid` — that
-  node carries the drag and keyboard controllers, and replacing it drops the
-  keyboard highlight on every move.
-- **`#start_page_notice` is `update`d, never `replace`d.** It is a live region,
-  and one is only announced for changes made inside it while it is already in
-  the accessibility tree; replacing it delivers a region that arrives with its
-  text already in place, which readers stay silent about.
-- **Two ways to reorder, one way to save it.** Pointer drag lives in
-  `drag_drop_controller.js`, the keyboard in `grid_keyboard_controller.js`, and
-  neither knows about the other beyond sharing `lib/start_page_moves.js`. The
-  keyboard model is written down in `.claude/rules/ui-design.md`; the short
-  version is that the grid is one Tab stop with a roving highlight, and a
-  carried row moves in the DOM and nowhere else until it is dropped.
-- **Page shortcuts are `start_shortcuts_controller.js`, grid keys are
-  `grid_keyboard_controller.js`,** and they talk only through a
-  `start-page:leaving` event on the window — leaving by chord has to drop and
-  save a carried row before the visit is asked for. `⌥E` / `⌥S` are matched on
-  `event.code`, because on a Mac they produce `´` and `ß`.
-- CSS in `app/assets/stylesheets/` — `stylesheet_link_tag :app` bundles every
-  file in that directory, so a new `.css` file needs no wiring
-- The design system pivots on one variable, `--base-accent` in `colors.css`,
-  plus native `light-dark()`. Themes and colors are `data-theme` / `data-color`
-  attributes on `<html>`. Sizing tokens live in `tokens.css` — `--control-size`
-  is the one height every control in the start page editor shares.
-
-### Testing
-- Minitest + Mocha for mocking, SimpleCov for coverage
-- Fixtures in `test/fixtures/`
-- Mock external APIs, don't call them in tests — especially `ConnectionClient`
-
-### Code Style
-- RuboCop Rails Omakase
-- Prefer vanilla Rails over gems
-- Spanish commit messages
-- Keep it simple — this is a personal project
-
-## Notes for AI
-
-- Personal project — prefer simple over clever
-- Tests must pass before considering work complete; the pre-commit hook runs
-  `./script/test` and a Brakeman warning blocks the commit
-- Rules in `.claude/rules/` apply: `done.md` (verified, not assumed),
-  `testing.md` (test first), `ui-design.md`
+- `docs/start-page-format.md` — the import/export YAML spec, and the contract
+  both services implement.
+- `.claude/rules/` — `done.md` (verified, not assumed), `testing.md` (test
+  first), `ui-design.md` (the editor's keyboard model, the visual standards, and
+  the deliberate exceptions to them).

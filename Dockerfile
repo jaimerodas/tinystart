@@ -30,7 +30,10 @@ ENV RAILS_ENV="production" \
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
-# Install packages needed to build gems
+# Install packages needed to build gems. libssl-dev is not in the stock Rails
+# Dockerfile and is needed here: the openssl gem — pulled in by Kamal's net-ssh
+# on Ruby 4 — compiles a native extension against the OpenSSL headers, and the
+# first deploy failed on exactly that.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
