@@ -82,7 +82,9 @@
 
       <%# The column count is not here: it belongs on /start/edit, next to the
           columns it describes and the groups a shrink would strand. %>
-      <%= form.submit "Update display" %>
+      <%# "Update display" read like it was going to redraw something. It saves
+          the two preferences above it, so it says so. %>
+      <%= form.submit "Save display preferences", class: "action-button" %>
     <% end %>
   </section>
 

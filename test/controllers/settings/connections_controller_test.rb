@@ -57,6 +57,50 @@ class Settings::ConnectionsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form.connect-form", false
   end
 
+  # The three lines are three tiers: the state, the token's facts, a footnote.
+  # They used to carry .item-meta and .help-text, which are scoped to
+  # .item-list .item and to a form's .form-group respectively — so none of the
+  # hierarchy applied and all three rendered at 16px black. These classes are
+  # this box's own, and the CSS keys off them.
+  test "the connected box marks its three tiers separately" do
+    login_as @user
+    connect(@user, scopes: "search,visit")
+
+    get settings_connections_url
+
+    assert_select ".connection-status.connected" do
+      assert_select "p.connection-state", /Connected/
+      assert_select "p.connection-facts", /search, visit/
+      assert_select "p.connection-note", /renews itself/
+    end
+    assert_select ".connection-status .item-meta", false
+  end
+
+  # It acts on this connection, so it belongs in the box describing it — outside,
+  # it read as an action on the whole section.
+  test "the disconnect button sits inside the connection it disconnects" do
+    login_as @user
+    connect(@user)
+
+    get settings_connections_url
+
+    assert_select ".connection-status.connected form button", text: "Disconnect"
+  end
+
+  # Every action in Settings is the same button now: the export link, Connect,
+  # Save display preferences and this one.
+  test "the buttons on this page use the shared button style" do
+    login_as @user
+    connect(@user)
+
+    get settings_connections_url
+    assert_select "button.action-button.danger", text: "Disconnect"
+
+    @user.connection.destroy
+    get settings_connections_url
+    assert_select "input[type=submit].action-button[value=?]", "Connect"
+  end
+
   test "shows the error and the form again when the token was rejected" do
     login_as @user
     connect(@user).record_failure!("links.example.com rejected the token")

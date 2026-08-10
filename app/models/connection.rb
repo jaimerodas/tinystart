@@ -21,6 +21,13 @@ class Connection < ApplicationRecord
     nil
   end
 
+  # The scopes as prose. They arrive and are stored the way the other app sends
+  # them ("search,visit"), which is not how a comma is written in a sentence.
+  # Nil when there are none, so the caller can say what that means.
+  def scope_list
+    scopes.presence&.split(",")&.map(&:strip)&.reject(&:empty?)&.join(", ").presence
+  end
+
   def needs_reconnect?
     last_error.present?
   end

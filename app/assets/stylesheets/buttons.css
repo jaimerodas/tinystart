@@ -1,0 +1,73 @@
+/* One button shape for Settings, whatever element it happens to be: a link
+   (Export, and the approval page while a connection is pending), a form submit
+   (Connect, Save display preferences) or a button_to's button (Disconnect).
+   Before this each of those looked like something else — Export borrowed
+   .button-link from the start page and read as body text, Disconnect was a
+   browser default, and every submit was a full-width slab.
+
+   The slab is forms.css's `input[type=submit]`, and it is right where it came
+   from: a sign-in form whose submit is the whole point of the page. It is wrong
+   for a button sitting in a row of prose, which is every button in Settings.
+
+   The `input[type=submit]` half of each selector below is there purely for
+   specificity. forms.css matches an element plus an attribute, so a bare class
+   would lose to it no matter what order the bundle lands in. */
+.action-button,
+input[type=submit].action-button {
+  /* inline-flex centres the label in every one of the three elements; a fixed
+     height with default inline layout does not — see the note in settings.css
+     about the file picker, which is the same trap. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  width: auto;
+  height: var(--button-height);
+  padding: 0 1.5em;
+  margin: 0;
+  border: 0.0625rem solid transparent;
+  border-radius: 0.5em;
+
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+
+  color: var(--button-fg-color);
+  background: var(--highlight-color);
+  transition: 0.2s ease all;
+}
+
+.action-button:hover,
+input[type=submit].action-button:hover {
+  /* Spelled out because the global `a:hover` would otherwise underline it and
+     repaint the text in the link colour. */
+  color: var(--button-fg-color);
+  background: var(--link-hover-color);
+  text-decoration: none;
+}
+
+.action-button:active,
+input[type=submit].action-button:active {
+  box-shadow: inset 0 0.125em 0.25em rgba(0, 0, 0, 0.4),
+              inset 0 0.25em 0.5em rgba(0, 0, 0, 0.2);
+}
+
+/* Destructive, and outlined rather than filled: the same size and shape as its
+   neighbours, but never the loudest thing in the box it sits in. It fills on
+   hover, so what it is about to do is not in doubt once you are on it. */
+.action-button.danger,
+input[type=submit].action-button.danger {
+  color: var(--danger-color);
+  background: transparent;
+  border-color: var(--danger-color);
+}
+
+.action-button.danger:hover,
+input[type=submit].action-button.danger:hover {
+  color: var(--button-fg-color);
+  background: var(--danger-color);
+}

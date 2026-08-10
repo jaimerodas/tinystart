@@ -28,28 +28,40 @@
           Approve TinyStart in the other app, then come back — this page updates on its own.
         </p>
         <p>
+          <%# The one thing to do while pending, so it gets the button every
+              other action in Settings gets rather than the start page's subdued
+              .button-link. %>
           <%= link_to "Open the approval page", @pending["verification_url"],
-                target: "_blank", rel: "noopener", class: "button-link" %>
+                target: "_blank", rel: "noopener", class: "action-button" %>
         </p>
         <p class="help-text" data-device-flow-target="status">Checking…</p>
       </div>
 
     <% elsif @connection && !@connection.needs_reconnect? %>
+      <%# Disconnect lives inside the box: it acts on this connection, and left
+          outside it read as an action on the section. %>
+      <%# Three tiers, and they used to be one: the state, the token's facts
+          under it, and a footnote about renewal. The classes were .item-meta and
+          .help-text, both of which are scoped to other components — inside
+          .item-list .item and inside a form's .form-group — so all three lines
+          rendered as identical body text. These names belong to this box. %>
       <div class="connection-status connected">
-        <p><strong>Connected</strong> to <%= @connection.base_url %></p>
-        <div class="item-meta">
-          <%= @connection.scopes.presence || "full access" %>
+        <p class="connection-state"><strong>Connected</strong> to <%= @connection.base_url %></p>
+
+        <p class="connection-facts">
+          <%= @connection.scope_list || "full access" %>
           <% if @connection.token_expires_at %>
             &middot; token expires <%= distance_of_time_in_words(Time.current, @connection.token_expires_at) %> from now
           <% end %>
-        </div>
-        <p class="help-text">The token renews itself every time the command bar
-          uses it, so it only lapses after a long silence.</p>
-      </div>
+        </p>
 
-      <%= button_to "Disconnect", settings_connections_path, method: :delete,
-            class: "danger",
-            data: { turbo_confirm: "Disconnect #{@connection.hostname}? Its results will stop appearing in the command bar." } %>
+        <p class="connection-note">The token renews itself every time the command bar
+          uses it, so it only lapses after a long silence.</p>
+
+        <%= button_to "Disconnect", settings_connections_path, method: :delete,
+              class: "action-button danger",
+              data: { turbo_confirm: "Disconnect #{@connection.hostname}? Its results will stop appearing in the command bar." } %>
+      </div>
 
     <% else %>
       <% if @connection&.needs_reconnect? %>
@@ -65,7 +77,7 @@
                 value: @connection&.base_url || Settings::ConnectionsController::DEFAULT_BASE_URL,
                 required: true %>
         </div>
-        <%= form.submit "Connect" %>
+        <%= form.submit "Connect", class: "action-button" %>
       <% end %>
     <% end %>
   </section>

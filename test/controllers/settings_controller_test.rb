@@ -31,6 +31,17 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
   # The column count moved to /start/edit, where the groups a shrink would
   # strand are actually on screen. This page must not quietly keep writing it,
   # or the two controls drift apart.
+  # "Update display" read like it was going to redraw something; it saves the
+  # theme and the accent colour, and it is the same button as every other action
+  # in Settings rather than a full-width slab.
+  test "should name what the display form saves, on the shared button" do
+    sign_in_as @user
+    get settings_url
+
+    assert_select "#user-display input[type=submit].action-button[value=?]",
+                  "Save display preferences"
+  end
+
   test "should not offer or accept a column count" do
     get settings_path
 

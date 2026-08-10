@@ -8,6 +8,12 @@
   --control-size: 2rem;
   --control-radius: 0.375rem;
   --control-gap: 0.25rem;
+
+  /* The height of a Settings button — .action-button in buttons.css, and the
+     row of controls on the Import & Export page that has to line up with one.
+     Distinct from --control-size: the editor's grid is deliberately denser than
+     the 44px touch target, and Settings is deliberately not. */
+  --button-height: 2.75rem;
 }
 
 /* The UA rule for [hidden] is display:none at the lowest possible specificity,

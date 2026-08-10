@@ -44,27 +44,75 @@
 }
 
 #connection-settings {
+  /* Spaced by a gap rather than by paragraph margins: three <p> in a row is
+     three 1em margins, which put 40px between lines that belong together. */
   .connection-status {
     margin: 1em 0;
     padding: 1em;
     border: 0.0625rem solid var(--border-color);
     border-radius: 0.5em;
 
-    p:first-child {
-      margin-top: 0;
-    }
-    p:last-child {
-      margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375em;
+
+    p {
+      margin: 0;
     }
   }
 
+  /* Tier 1: what the state is. The only line at body size or above. */
+  .connection-state {
+    font-size: 1.125em;
+  }
+
+  /* Tier 2: the token's facts, sitting under the state as its subtitle. */
+  .connection-facts {
+    font-size: 0.875em;
+    color: var(--mid-color);
+  }
+
+  /* Tier 3: a footnote about how renewal behaves. Same size as the facts but
+     ruled off from them, because it is explanation rather than data — that
+     separation is what tells the two apart, not a third font size.
+
+     `p.` for specificity: `.connection-status p { margin: 0 }` above matches an
+     element as well as a class, so a bare class loses to it and the rule ends up
+     sitting 6px under the facts instead of clear of them. */
+  p.connection-note {
+    margin-top: 0.5em;
+    padding-top: 0.75em;
+    border-top: 0.0625rem solid var(--border-color);
+    font-size: 0.875em;
+    color: var(--mid-color);
+  }
+
+  /* Also only styled inside a form's .form-group, so the pending box's status
+     line was rendering as plain body text too. */
+  .help-text {
+    font-size: 0.875em;
+    color: var(--mid-color);
+  }
+
+  /* The accent, not --positive-color: a hard-coded green ignored the accent the
+     rest of the page is painted in, and on a red or pink accent it read as
+     something from another app. */
   .connection-status.connected {
-    border-color: var(--positive-color);
+    border-color: var(--highlight-color);
   }
 
+  /* Muted, because this box is the quiet state — but the message inside it stays
+     in --danger-color, because it is a real failure carrying a real error, not a
+     "not connected yet". That state renders no box at all, just the form. */
   .connection-status.disconnected {
-    border-color: var(--danger-color);
+    border-color: var(--border-color);
     color: var(--danger-color);
+  }
+
+  /* Inside the status box now, so it needs to clear the footnote above it. Set
+     on the button_to's form, which is the actual flex child. */
+  .connection-status form {
+    margin-top: 0.5em;
   }
 
   .connect-form {
@@ -77,11 +125,10 @@
       margin: 0;
     }
 
-    input[type=submit] {
-      width: auto;
+    /* Everything else about the button is .action-button's; this is only about
+       not being stretched by the column it sits in. */
+    .action-button {
       align-self: start;
-      margin: 0;
-      padding: 0.75em 1.5em;
     }
   }
 }
@@ -90,13 +137,11 @@
    it is what divides the halves — the export button used to have a heading of
    its own that said nothing its own label didn't.
 
-   --import-control-height is local: this is the one row in the app where a file
-   picker and a submit sit side by side, and tokens.css already records what
-   happens when two controls in a row disagree about their height by a pixel.
-   44px is also the touch target ui-design.md asks for — the 2rem exception
-   there covers the start page editor's dense grid and nothing on this page. */
+   The row's height is --button-height, because the picker has to line up with a
+   button and the export button above it is one. tokens.css records what happens
+   when two controls in a row disagree by a pixel. */
 #import-export {
-  --import-control-height: 2.75rem;
+  --import-control-height: var(--button-height);
 
   /* The picker's own button. Pinned rather than left to its content, because the
      row's vertical centring is arithmetic — see input[type=file] below. */
@@ -107,33 +152,6 @@
     margin: 2em 0 0.75em;
     padding-bottom: 0.25em;
     border-bottom: 0.0625rem solid var(--border-color);
-  }
-
-  /* A link that has to read as the page's primary action. Shaped like the
-     submit in .connect-form rather than reusing .button-link, which is the
-     start page's subdued icon-row style and reads as body text here. */
-  .export-action {
-    display: inline-block;
-    box-sizing: border-box;
-    height: var(--import-control-height);
-    padding: 0 1.5em;
-    line-height: var(--import-control-height);
-    border-radius: 0.5em;
-    font-weight: bold;
-    color: var(--button-fg-color);
-    background: var(--highlight-color);
-    transition: 0.2s ease all;
-
-    &:hover {
-      text-decoration: none;
-      color: var(--button-fg-color);
-      background: var(--link-hover-color);
-    }
-
-    &:active {
-      box-shadow: inset 0 0.125em 0.25em rgba(0, 0, 0, 0.4),
-                  inset 0 0.25em 0.5em rgba(0, 0, 0, 0.2);
-    }
   }
 
   /* One row: the picker takes the space, the submit takes what it needs, and

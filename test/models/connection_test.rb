@@ -39,6 +39,28 @@ class ConnectionTest < ActiveSupport::TestCase
     assert_equal "localhost", @connection.hostname
   end
 
+  # Stored the way the other app sends them; read by a person.
+  test "scope_list writes the commas out as prose" do
+    @connection.update!(scopes: "search,visit")
+
+    assert_equal "search, visit", @connection.scope_list
+  end
+
+  test "scope_list tidies whatever spacing it was given" do
+    @connection.update!(scopes: " search ,, visit ")
+
+    assert_equal "search, visit", @connection.scope_list
+  end
+
+  # Nil rather than "", so the page can say "full access" instead of nothing.
+  test "scope_list is nil when there are no scopes" do
+    @connection.update!(scopes: nil)
+    assert_nil @connection.scope_list
+
+    @connection.update!(scopes: "")
+    assert_nil @connection.scope_list
+  end
+
   test "a fresh connection does not need reconnecting" do
     assert_not @connection.needs_reconnect?
   end

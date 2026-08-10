@@ -22,7 +22,7 @@
     <%# data-turbo: false because Turbo Drive intercepts link clicks and has
         nothing to do with an attachment response. %>
     <%= link_to "Export all groups and links", settings_export_path,
-          class: "export-action", data: { turbo: false } %>
+          class: "action-button", data: { turbo: false } %>
 
     <h3>Import</h3>
     <%= form_with url: settings_import_export_path, method: :post,
