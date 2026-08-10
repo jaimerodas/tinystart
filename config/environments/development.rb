@@ -31,6 +31,10 @@ Rails.application.configure do
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
 
+  # Open mail in a browser tab instead of sending it. Without this a password
+  # reset in development goes to SMTP on localhost and vanishes silently.
+  config.action_mailer.delivery_method = :letter_opener
+
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
