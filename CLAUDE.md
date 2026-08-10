@@ -3,10 +3,13 @@
 Personal browser start page: a command bar plus a grid of hand-curated tiles,
 organised into groups across columns.
 
-**Live**: not deployed yet — will be https://start.pati.to
+**Live**: https://start.pati.to
 
-> **Status: built, not yet deployed.** Auth, the start page, the editor and
-> federated search all work and CI is green; what's left is the deploy. It was
+> **Status: deployed 2026-08-10.** Auth, the start page, the editor and
+> federated search all work, CI is green, and Kamal serves it over TLS on the
+> same droplet as `tinylinks`. Still outstanding: **backups** (`bin/backup_db`,
+> a `post-deploy` hook and a cron drop-in, staggered off tinylinks' 10:00 UTC)
+> and the **data migration** of the real tiles out of tinylinks. It was
 > extracted from `tinylinks`, where the start page used to live. The history and
 > the design decisions behind it are in the plan at
 > `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
@@ -30,7 +33,28 @@ bin/rails test       # Unit/controller/integration tests
 bin/rubocop          # Code quality
 bin/brakeman         # Security scan (must be clean)
 bin/rails db:migrate # Run migrations
+kamal deploy         # Ship to production (kamal setup the first time)
 ```
+
+## Deploy
+
+Kamal 2 to the same DigitalOcean droplet as `tinylinks`; kamal-proxy splits
+:443 by Host header. Secrets come from 1Password at deploy time
+(`.kamal/secrets`), so only `RAILS_MASTER_KEY` and `POSTMARK_API_TOKEN` are
+injected — the federated-search token lives in the database, not in env.
+
+Two things that are load-bearing and not obvious:
+
+- **The volume must stay `tinystart_storage`.** A Docker named volume is
+  host-side storage, independent of the image, so pointing this at
+  `tinylinks_storage` would put both apps on one
+  `/rails/storage/production.sqlite3`. `db:prepare` would then run tinystart's
+  migrations against tinylinks' database and die on `table "users" already
+  exists`.
+- **The build stage needs `libssl-dev`.** The `openssl` gem (there for Kamal's
+  net-ssh on Ruby 4) compiles a native extension against the OpenSSL headers.
+  The stock Rails Dockerfile doesn't install them, and the first deploy failed
+  on exactly this.
 
 ## Architecture
 
