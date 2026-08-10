@@ -1,0 +1,62 @@
+#!/bin/bash
+# Keeps the backup infrastructure on the server in sync with this repo, so the
+# script and the schedule are whatever the last deploy said they were rather than
+# whatever somebody last edited by hand.
+#
+# The same droplet runs tinylinks and gastitos, both of which do this too. Every
+# path here is namespaced to tinystart for that reason — the cron entry is a
+# drop-in file rather than a crontab edit, so the three never overwrite each
+# other's schedules.
+
+source .kamal/secrets 2>/dev/null || true
+
+for host in $KAMAL_HOSTS; do
+  echo "Updating backup infrastructure on $host..."
+
+  scp bin/backup_db root@$host:/usr/local/bin/tinystart-backup
+  ssh root@$host 'chmod +x /usr/local/bin/tinystart-backup'
+
+  # Already present because the other two apps installed it, but this runs on a
+  # rebuilt droplet too.
+  ssh root@$host "bash -s" <<'SETUP'
+    if ! command -v aws &> /dev/null; then
+      echo "Installing AWS CLI..."
+      apt-get update -qq && apt-get install -y -qq unzip > /dev/null
+      curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+      unzip -qo /tmp/awscliv2.zip -d /tmp
+      /tmp/aws/install
+      rm -rf /tmp/awscliv2.zip /tmp/aws
+    fi
+SETUP
+
+  # sqlite3 on the host, for the integrity check bin/backup_db runs on the
+  # snapshot after copying it out of the container.
+  ssh root@$host "bash -s" <<'SQLITE'
+    if ! command -v sqlite3 &> /dev/null; then
+      echo "Installing sqlite3..."
+      apt-get update -qq && apt-get install -y -qq sqlite3 > /dev/null
+    fi
+SQLITE
+
+  ssh root@$host "bash -s" <<CREDENTIALS
+    cat > /etc/tinystart-backup.env <<EOF
+AWS_ACCESS_KEY_ID=${B2_KEY_ID}
+AWS_SECRET_ACCESS_KEY=${B2_APPLICATION_KEY}
+AWS_ENDPOINT_URL=${B2_ENDPOINT}
+B2_BUCKET=${B2_BUCKET}
+EOF
+    chmod 600 /etc/tinystart-backup.env
+CREDENTIALS
+
+  # Sundays 10:30 UTC. tinylinks and gastitos both run daily at 10:00, so this
+  # sits half an hour clear of them rather than competing for the same minute.
+  ssh root@$host 'bash -s' <<'CRON'
+    cat > /etc/cron.d/tinystart-backup <<EOF
+# TinyStart database backup to Backblaze B2 — weekly, Sundays 4:30 AM CST (10:30 UTC)
+# Managed by Kamal post-deploy hook — do not edit manually
+30 10 * * 0 root /usr/local/bin/tinystart-backup >> /var/log/tinystart-backup.log 2>&1
+EOF
+    chmod 644 /etc/cron.d/tinystart-backup
+    echo "Cron job installed at /etc/cron.d/tinystart-backup"
+CRON
+done

@@ -5,13 +5,12 @@ organised into groups across columns.
 
 **Live**: https://start.pati.to
 
-> **Status: deployed 2026-08-10.** Auth, the start page, the editor and
-> federated search all work, CI is green, and Kamal serves it over TLS on the
-> same droplet as `tinylinks`. Still outstanding: **backups** (`bin/backup_db`,
-> a `post-deploy` hook and a cron drop-in, staggered off tinylinks' 10:00 UTC)
-> and the **data migration** of the real tiles out of tinylinks — the importer
-> that migration needs is built and tested (Settings → Import & Export), so what is
-> left is running it against production and checking it by eye. It was
+> **Status: live and finished, 2026-08-10.** Auth, the start page, the editor,
+> federated search and import/export all work, CI is green, and Kamal serves it
+> over TLS on the same droplet as `tinylinks`. The **real tiles have been
+> migrated** out of tinylinks through Settings → Import & Export, and **backups**
+> run weekly (see [Backups](#backups)) — the two things this file used to list as
+> outstanding. It was
 > extracted from `tinylinks`, where the start page used to live. The history and
 > the design decisions behind it are in the plan at
 > `~/.claude/plans/more-and-more-i-m-lively-pebble.md` — **read it before
@@ -57,6 +56,36 @@ Two things that are load-bearing and not obvious:
   net-ssh on Ruby 4) compiles a native extension against the OpenSSL headers.
   The stock Rails Dockerfile doesn't install them, and the first deploy failed
   on exactly this.
+
+## Backups
+
+`bin/backup_db` → Backblaze B2, at `s3://$B2_BUCKET/tinystart/weekly/`.
+`.kamal/hooks/post-deploy` installs it as `/usr/local/bin/tinystart-backup`,
+writes `/etc/tinystart-backup.env` from the `B2_*` entries in `.kamal/secrets`,
+and drops `/etc/cron.d/tinystart-backup`. **Every deploy re-installs all three**,
+so the schedule is whatever this repo says rather than whatever was last edited
+on the server. The same droplet does this for `tinylinks` and `gastitos` too,
+which is why every path is namespaced and the cron is a drop-in file.
+
+**Weekly, Sundays 10:30 UTC** — half an hour clear of the other two apps, which
+both run daily at 10:00. Weekly rather than nightly because a start page is a few
+dozen hand-curated tiles that change when you decide to change them; a lost week
+is a few minutes of retyping.
+
+Two things worth not re-deriving:
+
+- **Backing up only when the data changed does not work here.** It was the first
+  design, and `visit_count` kills it: the command bar increments it on every tile
+  click, so the file differs from the last snapshot almost always. A content hash
+  would upload every week anyway and cost a comparison to learn nothing.
+- **The snapshot is checked before it is uploaded** — `PRAGMA integrity_check`,
+  and a refusal if it holds zero tiles. `tinylinks`' script doesn't do this;
+  this data was curated by hand and a corrupt backup that uploaded cleanly says
+  nothing until the day you need it. The zero-tile guard is the one that would
+  catch a restore-shaped disaster being immortalised as a backup.
+
+Only `production.sqlite3`. `production_cache.sqlite3` is Solid Cache and rebuilds
+itself.
 
 ## Architecture
 
