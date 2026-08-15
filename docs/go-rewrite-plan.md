@@ -1,0 +1,237 @@
+# TinyStart in Go: the rewrite plan
+
+## Context
+
+TinyStart idles at ~150 MB in production. I measured where that goes (numbers
+below); the short version is that it is Rails + Ruby's heap, not anything the
+app does — gem trimming buys ~5 MB, turning YJIT off ~15–20, and the floor for
+a Rails process in this image is ~105 MB. You chose the large tier: rewrite in
+Go, and make the result an exemplary, learnable Go application — stdlib-first,
+small, obvious. Constraints that stay: Kamal deploy, the same SQLite database
+(no migration, `kamal rollback` to the Rails image must keep working), the same
+APIs (tinylinks device flow + search, Postmark), and a pixel-identical UI.
+
+Target: ~15–25 MB RSS (measured 12 MB warmed for a same-shape Go toy vs 138 MB
+for the Rails app).
+
+## What was measured (kept for the record)
+
+Production image built and run locally, warmed with 300 requests, RSS from
+`/proc/*/status`:
+
+| Variant                                              | at boot | after 300 req |
+|------------------------------------------------------|--------:|--------------:|
+| Rails as deployed (`ruby`, YJIT, jemalloc)           | 108 MB  | 138 MB        |
+| + `thrust` process                                   |   2 MB  |  12 MB        |
+| Rails, `config.yjit = false`                         | 111 MB  | 123 MB        |
+| Rails, no YJIT + allocator tuning / 1 thread         |         | 118–121 MB    |
+| Ruby: Roda + Sequel + Puma toy                       |  45 MB  |  66 MB        |
+| Go: net/http + html/template + modernc sqlite toy    |   2 MB  |  12 MB        |
+
+Rails frameworks alone are ~50 MB; removing Action Cable + Active Job: −1 MB;
+`device_detector`: ~6 MB once Settings is opened. Local images
+`tinystart-measure`, `roda-measure`, `go-measure` are still in Docker — the
+first is the baseline for the final before/after; `docker rmi` the others.
+
+## Decisions (made; say if you disagree)
+
+- **In place, same repo.** Go lands beside Rails; Rails stays until parity is
+  proven, then is deleted in one commit. History, `config/deploy.yml`,
+  `docs/`, `.claude/rules/` all survive.
+- **Module** `github.com/jaimerodas/tinystart`, Go 1.26 (installed).
+- **Dependencies: three.** `modernc.org/sqlite` (pure Go → `CGO_ENABLED=0`
+  static binary), `golang.org/x/crypto/bcrypt` (verifies Rails' `$2a$`
+  digests as-is), `go.yaml.in/yaml/v3` (the maintained continuation of
+  gopkg.in/yaml.v3; verify at `go get` time) for import/export. Everything
+  else is the standard library: `net/http` with 1.22 method+path patterns,
+  `html/template`, `database/sql`, `embed`, `log/slog`, `crypto/hmac`,
+  `net/http.NewCrossOriginProtection` (1.25) instead of CSRF tokens,
+  `testing` + `httptest`.
+- **No framework, no ORM, no DI container.** The Mat Ryer shape:
+  `run(ctx, args, getenv, stdout) error` in `main`, `NewServer(deps)
+  http.Handler`, one `addRoutes(mux, deps)` that lists every route, handlers as
+  `func(deps…) http.Handler` closures, middleware as `func(http.Handler)
+  http.Handler`.
+- **Same DOM, same names.** Templates reproduce today's markup 1:1 (form field
+  names `user[columns]`, `start_page_group[name]`, ids from
+  `StartPageHelper`, `button_to`'s `<form class="button_to">` + `_method`
+  hidden field, `data-*` hooks). The JS and CSS ship byte-identical. That is
+  what makes "looks the same" checkable by diff rather than by eye.
+- **Sessions stay in the `sessions` table**; the cookie becomes
+  `id:base64(HMAC-SHA256(id))`. Everyone logs in once after cutover.
+- **Rails-format timestamps.** ActiveRecord writes SQLite datetimes as
+  `"2006-01-02 15:04:05.999999"` UTC text and booleans as 0/1; the store
+  reads and writes exactly that so both images agree on the data.
+- **Browser tests in Go via chromedp** (Chrome already on the machine), behind
+  `//go:build browser`. The four Capybara system tests encode the keyboard
+  model and drag; they are ported, not dropped.
+- **Image:** `debian:bookworm-slim` + `ca-certificates` (HTTPS to Postmark and
+  tinylinks) + `sqlite3` CLI (so `bin/backup_db` keeps working with a path
+  change) + the binary. Volume becomes `tinystart_storage:/data`,
+  DB `/data/production.sqlite3`. Listens on 80, answers `/up`.
+
+## Layout
+
+```
+go.mod / go.sum
+cmd/tinystart/main.go            run(): env → config, open DB, migrate, serve, graceful shutdown
+internal/store/                  database/sql over sqlite; the only package that knows SQL
+  db.go                          Open (WAL, busy_timeout, foreign_keys), tx helper
+  migrate.go + schema.sql        empty DB → full schema + Rails-format schema_migrations rows
+  users.go sessions.go groups.go items.go connections.go
+                                 including MoveGroup / MoveItem / Reorder* as transactions
+internal/startpage/              pure domain, no DB, no HTTP: Column/Group/Item types,
+  layout.go import.go export.go  the YAML format in docs/start-page-format.md
+internal/tinylinks/              DeviceFlow (Start/Check) + Client (Search/RecordVisit)
+internal/postmark/               Send(ctx, Message) over the HTTPS API
+internal/web/                    the HTTP app
+  server.go routes.go            NewServer, addRoutes — every path in one place
+  middleware.go                  request id + slog, HSTS, method override (_method), cross-origin
+  auth.go cookies.go             session cookie, signed cookies (flash, return_to, pending grant)
+  ratelimit.go                   fixed-window per-IP limiter for sign-in / sign-up
+  render.go turbo.go             template funcs, layouts, <turbo-stream> responses
+  assets.go                      fingerprint embedded static files, importmap JSON
+  handle_start.go handle_editor.go handle_sessions.go handle_passwords.go
+  handle_settings.go handle_connections.go handle_import_export.go handle_admin.go
+  templates/*.html               1:1 with app/views (layouts, partials, mail)
+  static/                        css/, js/ (controllers, lib), icons/, vendor/ (turbo, stimulus)
+script/test                      gofmt -l, go vet, staticcheck, govulncheck, go test ./...
+Dockerfile, config/deploy.yml, bin/backup_db (path only), .kamal/secrets
+```
+
+## Phases — each one small, tested first, verified before the next
+
+**0. Scaffold + measurement baseline** — `go.mod`, `cmd/tinystart` serving
+`/up`, Dockerfile (multi-stage, static binary), `script/test` for Go. Verify:
+`docker build`, run, RSS.
+
+**1. store** — `Open`, `migrate` (fresh DB gets `schema.sql` and all eleven
+`db/migrate` versions written to `schema_migrations` + `ar_internal_metadata`,
+existing DB is a no-op), then table-by-table with tests against a temp file DB:
+users (bcrypt authenticate, first-user bootstrap, normalise email, columns
+validation incl. "no group stranded"), sessions (create/find active/expire),
+groups + items (create appends at end, unique name/url per scope, URL
+validation, `MoveGroup`, `MoveItem` within/across groups, `Reorder*` closing
+gaps — port the model tests in `test/models/`), connections. Verify: open a
+copy of `storage/development.sqlite3` and read it; open a fresh DB and confirm
+`schema_migrations` matches Rails'.
+
+**2. startpage** — types + `Import`/`Export` per `docs/start-page-format.md`,
+table-driven tests ported from `test/services/`, including the header-count
+warning and every refusal path.
+
+**3. tinylinks + postmark** — clients tested against `httptest.NewServer`
+fakes (timeouts 2s/4s, JSON-that-isn't, rejected token recorded on the
+connection, device flow states approved/pending/denied/expired/unreachable).
+
+**4. web: skeleton** — `NewServer`, middleware, cookies, auth (require, resume,
+start, terminate, refresh-if-<7-days), rate limiter, render (layouts
+`application` / `start` / `session`, `icon`, `asset`, importmap), static assets
+with fingerprints + immutable cache. Tests: `httptest` end to end with a temp
+DB and a `newTestServer(t)` helper.
+
+**5. web: screens, in this order, each with handler tests ported from
+`test/controllers` + `test/integration`:** sign in / sign up / log out →
+start page `/` (links JSON, federation state) → editor `/start/edit` + `PATCH
+/start` (columns; stream failure replaces `column_count` + notice) → groups
+create/update/destroy/move → items create/update/destroy/move/visit → search
+`/search.json` + `/visits` → settings (theme/colour), password change →
+password reset (mail via postmark; token = HMAC over user id, digest,
+expiry, 15 min like Rails) → connections (device flow, pending grant in a
+signed cookie, poll) → import/export (512 KB cap, UTF-8 check) → admin users
+(approve toggle, reset mail). Turbo Stream responses replace exactly the ids
+`StartPageHelper` names; `#start_page_notice` is `update`d, never `replace`d;
+failed moves redraw the affected columns/groups.
+
+**6. Parity harness** — the mechanical "looks the same" check: seed one DB
+from `test/fixtures`, run Rails (`bin/rails s -e test`) and the Go binary
+against copies of it, fetch every page and every stream response as the same
+user, normalise (strip `authenticity_token`, csrf meta, asset digests,
+whitespace) and `diff`. Zero diff on `/`, `/start/edit`, `/settings/*`,
+`/session/new`, `/sign_up`, `/passwords/*`, and on the stream bodies of
+create/update/destroy/move success and failure. A throwaway script; not kept.
+
+**7. Browser tests** — port `test/system/*` to chromedp behind `//go:build
+browser`: keyboard model (arrows/Home/End/Space/Enter/Delete/Esc/Tab, roving
+tabindex, `.keyboard-mode`), drag (CDP mouse events on the handles), page
+chords, import/export UI. Risky spot: drag; if CDP drag proves flaky, drive
+the same `lib/start_page_moves.js` path the keyboard uses and keep one smoke
+drag.
+
+**8. Cutover** — Dockerfile → Go image, `config/deploy.yml` (`app_port`,
+volume `/data`, `env.clear` for `TINYSTART_DB`), `.kamal/secrets`
+(`TINYSTART_SECRET_KEY` replaces `RAILS_MASTER_KEY`), `bin/backup_db` path,
+`docker-entrypoint` gone (migrate runs at boot). `kamal deploy`; smoke by hand:
+log in, edit, drag, search, connection poll, export/import, reset mail. Measure
+RSS on the droplet (`cat /proc/$(pidof tinystart)/status | grep VmRSS`).
+Rollback path stays `kamal rollback` — same DB, same schema table.
+
+**9. Delete Rails** — `app/`, `bin/rails*`, `config/*.rb`, `Gemfile*`, `db/`
+(after copying migration versions into `schema.sql`'s comment), `test/`,
+`.rubocop.yml`; rewrite `CLAUDE.md`, `.claude/rules/*` (commands, map,
+invariants — most survive verbatim: no StartPage record, `/` only, streams not
+frames, notice `update`d, pointer and keyboard strangers, volume name),
+`docs/start-page-format.md` implementation notes.
+
+## Idioms to lean on (the "learn Go" part)
+
+`run()` returning an error and `main` doing only `os.Exit`; handlers built by
+functions that receive their dependencies; `context` through every DB and HTTP
+call; `errors.Is`/`As` with sentinel errors from `store` (`ErrNotFound`,
+`ErrConflict`, a `ValidationError` carrying the message the page shows);
+`defer tx.Rollback()`; `embed.FS` for templates and static; `slog` with a
+request id; table-driven tests with `t.Run` and `t.Context()`;
+`httptest.NewServer` for the outside world instead of mocks; `range over int`,
+`slices`, `maps`, `min`/`max`; no globals except the embedded FS.
+
+## Gotchas already found
+
+- `Accept: text/vnd.turbo-stream.html` decides stream vs redirect+flash;
+  `format.json` on moves is unused by the JS — drop it.
+- `data-turbo-confirm`, `button_to` + `_method`: keep the markup, add the
+  method-override middleware, drop `authenticity_token` (cross-origin
+  protection via `Sec-Fetch-Site` needs no token; the JS still sends
+  `X-CSRF-Token` — harmless).
+- `stylesheet_link_tag :app` links every CSS file in the directory,
+  alphabetically — do the same. Importmap `pin_all_from` for `controllers/`
+  and `lib/`; `stimulus-loading.js` reads it to eager-load controllers, so the
+  JSON must list each controller.
+- `allow_browser versions: :modern` (Rails' UA gate) is not carried over.
+- Google Fonts `<link>` stays; no CSP is set today (the initializer is all
+  comments), so none is added.
+- Rate limits: sign-in 10 / 3 min, sign-up 2 / 5 min, per IP, in memory.
+
+## Execution: Opus agents, in a worktree
+
+- **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under
+  `.claude/worktrees/`) before anything is written. All commits land on
+  `go-rewrite`; `main` stays the deployable Rails app until cutover. Nixing the
+  experiment is `git worktree remove` + `git branch -D go-rewrite`. Cutover
+  (phase 8) is a merge to `main` — the only time the plan touches `main`.
+- **One Opus agent per phase**, `subagent_type: general-purpose`,
+  `model: opus`, run sequentially because each phase builds on the last. Every
+  agent prompt carries: the worktree path, this plan's Decisions/Layout/Idioms
+  sections verbatim, the phase's scope, the Rails files to port from (paths),
+  the rule "tests first, `script/test` green, then commit on `go-rewrite` with
+  a Spanish message", and "report what you verified and what you could not".
+- **I review between phases** — read the code the agent wrote against the
+  Decisions, run `script/test` and the phase's verification myself, and only
+  then start the next agent. Phase 5 (screens) is split into three agents:
+  auth + start page + editor/groups/items; search/visits/settings/passwords;
+  connections/import-export/admin. Phase 6 (parity harness) and 7 (browser
+  tests) each get their own agent; 8 (cutover) is done by me with you, since
+  it deploys.
+- Nothing runs `kamal deploy` or touches the droplet before phase 8, and
+  phase 8 waits for your go.
+
+## Verification (definition of done)
+
+- `script/test` green: gofmt, vet, staticcheck, govulncheck, `go test ./...`
+  (+ `-tags browser` locally).
+- Parity harness: zero normalised diff across every page and stream.
+- Fresh-DB boot produces the same `schema_migrations` as Rails; existing DB
+  opens untouched; `kamal rollback` to the previous Rails image after a Go
+  deploy still serves the site.
+- Production RSS after a day ≤ 30 MB, checked on the droplet; `docker stats`
+  for the container ≤ 40 MB.
+- Docs and rules describe the Go app; no Ruby left in the tree.
