@@ -1,0 +1,443 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+// User is a row of the users table. There is no separate start page record and
+// never was one: Columns is the width of this user's grid, and the groups hang
+// off the user directly.
+type User struct {
+	ID              int64
+	Email           string
+	PasswordDigest  string
+	Admin           bool
+	Approved        bool
+	ThemePreference string
+	ColorPreference string
+	Columns         int
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+// ValidThemes and ValidColors are what the preferences may be set to. The
+// colours are User::VALID_COLORS, and the order is the order the palette is
+// drawn in — grey is not among them, having been dropped and migrated to teal.
+var (
+	ValidThemes = []string{"system", "light", "dark"}
+	ValidColors = []string{"red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"}
+)
+
+// MaxColumns is the widest grid the editor offers. The narrowest is one, which
+// is also what a new account starts at: an empty grid three columns wide reads
+// as broken.
+const MaxColumns = 6
+
+// railsBcryptCost is Rails' BCrypt::Engine.cost, which has_secure_password
+// uses. The digests already in the database were made with it, and a digest
+// made here has to be one the Rails image can still verify after a rollback.
+const railsBcryptCost = 12
+
+// bcryptCost is a variable only so that the tests can turn it down. Hashing at
+// cost 12 takes about a quarter of a second by design, and a test suite that
+// signs a hundred people up would spend most of its time on it — the same
+// reason Rails sets ActiveModel::SecurePassword.min_cost in the test
+// environment. Nothing outside a test ever assigns to it.
+var bcryptCost = railsBcryptCost
+
+// maxPasswordLength is has_secure_password's limit, and bcrypt's: everything
+// past the 72nd byte is ignored by the algorithm, so accepting a longer
+// password would mean accepting a shorter one at sign-in too.
+const maxPasswordLength = 72
+
+// userColumns is the select list every user query shares, in a fixed order so
+// that scanUser can be shared with it.
+const userColumns = `id, email, password_digest, admin, approved,
+	theme_preference, color_preference, "columns", created_at, updated_at`
+
+// CreateUser signs someone up. The email is stripped and downcased first, so
+// "  Me@Example.COM " and "me@example.com" are the same account and the second
+// one is refused.
+//
+// The very first user of an installation is made an approved admin — there is
+// nobody else to approve them, and an install with no way in is not an
+// install. Everyone after that arrives unapproved and waits.
+func (db *DB) CreateUser(ctx context.Context, email, password string) (*User, error) {
+	email = normalizeEmail(email)
+
+	var user *User
+	err := db.tx(ctx, func(tx *sql.Tx) error {
+		// The order the fields are checked in is the order the validations are
+		// declared in app/models/user.rb, because the page joins the messages
+		// with ", " and prints them in that order.
+		fields := passwordErrors(password)
+
+		if email == "" {
+			fields = append(fields, FieldError{"email", msgBlank})
+		} else {
+			taken, err := exists(ctx, tx, `SELECT 1 FROM users WHERE email = ?`, email)
+			if err != nil {
+				return err
+			}
+			if taken {
+				fields = append(fields, FieldError{"email", msgTaken})
+			}
+		}
+
+		if err := invalid(fields...); err != nil {
+			return err
+		}
+
+		digest, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+		if err != nil {
+			return err
+		}
+
+		// "Is this the first user" and the insert have to be one transaction,
+		// or two people signing up at the same moment both see an empty table
+		// and both become admins.
+		any, err := exists(ctx, tx, `SELECT 1 FROM users`)
+		if err != nil {
+			return err
+		}
+		first := !any
+
+		now := time.Now().UTC()
+		result, err := tx.ExecContext(ctx,
+			`INSERT INTO users (email, password_digest, admin, approved,
+				theme_preference, color_preference, "columns", created_at, updated_at)
+			 VALUES (?, ?, ?, ?, 'system', 'teal', 1, ?, ?)`,
+			email, string(digest), railsBool(first), railsBool(first),
+			railsTime(now), railsTime(now))
+		if err != nil {
+			return err
+		}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		user = &User{
+			ID:              id,
+			Email:           email,
+			PasswordDigest:  string(digest),
+			Admin:           first,
+			Approved:        first,
+			ThemePreference: "system",
+			ColorPreference: "teal",
+			Columns:         1,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// Authenticate returns the user when the password matches and ErrNotFound when
+// it does not — the same answer as an email nobody has, so that a failed
+// sign-in cannot be used to find out who has an account here. Whether that
+// user is allowed in is a separate question, and Approved is where it is
+// asked.
+func (db *DB) Authenticate(ctx context.Context, email, password string) (*User, error) {
+	user, err := db.UserByEmail(ctx, email)
+	if errors.Is(err, ErrNotFound) {
+		// Hash the password against a digest that will never match, so that a
+		// missing account takes as long to reject as a wrong password. Without
+		// it the difference is a hundred milliseconds and an email address is
+		// answerable by stopwatch. Rails does the same thing inside
+		// authenticate_by.
+		bcrypt.CompareHashAndPassword([]byte(dummyDigest), []byte(password))
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordDigest), []byte(password)) != nil {
+		return nil, ErrNotFound
+	}
+	return user, nil
+}
+
+// dummyDigest is a real bcrypt digest at the real cost, of a password nobody
+// will guess. Only its shape matters: it makes the comparison above do the
+// same work as a genuine one.
+const dummyDigest = "$2a$12$j/LU.VektUBzh2CC.SDgiuU20fIWhi7GNKHiTxOQpA5.VYYzFuoBG"
+
+func (db *DB) UserByID(ctx context.Context, id int64) (*User, error) {
+	return scanUser(db.sql.QueryRowContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE id = ?`, id))
+}
+
+// UserByEmail normalises what it is given, so a sign-in form that was typed in
+// capitals finds the account anyway.
+func (db *DB) UserByEmail(ctx context.Context, email string) (*User, error) {
+	return scanUser(db.sql.QueryRowContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE email = ?`, normalizeEmail(email)))
+}
+
+// AnyUsers reports whether anyone has signed up. The sign-in page redirects to
+// sign-up when nobody has: a form with no account behind it is a dead end.
+func (db *DB) AnyUsers(ctx context.Context) (bool, error) {
+	return exists(ctx, db.sql, `SELECT 1 FROM users`)
+}
+
+// AllUsers is the admin list, newest first. The id breaks a tie, which Rails
+// left to the database: two accounts created in the same microsecond are rare
+// but a test that shuffles is not worth the flake.
+func (db *DB) AllUsers(ctx context.Context) ([]User, error) {
+	rows, err := db.sql.QueryContext(ctx,
+		`SELECT `+userColumns+` FROM users ORDER BY created_at DESC, id DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, *user)
+	}
+	return users, rows.Err()
+}
+
+// UpdatePreferences sets the theme and the colour, which are the only two
+// things Settings is allowed to change about a user. The column count is not
+// among them on purpose: it is the editor's, so that a refusal can be answered
+// on the page showing the groups it names.
+func (db *DB) UpdatePreferences(ctx context.Context, userID int64, theme, color string) error {
+	var fields []FieldError
+	if !slices.Contains(ValidThemes, theme) {
+		fields = append(fields, FieldError{"theme_preference", theme + " is not a valid theme"})
+	}
+	if !slices.Contains(ValidColors, color) {
+		fields = append(fields, FieldError{"color_preference", color + " is not a valid color"})
+	}
+	if err := invalid(fields...); err != nil {
+		return err
+	}
+
+	return db.update(ctx, `UPDATE users SET theme_preference = ?, color_preference = ?, updated_at = ?
+		WHERE id = ?`, theme, color, railsTime(time.Now().UTC()), userID)
+}
+
+// UpdateColumns widens or narrows the grid.
+//
+// Narrowing past a column that still holds a group is refused, because the
+// grid only draws the columns it has: a group left beyond the limit would
+// vanish from the start page and from the editor both, taking its own move and
+// delete controls with it, while its tiles carried on showing up in the
+// command bar. Refuse the change rather than hide someone's work.
+func (db *DB) UpdateColumns(ctx context.Context, userID int64, columns int) error {
+	if columns < 1 {
+		return invalid(FieldError{"columns", "must be greater than 0"})
+	}
+	if columns > MaxColumns {
+		return invalid(FieldError{"columns", fmt.Sprintf("must be less than or equal to %d", MaxColumns)})
+	}
+
+	return db.tx(ctx, func(tx *sql.Tx) error {
+		var current int
+		err := tx.QueryRowContext(ctx, `SELECT "columns" FROM users WHERE id = ?`, userID).Scan(&current)
+		if err != nil {
+			return notFound(err)
+		}
+		// Rails only runs this check when the count actually changed, and so
+		// does this: a save that leaves the width alone must not start failing
+		// because of a group that was already out of bounds.
+		if current != columns {
+			stranded, err := strandedGroups(ctx, tx, userID, columns)
+			if err != nil {
+				return err
+			}
+			if len(stranded) > 0 {
+				return invalid(FieldError{"columns", strandedMessage(stranded)})
+			}
+		}
+
+		_, err = tx.ExecContext(ctx, `UPDATE users SET "columns" = ?, updated_at = ? WHERE id = ?`,
+			columns, railsTime(time.Now().UTC()), userID)
+		return err
+	})
+}
+
+// strandedGroup is a group that a narrower grid would hide: just enough of it
+// to write the refusal.
+type strandedGroup struct {
+	Name   string
+	Column int
+}
+
+func strandedGroups(ctx context.Context, tx *sql.Tx, userID int64, columns int) ([]strandedGroup, error) {
+	rows, err := tx.QueryContext(ctx,
+		`SELECT name, "column" FROM start_page_groups WHERE user_id = ? AND "column" > ? ORDER BY "column"`,
+		userID, columns)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stranded []strandedGroup
+	for rows.Next() {
+		var group strandedGroup
+		if err := rows.Scan(&group.Name, &group.Column); err != nil {
+			return nil, err
+		}
+		stranded = append(stranded, group)
+	}
+	return stranded, rows.Err()
+}
+
+// strandedMessage is the sentence the editor puts in the notice, word for word
+// as columns_leave_no_group_stranded wrote it — including the em dash and the
+// quoted names in column order.
+func strandedMessage(stranded []strandedGroup) string {
+	names := make([]string, len(stranded))
+	widest := 0
+	for i, group := range stranded {
+		names[i] = `"` + group.Name + `"`
+		widest = max(widest, group.Column)
+	}
+	return fmt.Sprintf("can't be fewer than %d — that would hide %s. Move them first.",
+		widest, toSentence(names))
+}
+
+// UpdatePassword changes a password, having checked the current one. The
+// messages are the ones User#update_password produces, and so is the order:
+// the existing password is checked before the new one is looked at.
+func (db *DB) UpdatePassword(ctx context.Context, userID int64, existingPassword, newPassword string) error {
+	user, err := db.UserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if existingPassword == "" {
+		return invalid(FieldError{"existing_password", msgBlank})
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordDigest), []byte(existingPassword)) != nil {
+		return invalid(FieldError{"existing_password", "is incorrect"})
+	}
+	// Longer than six, not at least six: the form has said "has to be longer"
+	// since the first version and the rule behind it is > 6.
+	if len([]rune(newPassword)) <= 6 {
+		return invalid(FieldError{"new_password", "has to be longer"})
+	}
+	if fields := passwordErrors(newPassword); len(fields) > 0 {
+		return invalid(fields...)
+	}
+
+	digest, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcryptCost)
+	if err != nil {
+		return err
+	}
+	return db.update(ctx, `UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
+		string(digest), railsTime(time.Now().UTC()), userID)
+}
+
+// ResetPassword sets a password without asking for the old one. It is what the
+// reset-by-email flow lands on, where possession of the mailbox is the proof.
+//
+// Note that it does not apply UpdatePassword's "has to be longer" rule.
+// PasswordsController#update was a plain save, so only has_secure_password's
+// own validations ran there — the same asymmetry, kept rather than tidied,
+// because tidying it would refuse a password the deployed app accepts.
+func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword string) error {
+	if fields := passwordErrors(newPassword); len(fields) > 0 {
+		return invalid(fields...)
+	}
+
+	digest, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcryptCost)
+	if err != nil {
+		return err
+	}
+	return db.update(ctx, `UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
+		string(digest), railsTime(time.Now().UTC()), userID)
+}
+
+// ToggleApproved flips the approval switch, which is the one thing the admin
+// list does. It is a toggle rather than a setter because the button is one
+// button, and reading the current value in the same transaction that writes it
+// keeps two admins clicking at once from cancelling each other out.
+func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
+	err := db.tx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx,
+			`UPDATE users SET approved = NOT approved, updated_at = ? WHERE id = ?`,
+			railsTime(time.Now().UTC()), userID)
+		if err != nil {
+			return err
+		}
+		return mustHaveChanged(result)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return db.UserByID(ctx, userID)
+}
+
+// passwordErrors is has_secure_password's own two validations.
+func passwordErrors(password string) []FieldError {
+	switch {
+	case password == "":
+		return []FieldError{{"password", msgBlank}}
+	// Rails counts characters here and bcrypt counts bytes, so a long enough
+	// multibyte password passes the Rails validation and is then silently
+	// truncated by the Ruby bcrypt gem. Go's bcrypt refuses it instead, which
+	// is the better answer, so both limits are applied and the message is the
+	// one Rails would have used.
+	case len([]rune(password)) > maxPasswordLength, len(password) > maxPasswordLength:
+		return []FieldError{{"password", fmt.Sprintf(
+			"is too long (maximum is %d characters)", maxPasswordLength)}}
+	}
+	return nil
+}
+
+// normalizeEmail is the `normalizes :email` declaration on the model: an email
+// is stripped and downcased before it is stored, compared or looked up, so
+// that capitalisation cannot produce a second account.
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// toSentence is Array#to_sentence with Rails' defaults, including the serial
+// comma before the last "and". It exists for exactly one message, but that
+// message is asserted on character by character.
+func toSentence(items []string) string {
+	switch len(items) {
+	case 0:
+		return ""
+	case 1:
+		return items[0]
+	case 2:
+		return items[0] + " and " + items[1]
+	default:
+		return strings.Join(items[:len(items)-1], ", ") + ", and " + items[len(items)-1]
+	}
+}
+
+// scanUser reads one user from anything that can produce a row, which is what
+// lets QueryRow and Rows share it.
+func scanUser(row scanner) (*User, error) {
+	var user User
+	err := row.Scan(&user.ID, &user.Email, &user.PasswordDigest, &user.Admin, &user.Approved,
+		&user.ThemePreference, &user.ColorPreference, &user.Columns,
+		(*railsTime)(&user.CreatedAt), (*railsTime)(&user.UpdatedAt))
+	if err != nil {
+		return nil, notFound(err)
+	}
+	return &user, nil
+}

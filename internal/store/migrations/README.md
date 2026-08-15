@@ -1,0 +1,19 @@
+# Migrations
+
+Empty on purpose. `schema.sql` is the database as Rails left it, and nothing
+has needed changing since.
+
+When something does, add a file here named `<version>_<name>.sql`, where
+`<version>` is a UTC timestamp in Rails' `YYYYMMDDHHMMSS` shape:
+
+    20261101093000_add_pinned_to_start_page_items.sql
+
+`Migrate` applies every file whose version is not already in
+`schema_migrations`, in filename order, each one in its own transaction, and
+records the version in that same table. That is the table Rails uses, which is
+the point: `kamal rollback` to a Rails image has to find a schema and a version
+list it recognises, and a future `bin/rails db:migrate` would pick up where Go
+left off.
+
+One statement per file is not required — the file is executed whole — but keep
+each file to a single change, and never edit one that has already run anywhere.
