@@ -29,8 +29,11 @@ require (
 
 // The app's dependencies. modernc.org/sqlite is the pure-Go SQLite, which is
 // what lets the image be a static binary with no libc; bcrypt is in
-// golang.org/x/crypto and verifies the $2a$ digests Rails wrote, unchanged.
+// golang.org/x/crypto and verifies the $2a$ digests Rails wrote, unchanged;
+// go.yaml.in/yaml/v3 is the maintained continuation of gopkg.in/yaml.v3 and
+// reads and writes the start page interchange format.
 require (
+	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.55.0
 	modernc.org/sqlite v1.56.0
 )

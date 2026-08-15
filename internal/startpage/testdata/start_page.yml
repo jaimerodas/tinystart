@@ -1,0 +1,18 @@
+# tinylinks start page export - 2026-08-10
+# 2 columns, 3 groups, 6 tiles
+# format: see docs/start-page-format.md in tinystart
+---
+1:
+- name: Test 2
+  items:
+    NaN Fonts: https://nanfonts.com
+    Feedbin: https://feedbin.com
+2:
+- name: Lo de siempre
+  items:
+    My Synology Admin: https://synology.local
+    Fastmail: https://app.fastmail.com
+- name: Otras cosas
+  items:
+    YouTube: https://youtube.com
+    LinkedIn: https://linkedin.com
