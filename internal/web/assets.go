@@ -11,7 +11,7 @@ import (
 	"mime"
 	"net/http"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -208,8 +208,8 @@ func (s *assetSet) buildLists() {
 			s.stylesheets = append(s.stylesheets, a)
 		}
 	}
-	sort.Slice(s.stylesheets, func(i, j int) bool {
-		return s.stylesheets[i].logical < s.stylesheets[j].logical
+	slices.SortFunc(s.stylesheets, func(a, b *asset) int {
+		return strings.Compare(a.logical, b.logical)
 	})
 
 	// The four explicit pins, in config/importmap.rb's order.
@@ -235,7 +235,7 @@ func (s *assetSet) buildLists() {
 				names = append(names, logical)
 			}
 		}
-		sort.Strings(names)
+		slices.Sort(names)
 		for _, logical := range names {
 			specifier := strings.TrimSuffix(logical, ".js")
 			if path.Base(specifier) == "index" {

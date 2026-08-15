@@ -1,8 +1,9 @@
 package web
 
 import (
+	"maps"
 	"net/http"
-	"sort"
+	"slices"
 )
 
 // addRoutes lists every URL this app answers, in one function, on purpose:
@@ -22,7 +23,9 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	// Fingerprinted CSS and JavaScript, and the handful of files Rails served
 	// straight out of public/ at the root.
 	mux.Handle("GET /assets/", s.assets.handleAsset())
-	for _, path := range sortedKeys(s.assets.public) {
+	// Sorted so registration is deterministic: ServeMux does not care, but a
+	// test that prints the routes does, and so does anyone reading a diff.
+	for _, path := range slices.Sorted(maps.Keys(s.assets.public)) {
 		mux.Handle("GET "+path, s.handlePublicFile(path))
 	}
 
@@ -61,18 +64,6 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	// because the start page does not exist yet; the phase that adds it takes
 	// "GET /{$}" and leaves this pattern to go on catching everything else.
 	mux.Handle("/", s.handleNotFound())
-}
-
-// sortedKeys keeps route registration deterministic. Go's ServeMux does not
-// care what order patterns arrive in, but a test that prints the routes does,
-// and so does anyone reading a diff.
-func sortedKeys(m map[string][]byte) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 // handlePublicFile serves one of the files that used to live in public/.
