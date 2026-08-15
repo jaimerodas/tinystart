@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"net/url"
 	"time"
 )
 
@@ -30,6 +31,18 @@ type Connection struct {
 // NeedsReconnect is Connection#needs_reconnect?: a recorded error is what the
 // page reads, not the timestamp beside it.
 func (c *Connection) NeedsReconnect() bool { return c.LastError != "" }
+
+// Hostname is the host out of BaseURL, which is what the pages call the other
+// app: "links.pati.to", not "https://links.pati.to". A URL that will not parse
+// has no host to show, and the pages that use this simply say nothing — the
+// same empty string Connection#hostname's rescue produced.
+func (c *Connection) Hostname() string {
+	parsed, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return ""
+	}
+	return parsed.Hostname()
+}
 
 const connectionColumns = `id, user_id, base_url, token, scopes, token_expires_at,
 	last_failed_at, last_error, created_at, updated_at`

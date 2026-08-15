@@ -5,13 +5,11 @@
   region it already knows, not the arrival of a region with the text already in
   it.
 */}}
-{{define "error_message"}}{{if .}}
-  <p class="start-page-notice-error">{{.}}</p>
+{{define "error_message"}}{{if .}}  <p class="start-page-notice-error">{{.}}</p>
 {{end}}{{end}}
 
 {{/* The form-level error list every editor form shows above its fields. */}}
-{{define "form_errors"}}{{if .}}
-  <ul class="form-errors" role="alert">
-{{range .}}    <li>{{.}}</li>
+{{define "form_errors"}}{{if .}}  <ul class="form-errors" role="alert">
+{{range .}}      <li>{{.}}</li>
 {{end}}  </ul>
 {{end}}{{end}}

@@ -29,7 +29,9 @@ func TestWantsTurboStream(t *testing.T) {
 }
 
 // The wire format is turbo_stream_action_tag's, down to the empty <template>
-// on a remove.
+// on a remove and to the joiner between two actions — which is nothing at all.
+// Rails concatenated the elements with no separator, and the parity capture
+// says so byte for byte; a newline here would be a text node between them.
 func TestTurboStreamResponse(t *testing.T) {
 	s := newBareServer(t)
 	rec := httptest.NewRecorder()
@@ -44,8 +46,8 @@ func TestTurboStreamResponse(t *testing.T) {
 		t.Errorf("Content-Type = %q", got)
 	}
 
-	want := `<turbo-stream action="replace" target="item_1"><template><li>one</li></template></turbo-stream>` + "\n" +
-		`<turbo-stream action="update" target="start_page_notice"><template><p>saved</p></template></turbo-stream>` + "\n" +
+	want := `<turbo-stream action="replace" target="item_1"><template><li>one</li></template></turbo-stream>` +
+		`<turbo-stream action="update" target="start_page_notice"><template><p>saved</p></template></turbo-stream>` +
 		`<turbo-stream action="remove" target="group_2"><template></template></turbo-stream>`
 	if got := rec.Body.String(); got != want {
 		t.Errorf("body =\n%s\nwant\n%s", got, want)

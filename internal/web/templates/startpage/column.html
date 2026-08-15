@@ -1,0 +1,16 @@
+{{/*
+  Replaced whole when a group is added, removed, or moved into it. The drag and
+  drop data attributes below are read by drag_drop_controller.js.
+*/}}
+{{define "start_column"}}<div class="start-page-column"
+     id="{{.DOMID}}"
+     data-column="{{.Number}}"
+     data-drag-drop-target="column"
+     data-action="dragover->drag-drop#dragOver drop->drag-drop#drop">
+  <h3>Column {{.Number}}</h3>
+
+{{range .Groups}}    {{template "start_group" .}}
+{{end}}
+  {{template "start_new_group" .NewGroup}}
+</div>
+{{end}}

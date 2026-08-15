@@ -1,0 +1,48 @@
+{{/*
+  FormOpen says whether the server wants the rename form showing: true after a
+  failed rename, so the errors stay with the value that caused them.
+
+  aria-labelledby is what makes this a region: a <section> with no accessible
+  name is not exposed as one at all, so the groups were invisible as structure.
+  The name it points at is the saved one — a rejected rename is still in the
+  form, but the header and the labels around it describe saved state, not an
+  edit in flight.
+
+  The group header is focusable for the same reason .item-row is — see
+  startpage/item.html.
+*/}}
+{{define "start_group"}}<section class="start-page-group editable"
+         id="{{.DOMID}}"
+         aria-labelledby="{{.NameDOMID}}"
+         data-group-id="{{.ID}}"
+         data-group-column="{{.Column}}"
+         data-drag-drop-target="group">
+  <div class="group-heading"
+       data-controller="inline-form"
+       data-inline-form-open-value="{{.FormOpen}}">
+    <div class="group-header"
+         tabindex="-1"
+         data-grid-keyboard-target="row"
+         data-inline-form-target="trigger">
+      <div class="drag-handle" draggable="true" aria-hidden="true" data-action="dragstart-&gt;drag-drop#dragStart dragend-&gt;drag-drop#dragEnd" data-drag-drop-target="handle" title="Drag to move group">{{icon "drag-handle"}}</div>
+      <span class="group-name" id="{{.NameDOMID}}">{{.Name}}</span>
+      <div class="item-actions">
+        <button type="button" class="edit-button" title="Rename group" tabindex="-1" aria-label="Rename group" data-action="click-&gt;inline-form#open">{{icon "pencil"}}</button>
+        <form class="button_to" method="post" action="/start/groups/{{.ID}}"><input type="hidden" name="_method" value="delete" /><button class="remove-button" title="Delete group" tabindex="-1" aria-label="Delete group" data-turbo-confirm="Delete this group and all its tiles?" type="submit">{{icon "xmark"}}</button></form>
+      </div>
+    </div>
+
+    <div class="inline-form" hidden="hidden" data-inline-form-target="form" data-action="keydown.esc-&gt;inline-form#close">
+      {{template "start_group_form" .Form}}
+</div>  </div>
+
+  <div class="group-items"
+       data-group-id="{{.ID}}"
+       data-action="dragover->drag-drop#dragItemOver drop->drag-drop#dropItem"
+       data-drag-drop-target="itemDropZone">
+{{range .Items}}      {{template "start_item" .}}
+{{end}}  </div>
+
+  {{template "start_new_item" .NewItem}}
+</section>
+{{end}}

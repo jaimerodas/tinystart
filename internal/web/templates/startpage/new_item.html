@@ -1,0 +1,15 @@
+{{/*
+  The add-link affordance at the foot of a group. Rendered already open after a
+  successful add, so several links can be typed in a row — and after a rejected
+  one, so the errors stay with the values that caused them.
+*/}}
+{{define "start_new_item"}}<div id="{{.DOMID}}"
+     class="inline-form-slot"
+     data-controller="inline-form"
+     data-inline-form-open-value="{{.Open}}">
+  <button type="button" class="add-trigger" title="Add link to {{.GroupName}}" tabindex="-1" aria-label="Add link to {{.GroupName}}" data-action="click-&gt;inline-form#open" data-inline-form-target="trigger" data-grid-keyboard-target="row">{{icon "plus"}}<span>Add link</span></button>
+
+  <div class="inline-form" hidden="hidden" data-inline-form-target="form" data-action="keydown.esc-&gt;inline-form#close">
+    {{template "start_item_form" .Form}}
+</div></div>
+{{end}}

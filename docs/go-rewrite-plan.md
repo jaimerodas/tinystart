@@ -243,6 +243,36 @@ Found while building phase 4:
   SHA-256 instead. Same shape, same place, and the parity check normalises it
   away either way.
 
+Found while building phase 5a (the start page, the editor, groups and items):
+
+- **Rails joins two `<turbo-stream>` elements with nothing at all.** `turbo.go`
+  had guessed a newline; the capture says otherwise, and a newline there is a
+  text node between the two elements.
+- **The blank line after the flash block was one short in all three layouts.**
+  ERB's `<%= render %>` line contributes its own newline on top of the
+  partial's, so a page carrying a flash has one more blank line than a page
+  without. Only visible once a capture had a flash on it.
+- **`html/template` elides HTML comments.** The start page has one that is
+  markup rather than a note — the placeholder inside
+  `.command-bar-suggestions` — so `render.go` grew an `htmlComment` func to put
+  it back.
+- **A Go template comment on its own line is not free.** Unlike ERB, which
+  swallows the whole line, `{{/* … */}}` leaves the indentation and the newline
+  around it. Comments live above the `{{define}}`, never inside the markup.
+- **`value=""` and no `value` attribute are different**, and Rails picks between
+  them on nil vs empty string: a fresh add form has no attribute, a rejected
+  save that cleared the field has `value=""`. The forms carry a `Typed` flag to
+  say which.
+- **`&#34;` versus `&quot;`.** `html/template` escapes a double quote one way
+  and ERB the other, everywhere — most visibly in the command bar's embedded
+  JSON. The same character, the same DOM; the parity normaliser folds them
+  together rather than either side changing.
+- **Capturing Rails for the diff:** `bin/rails runner` with an integration
+  session, `RAILS_DEVELOPMENT_HOSTS=www.example.com`, forgery protection and
+  view annotations off, `ActiveRecord::QueryLogs.tags = []`, and every model
+  call wrapped in `Rails.application.executor.wrap` — a request leaves
+  `ExecutionContext` cleared and the query log tags blow up without it.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

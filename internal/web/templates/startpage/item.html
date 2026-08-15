@@ -1,0 +1,38 @@
+{{/*
+  The row and its edit form are both here from the start, so the pencil opens
+  the form without a round trip. FormOpen keeps it open after a failed save so
+  the errors stay with the values that caused them.
+
+  The row is the focusable unit, not the buttons inside it: one highlight walks
+  the grid with the arrow keys, and Enter and Delete click through to the
+  buttons. tabindex -1 by default — grid_keyboard_controller promotes exactly
+  one row on the page to 0.
+
+  The drag handle is a pointer affordance only, and aria-hidden for it: the row
+  is what a keyboard picks up, so a handle left in the accessibility tree would
+  be a control that does nothing.
+*/}}
+{{define "start_item"}}<div class="start-page-item editable"
+     id="{{.DOMID}}"
+     data-item-id="{{.ID}}"
+     data-group-id="{{.GroupID}}"
+     data-item-position="{{.Position}}"
+     data-drag-drop-target="item"
+     data-controller="inline-form"
+     data-inline-form-open-value="{{.FormOpen}}">
+  <div class="item-row"
+       tabindex="-1"
+       data-grid-keyboard-target="row"
+       data-inline-form-target="trigger">
+    <div class="drag-handle" draggable="true" aria-hidden="true" data-action="dragstart-&gt;drag-drop#dragItemStart dragend-&gt;drag-drop#dragItemEnd" data-drag-drop-target="itemHandle" title="Drag to move item">{{icon "drag-handle"}}</div>
+    <span class="item-title">{{.Title}}</span>
+    <div class="item-actions">
+      <button type="button" class="edit-button" title="Edit tile" tabindex="-1" aria-label="Edit tile" data-action="click-&gt;inline-form#open">{{icon "pencil"}}</button>
+      <form class="button_to" method="post" action="/start/items/{{.ID}}"><input type="hidden" name="_method" value="delete" /><button class="remove-button" title="Remove tile" tabindex="-1" aria-label="Remove tile" data-turbo-confirm="Remove this tile?" type="submit">{{icon "xmark"}}</button></form>
+    </div>
+  </div>
+
+  <div class="inline-form" hidden="hidden" data-inline-form-target="form" data-action="keydown.esc-&gt;inline-form#close">
+    {{template "start_item_form" .Form}}
+</div></div>
+{{end}}

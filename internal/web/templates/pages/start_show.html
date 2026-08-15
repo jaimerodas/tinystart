@@ -1,0 +1,46 @@
+{{define "content"}}<main class="start-page" data-controller="command-bar start-shortcuts"
+      data-command-bar-links-value="{{.Data.LinksJSON}}"
+      data-command-bar-federation-value="{{.Data.Federation}}"
+      data-command-bar-source-value="{{.Data.Source}}"
+      data-start-shortcuts-edit-value="/start/edit"
+      data-action="keydown@window->start-shortcuts#keydown turbo:before-cache@window->start-shortcuts#closeDialog">
+  {{template "start_page_header" false}}
+
+  {{template "shortcuts_dialog" .Data.Shortcuts}}
+
+{{if .Data.Reconnect}}    <p class="search-disconnected" role="status">
+      Search of {{.Data.Hostname}} is disconnected.
+      <a href="/settings/connections">Reconnect</a>.
+    </p>
+{{end}}
+  <section class="command-bar">
+    <input type="text"
+           data-command-bar-target="input"
+           data-action="input->command-bar#search keydown->command-bar#handleKeydown"
+           placeholder="Search links, web, or type URL..."
+           spellcheck="false"
+           autocomplete="off"
+           autofocus>
+    <div class="command-bar-suggestions" data-command-bar-target="suggestions">
+      {{htmlComment "Dynamic suggestions will be inserted here"}}
+    </div>
+  </section>
+
+{{if not .Data.HasTiles}}    <p class="start-page-empty">
+      No links added yet, <a href="/start/edit">edit the page</a> to add some.
+    </p>
+{{end}}
+  <section class="start-page-grid" data-columns="{{.Data.ColumnCount}}" data-controller="visit-tracker">
+{{range .Data.Columns}}      <div class="start-page-column">
+{{range .Groups}}          <section>
+            <h2>{{.Name}}</h2>
+            <ul>
+{{range .Items}}                <li>
+                  <a data-item-id="{{.ID}}" href="{{.URL}}">{{.Title}}</a>
+                </li>
+{{end}}            </ul>
+          </section>
+{{end}}      </div>
+{{end}}  </section>
+</main>
+{{end}}

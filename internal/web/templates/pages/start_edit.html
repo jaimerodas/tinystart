@@ -1,0 +1,18 @@
+{{define "content"}}<main class="start-page"
+      data-controller="start-shortcuts"
+      data-start-shortcuts-view-value="/"
+      data-action="keydown@window->start-shortcuts#keydown turbo:before-cache@window->start-shortcuts#closeDialog">
+  {{template "start_page_header" true}}
+
+  {{template "shortcuts_dialog" .Data.Shortcuts}}
+
+  <div class="editor-toolbar">
+    {{template "keyboard_legend"}}
+    {{template "column_count" .Data.Picker}}
+  </div>
+
+  {{template "notice_region"}}
+
+  {{template "start_grid" .Data.Grid}}
+</main>
+{{end}}

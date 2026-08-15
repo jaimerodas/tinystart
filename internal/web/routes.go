@@ -51,18 +51,43 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("PUT /passwords/{token}", s.handlePasswordUpdate())
 	mux.Handle("PATCH /passwords/{token}", s.handlePasswordUpdate())
 
+	// The start page. "/{$}" is the root and only the root: without the {$}
+	// the pattern would be a prefix and would swallow every URL below it.
+	mux.Handle("GET /{$}", s.requireAuthentication(s.handleStartPage()))
+
+	// The editor. There is deliberately no GET /start — the start page is
+	// served at "/" and nowhere else — so a visit there falls through to the
+	// catch-all and gets a 404. What survives of /start is this PATCH and the
+	// prefix every group and item route hangs off.
+	mux.Handle("GET /start/edit", s.requireAuthentication(s.handleStartEdit()))
+	mux.Handle("PATCH /start", s.requireAuthentication(s.handleStartUpdate()))
+	mux.Handle("PUT /start", s.requireAuthentication(s.handleStartUpdate()))
+
+	// Groups. PUT alongside PATCH because Rails' resource routes accepted
+	// both, and the form says method="patch" through _method while a Turbo
+	// submission would say PATCH outright.
+	mux.Handle("POST /start/groups", s.requireAuthentication(s.handleGroupCreate()))
+	mux.Handle("PATCH /start/groups/{id}", s.requireAuthentication(s.handleGroupUpdate()))
+	mux.Handle("PUT /start/groups/{id}", s.requireAuthentication(s.handleGroupUpdate()))
+	mux.Handle("DELETE /start/groups/{id}", s.requireAuthentication(s.handleGroupDestroy()))
+	mux.Handle("POST /start/groups/{id}/move", s.requireAuthentication(s.handleGroupMove()))
+
+	// Tiles. visit is the one write with nothing to say back: the grid
+	// records a click and carries on to the link.
+	mux.Handle("POST /start/items", s.requireAuthentication(s.handleItemCreate()))
+	mux.Handle("PATCH /start/items/{id}", s.requireAuthentication(s.handleItemUpdate()))
+	mux.Handle("PUT /start/items/{id}", s.requireAuthentication(s.handleItemUpdate()))
+	mux.Handle("DELETE /start/items/{id}", s.requireAuthentication(s.handleItemDestroy()))
+	mux.Handle("POST /start/items/{id}/move", s.requireAuthentication(s.handleItemMove()))
+	mux.Handle("POST /start/items/{id}/visit", s.requireAuthentication(s.handleItemVisit()))
+
 	// Still to come, each in its own phase:
-	//   GET  /                       the start page
-	//   GET  /start/edit, PATCH /start
-	//   the group and item routes that hang off /start
 	//   GET  /search, POST /visits
 	//   /settings, /settings/password, /settings/import_export
 	//   /settings/connections and its poll
 	//   /settings/admin/users and the two admin actions
 
-	// Anything else. This is the catch-all rather than a route for "/",
-	// because the start page does not exist yet; the phase that adds it takes
-	// "GET /{$}" and leaves this pattern to go on catching everything else.
+	// Anything else, GET /start included.
 	mux.Handle("/", s.handleNotFound())
 }
 

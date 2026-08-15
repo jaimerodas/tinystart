@@ -17,7 +17,8 @@
   </head>
 
   <body id="session">
-{{range .Flash}}      {{template "flash" .}}{{end}}    {{template "content" .}}
+{{range .Flash}}      {{template "flash" .}}
+{{end}}    {{template "content" .}}
   </body>
 </html>
 {{end}}

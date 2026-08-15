@@ -16,7 +16,8 @@
   </head>
 
   <body>
-{{range .Flash}}      {{template "flash" .}}{{end}}
+{{range .Flash}}      {{template "flash" .}}
+{{end}}
 {{if .User}}      <header>
         <nav>
           <a class="main-menu-link" href="/">Start</a>

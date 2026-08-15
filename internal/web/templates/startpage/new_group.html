@@ -1,0 +1,21 @@
+{{/*
+  The add-group affordance at the foot of a column. A failed create replaces
+  this node alone, so the errors arrive without disturbing the rest of the page.
+
+  The trigger is a row in its own right — arrowing past the last group in a
+  column lands on it — so it carries grid-keyboard's row target. Its accessible
+  name begins with the visible one, because "Add a group to column 2" on a
+  button that reads "Add group" means saying "click Add group" matches nothing
+  (WCAG 2.5.3, Label in Name); the column still belongs in the name, since three
+  identical "Add group" buttons name nothing at all.
+*/}}
+{{define "start_new_group"}}<div id="{{.DOMID}}"
+     class="inline-form-slot"
+     data-controller="inline-form"
+     data-inline-form-open-value="{{.Open}}">
+  <button type="button" class="add-trigger" title="Add group to column {{.Column}}" tabindex="-1" aria-label="Add group to column {{.Column}}" data-action="click-&gt;inline-form#open" data-inline-form-target="trigger" data-grid-keyboard-target="row">{{icon "plus"}}<span>Add group</span></button>
+
+  <div class="inline-form" hidden="hidden" data-inline-form-target="form" data-action="keydown.esc-&gt;inline-form#close">
+    {{template "start_group_form" .Form}}
+</div></div>
+{{end}}

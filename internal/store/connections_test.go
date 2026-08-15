@@ -211,3 +211,24 @@ func TestConnectionFailureOnAConnectionThatIsGone(t *testing.T) {
 	assertNotFound(t, db.RecordConnectionFailure(t.Context(), 404, "token rejected"))
 	assertNotFound(t, db.ClearConnectionFailure(t.Context(), 404))
 }
+
+// Hostname is what the pages call the other app. A URL that will not parse has
+// no host to show, and the page says nothing rather than raising — which is
+// what Connection#hostname's rescue did.
+func TestConnectionHostname(t *testing.T) {
+	cases := []struct {
+		baseURL string
+		want    string
+	}{
+		{"https://links.pati.to", "links.pati.to"},
+		{"https://links.example.com:8443/api", "links.example.com"},
+		{"", ""},
+		{"://nonsense", ""},
+	}
+	for _, c := range cases {
+		connection := Connection{BaseURL: c.baseURL}
+		if got := connection.Hostname(); got != c.want {
+			t.Errorf("Hostname(%q) = %q, want %q", c.baseURL, got, c.want)
+		}
+	}
+}

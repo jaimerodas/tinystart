@@ -66,13 +66,12 @@ func removeStream(target string) streamAction {
 //
 // The wire format is exactly what turbo-rails' turbo_stream_action_tag
 // produced, down to the empty <template> on a remove, because the parity check
-// diffs these bodies too.
+// diffs these bodies too — and down to the joiner between two actions, which
+// is nothing at all: Rails concatenated the elements with no separator, and a
+// newline here would show up as a text node between them.
 func (s *Server) writeTurboStream(w http.ResponseWriter, status int, actions ...streamAction) {
 	var body bytes.Buffer
-	for i, action := range actions {
-		if i > 0 {
-			body.WriteString("\n")
-		}
+	for _, action := range actions {
 		fmt.Fprintf(&body, `<turbo-stream action=%q target=%q><template>%s</template></turbo-stream>`,
 			action.Action, action.Target, action.HTML)
 	}

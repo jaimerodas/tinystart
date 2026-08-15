@@ -1,0 +1,6 @@
+{{/*
+  The two links above every start page. Which pair shows follows from where you
+  are: the editor offers the way back, the start page the way in. Settings is on
+  both.
+*/}}
+{{define "start_page_header"}}<header class="start-page-header"><div class="start-page-actions">{{if .}}<a class="button-link" href="/">View Start Page</a>{{else}}<a class="button-link" href="/start/edit">Edit</a>{{end}}<a class="button-link" href="/settings">Settings</a></div></header>{{end}}

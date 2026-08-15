@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -136,6 +138,24 @@ func (ts *testServer) get(path string) *response {
 func (ts *testServer) post(path string, form url.Values) *response {
 	ts.t.Helper()
 	return ts.do(ts.request(http.MethodPost, path, form))
+}
+
+// send is get and post generalised to the other verbs. The editor's forms
+// reach PATCH and DELETE through the hidden _method field, but the Stimulus
+// controllers use the real verb, so the tests use the real verb too.
+func (ts *testServer) send(method, path string, form url.Values) *response {
+	ts.t.Helper()
+	return ts.do(ts.request(method, path, form))
+}
+
+// turbo is send with the header that decides everything on the editor: with
+// it a write answers with the pieces of the page that changed, without it the
+// same write redirects.
+func (ts *testServer) turbo(method, path string, form url.Values) *response {
+	ts.t.Helper()
+	req := ts.request(method, path, form)
+	req.Header.Set("Accept", turboStreamMIME+", text/html, application/xhtml+xml")
+	return ts.do(req)
 }
 
 func (ts *testServer) request(method, path string, form url.Values) *http.Request {
@@ -289,6 +309,28 @@ func (r *response) assertRedirect(want string) *response {
 	}
 	return r
 }
+
+// streams is every <turbo-stream> in the body, as "action:target" — which is
+// what the ported controller tests assert on, because the rule they encode is
+// about which node a write replaces and not about its contents.
+func (r *response) streams() []string {
+	r.t.Helper()
+	var found []string
+	for _, match := range streamPattern.FindAllStringSubmatch(r.body, -1) {
+		found = append(found, match[1]+":"+match[2])
+	}
+	return found
+}
+
+func (r *response) assertStreams(want ...string) *response {
+	r.t.Helper()
+	if got := r.streams(); !slices.Equal(got, want) {
+		r.t.Errorf("streams = %v, want %v", got, want)
+	}
+	return r
+}
+
+var streamPattern = regexp.MustCompile(`<turbo-stream action="([a-z]+)" target="([^"]+)"`)
 
 func (r *response) assertContains(want string) *response {
 	r.t.Helper()

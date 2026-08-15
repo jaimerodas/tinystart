@@ -1,0 +1,10 @@
+{{/*
+  How wide the grid is, edited where the grid is. A shrink can be refused — it
+  would strand groups off the end — and this is the only page where the group
+  the refusal names is on screen.
+*/}}
+{{define "column_count"}}<form id="column_count" class="column-count" data-controller="auto-submit" data-action="change-&gt;auto-submit#submit" action="/start" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" />
+  <label for="user_columns">Columns</label>
+  <select name="user[columns]" id="user_columns">{{range $i, $n := .Options}}{{if $i}}
+{{end}}{{if eq $n $.Selected}}<option selected="selected" value="{{$n}}">{{$n}}</option>{{else}}<option value="{{$n}}">{{$n}}</option>{{end}}{{end}}</select>
+</form>{{end}}

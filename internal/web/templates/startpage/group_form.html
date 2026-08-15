@@ -1,0 +1,21 @@
+{{/*
+  The same form adds a group and renames one. The column is never asked for
+  when renaming: while adding, the form's own place in the grid already answers
+  it.
+
+  data-pristine is what Cancel restores. After a rejected save the field holds
+  the value that was refused, so "discard" cannot mean "reset to the rendered
+  value" — it has to mean the one on disk.
+*/}}
+{{define "start_group_form"}}<form class="inline-form-body" action="{{.Action}}" accept-charset="UTF-8" method="post">{{if .Persisted}}<input type="hidden" name="_method" value="patch" />{{end}}
+  {{template "form_errors" .Errors}}
+
+{{if not .Persisted}}    <input value="{{.Column}}" type="hidden" name="start_page_group[column]" id="start_page_group_column" />
+{{end}}
+  {{if .NameError}}<div class="field_with_errors">{{end}}<input class="control" required="required" placeholder="Group name" aria-label="Group name" data-inline-form-target="field" data-pristine="{{.Pristine}}" type="text"{{if .ShowValue}} value="{{.Name}}"{{end}} name="start_page_group[name]" id="start_page_group_name" />{{if .NameError}}</div>{{end}}
+
+  <div class="inline-form-actions">
+    <input type="submit" name="commit" value="{{.Submit}}" class="control" data-disable-with="{{.Submit}}" />
+    <button type="button" class="control secondary" data-action="click->inline-form#close">Cancel</button>
+  </div>
+</form>{{end}}

@@ -1,0 +1,8 @@
+{{/*
+  On the page from the start and empty until a move fails. It has to exist
+  before the message arrives: a live region is only announced for changes made
+  inside it while it is already in the accessibility tree. The failing handlers
+  update its contents, never the region.
+*/}}
+{{define "notice_region"}}<div id="start_page_notice" class="start-page-notice" role="status" aria-live="polite"></div>
+{{end}}

@@ -1,0 +1,15 @@
+{{/*
+  The node that carries the drag and keyboard controllers, which is why no
+  stream ever targets it: replacing #start_page_grid would take the keyboard
+  highlight with it on every move. Writes replace a column, a group or a tile.
+*/}}
+{{define "start_grid"}}<section id="start_page_grid"
+         class="start-page-grid"
+         aria-label="Start page tiles"
+         aria-describedby="start_page_keys"
+         data-columns="{{.ColumnCount}}"
+         data-controller="drag-drop grid-keyboard"
+         data-action="keydown->grid-keyboard#keydown focusin->grid-keyboard#enter focusout->grid-keyboard#leave start-page:leaving@window->grid-keyboard#dropIfGrabbed">
+{{range .Columns}}    {{template "start_column" .}}
+{{end}}</section>
+{{end}}

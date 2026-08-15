@@ -43,7 +43,15 @@ type renderer struct {
 func newRenderer(assets *assetSet) (*renderer, error) {
 	funcs := templateFuncs(assets)
 
-	shared := []string{"templates/layouts/*.html", "templates/shared/*.html"}
+	// The layouts, the two shared partials, and the start page's own family of
+	// partials. The last of these is parsed into every page set rather than
+	// only the two start pages, because a Turbo Stream renders one of them on
+	// its own and renderPartial looks it up through a page's set.
+	shared := []string{
+		"templates/layouts/*.html",
+		"templates/shared/*.html",
+		"templates/startpage/*.html",
+	}
 
 	pageFiles, err := fs.Glob(templateFS, "templates/pages/*.html")
 	if err != nil {
@@ -88,6 +96,15 @@ func templateFuncs(assets *assetSet) template.FuncMap {
 				return "TinyStart"
 			}
 			return name + " - TinyStart"
+		},
+		// htmlComment puts an HTML comment back into the output. html/template
+		// elides comments as it escapes, and the start page has one that is
+		// not a note to the reader: command_bar_controller.js empties
+		// .command-bar-suggestions and fills it, and the comment is what the
+		// markup says about that. Every caller passes a literal, and the one
+		// sequence that could end the comment early is dropped.
+		"htmlComment": func(text string) template.HTML {
+			return template.HTML("<!-- " + strings.ReplaceAll(text, "--", "") + " -->") //nolint:gosec // see above
 		},
 		// pluralize is ActionView's, in the one place a view uses it: "1
 		// error", "2 errors".
