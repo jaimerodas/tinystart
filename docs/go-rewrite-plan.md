@@ -217,6 +217,13 @@ Found while building phase 0:
   library CVE the toolchain is behind on, so the gate stays red until the pin
   is current; bumping that line is the fix, and it will need bumping again.
 
+- Rails' empty `vendor/` switches Go into vendor mode. Until phase 9 every Go
+  command needs `GOFLAGS=-mod=readonly` (`script/test` exports it) and the
+  linters run via `go run` instead of `go tool`. Phase 9 deletes `vendor/`,
+  swaps back to `go tool`, and renames `go.Dockerfile` → `Dockerfile`.
+- `go.mod` pins `toolchain go1.26.6` so govulncheck is clean; bump it when
+  govulncheck starts naming stdlib CVEs again.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under
