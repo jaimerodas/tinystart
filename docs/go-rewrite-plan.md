@@ -96,7 +96,9 @@ internal/web/                    the HTTP app
   templates/*.html               1:1 with app/views (layouts, partials, mail)
   static/                        css/, js/ (controllers, lib), icons/, vendor/ (turbo, stimulus)
 script/test                      gofmt -l, go vet, staticcheck, govulncheck, go test ./...
-Dockerfile, config/deploy.yml, bin/backup_db (path only), .kamal/secrets
+script/test_rails                the Rails gate, until Rails goes
+go.Dockerfile → Dockerfile at cutover; config/deploy.yml, bin/backup_db (path
+only), .kamal/secrets
 ```
 
 ## Phases — each one small, tested first, verified before the next
@@ -200,6 +202,20 @@ request id; table-driven tests with `t.Run` and `t.Context()`;
 - Google Fonts `<link>` stays; no CSP is set today (the initializer is all
   comments), so none is added.
 - Rate limits: sign-in 10 / 3 min, sign-up 2 / 5 min, per IP, in memory.
+
+Found while building phase 0:
+
+- **Rails' empty `vendor/` turns Go's vendoring on**, and then fails on the
+  missing `vendor/modules.txt`. `script/test` exports `GOFLAGS=-mod=readonly`;
+  a bare `go build` or `go test` at the repo root needs the same. `go tool`
+  takes no `-mod` flag at all, so the linters run through `go run` — both
+  workarounds disappear in phase 9 with the directory.
+- **The Go Dockerfile is `go.Dockerfile`, not `Dockerfile.go`.** A `.go`
+  suffix makes it a source file to gofmt, vet and build, all of which fail on
+  the first `#`.
+- **`go.mod` pins `toolchain go1.26.6`.** govulncheck counts every standard
+  library CVE the toolchain is behind on, so the gate stays red until the pin
+  is current; bumping that line is the fix, and it will need bumping again.
 
 ## Execution: Opus agents, in a worktree
 

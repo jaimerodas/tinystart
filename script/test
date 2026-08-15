@@ -1,10 +1,38 @@
 #!/usr/bin/env bash
 # prove_it: full test suite—runs before every git commit
-# Replace the test command below, or change the 'full-tests' command
-# in .claude/prove_it/config.json to point at your existing test runner.
+#
+# The gate for the Go app. Rails keeps its own, script/test_rails, until it is
+# deleted at the end of the rewrite.
 set -e
 trap 'rc=$?; command -v prove_it >/dev/null 2>&1 && prove_it record --name full-tests --result $rc' EXIT
 
-bin/rails test:all
-bin/rubocop
-bin/brakeman --no-pager
+cd "$(dirname "$0")/.."
+
+# Rails keeps an (empty) vendor/ directory that its Dockerfile copies, and Go
+# turns vendoring on the moment it sees one — which then fails, because there
+# is no vendor/modules.txt. -mod=readonly means "ignore vendor/, and do not
+# rewrite go.mod either". Both this and the `go run` calls below go away with
+# Rails; until then a bare `go build` at the repo root needs the same flag.
+export GOFLAGS=-mod=readonly
+
+# gofmt has no exit code for "would reformat": it only names the files, so the
+# check is that it named none.
+unformatted=$(gofmt -l .)
+if [ -n "$unformatted" ]; then
+  echo "gofmt would reformat:"
+  echo "$unformatted"
+  exit 1
+fi
+
+go vet ./...
+
+# staticcheck and govulncheck are tool directives in go.mod, so the version is
+# pinned there and nothing has to be installed globally. `go run` rather than
+# the tidier `go tool`, which takes no -mod flag and so cannot be told to
+# ignore vendor/; swap it back once Rails is gone.
+go run honnef.co/go/tools/cmd/staticcheck ./...
+go run golang.org/x/vuln/cmd/govulncheck ./...
+
+# -race because the server, its shutdown and the tests driving it all run on
+# separate goroutines; a data race here would otherwise surface in production.
+go test -race ./...

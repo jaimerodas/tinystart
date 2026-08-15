@@ -38,3 +38,7 @@
 # Ignore per-machine Claude Code state. The shared bits — CLAUDE.md and
 # .claude/rules/ — stay in the repo on purpose.
 /.claude/**/*.local.json
+
+# Go: the binary a bare `go build` drops at the repo root. Nothing else needs
+# ignoring — the module cache and build cache live outside the tree.
+/tinystart

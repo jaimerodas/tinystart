@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# The Rails gate. It was script/test until the Go rewrite took that name; it
+# stays until Rails is deleted at the end of the rewrite, because main has to
+# remain deployable and `kamal rollback` has to keep working.
+#
+# No prove_it trap here: only one script can be the project's recorded gate,
+# and that is script/test.
+set -e
+
+bin/rails test:all
+bin/rubocop
+bin/brakeman --no-pager
