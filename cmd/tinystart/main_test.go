@@ -5,17 +5,20 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
 // The whole program under test is run(), so these tests start a real server on
-// a real port and talk to it over TCP. That is cheap here — the process has no
-// database and no templates yet — and it is the only way to check the two
-// things that only exist at this level: that the address comes from the
-// environment, and that a cancelled context stops the server without an error.
+// a real port and talk to it over TCP. It is the only way to check the things
+// that only exist at this level: that the configuration comes from the
+// environment, that a missing secret key stops the process, that the database
+// is opened and migrated, and that a cancelled context stops the server
+// without an error.
 
 func TestRunServesUpUntilTheContextIsCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
@@ -25,7 +28,7 @@ func TestRunServesUpUntilTheContextIsCancelled(t *testing.T) {
 	go func() {
 		// Port 0 asks the kernel for a free port, so the test never fights
 		// another process (or another test) over a fixed one.
-		done <- run(ctx, []string{"tinystart"}, envWith("TINYSTART_ADDR", "127.0.0.1:0"), out)
+		done <- run(ctx, []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0"), out)
 	}()
 
 	addr := waitForAddr(t, out)
@@ -63,9 +66,46 @@ func TestRunReturnsAnErrorWhenTheAddressCannotBeBound(t *testing.T) {
 	// 99999 is past the top of the port range, so listening fails before the
 	// server ever starts — the one failure that has to reach main's exit code
 	// rather than being logged and forgotten.
-	err := run(t.Context(), []string{"tinystart"}, envWith("TINYSTART_ADDR", "127.0.0.1:99999"), io.Discard)
+	err := run(t.Context(), []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:99999"), io.Discard)
 	if err == nil {
 		t.Fatal("run returned nil for an unbindable address, want an error")
+	}
+}
+
+// A server that cannot sign a cookie cannot tell a session from a forgery, so
+// there is no default to fall back to and no starting without one.
+func TestRunRefusesToStartWithoutASecretKey(t *testing.T) {
+	env := testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0")
+	err := run(t.Context(), []string{"tinystart"}, withoutKey(env), io.Discard)
+	if err == nil {
+		t.Fatal("run returned nil with no secret key, want an error")
+	}
+	if !strings.Contains(err.Error(), "TINYSTART_SECRET_KEY") {
+		t.Errorf("error = %v, want it to name TINYSTART_SECRET_KEY", err)
+	}
+}
+
+// The database path and the environment are the two settings that change what
+// the process does rather than only where it listens.
+func TestConfigFromEnvDefaults(t *testing.T) {
+	cfg := configFromEnv(func(string) string { return "" })
+
+	if cfg.dbPath != "storage/development.sqlite3" {
+		t.Errorf("dbPath = %q, want the development database", cfg.dbPath)
+	}
+	if cfg.production {
+		t.Error("production = true with TINYSTART_ENV unset, want false")
+	}
+
+	cfg = configFromEnv(mapEnv(map[string]string{
+		"TINYSTART_DB":  "/data/production.sqlite3",
+		"TINYSTART_ENV": "production",
+	}))
+	if cfg.dbPath != "/data/production.sqlite3" {
+		t.Errorf("dbPath = %q, want the configured path", cfg.dbPath)
+	}
+	if !cfg.production {
+		t.Error("production = false with TINYSTART_ENV=production, want true")
 	}
 }
 
@@ -81,7 +121,7 @@ func TestConfigFromEnv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := configFromEnv(envWith("TINYSTART_ADDR", tt.addr))
+			got := configFromEnv(mapEnv(map[string]string{"TINYSTART_ADDR": tt.addr}))
 			if got.addr != tt.wantAddr {
 				t.Errorf("addr = %q, want %q", got.addr, tt.wantAddr)
 			}
@@ -89,15 +129,39 @@ func TestConfigFromEnv(t *testing.T) {
 	}
 }
 
-// envWith is a getenv that knows one variable and reports every other as
-// unset, which is what run sees in a container with nothing configured.
-func envWith(key, value string) func(string) string {
-	return func(k string) string {
-		if k == key {
-			return value
-		}
-		return ""
+// testEnv is the smallest environment run will start in: a secret key, a
+// database of its own in a directory the test framework cleans up, and
+// whatever else the caller wants to add.
+func testEnv(t *testing.T, extra ...string) func(string) string {
+	t.Helper()
+	if len(extra)%2 != 0 {
+		t.Fatal("testEnv takes key/value pairs")
 	}
+
+	env := map[string]string{
+		"TINYSTART_SECRET_KEY": strings.Repeat("k", 32),
+		"TINYSTART_DB":         filepath.Join(t.TempDir(), "test.sqlite3"),
+	}
+	for i := 0; i < len(extra); i += 2 {
+		env[extra[i]] = extra[i+1]
+	}
+	return mapEnv(env)
+}
+
+// withoutKey is an environment with the secret key taken back out of it.
+func withoutKey(getenv func(string) string) func(string) string {
+	return func(key string) string {
+		if key == "TINYSTART_SECRET_KEY" {
+			return ""
+		}
+		return getenv(key)
+	}
+}
+
+// mapEnv is a getenv backed by a map: anything not in it is unset, which is
+// what run sees in a container with nothing configured.
+func mapEnv(env map[string]string) func(string) string {
+	return func(key string) string { return env[key] }
 }
 
 // waitForAddr reads the address the server actually bound out of its own log.

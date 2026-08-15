@@ -224,6 +224,25 @@ Found while building phase 0:
 - `go.mod` pins `toolchain go1.26.6` so govulncheck is clean; bump it when
   govulncheck starts naming stdlib CVEs again.
 
+Found while building phase 4:
+
+- **A signed cookie's value contains dots**, because the flash carries "Try
+  another email address or password." — so the value and its signature are
+  split at the *last* dot, not the first.
+- **bcrypt at Rails' cost 12 takes 2.7 s under `-race`.** `store` grew
+  `UseCheapPasswordHashing()` for the test suites of the packages above it;
+  every one of them should call it from `TestMain`.
+- **Rails in development annotates every rendered view** with
+  `<!-- BEGIN app/views/… -->` comments (`annotate_rendered_view_with_filenames`
+  in `config/environments/development.rb`). The parity normaliser has to strip
+  them, along with the csrf meta tags, the hidden `authenticity_token` inputs
+  and the asset digests. With those five substitutions the four authentication
+  pages diff to nothing.
+- **Propshaft's digest is not reproducible from the file's bytes** — it folds
+  in the logical path — so the Go side uses the first eight hex digits of the
+  SHA-256 instead. Same shape, same place, and the parity check normalises it
+  away either way.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

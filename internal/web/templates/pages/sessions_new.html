@@ -1,0 +1,11 @@
+{{define "content"}}<article id="login">
+  <h1 id="hero">Start. Pati.to</h1>
+
+  <form data-turbo="false" action="/session" accept-charset="UTF-8" method="post">
+    <input required="required" autofocus="autofocus" autocomplete="username" placeholder="Enter your email address"{{with .Data.Email}} value="{{.}}"{{end}} type="email" name="email" id="email" /><br>
+    <input required="required" autocomplete="current-password" placeholder="Enter your password" maxlength="72" size="72" type="password" name="password" id="password" /><br>
+    <input type="submit" name="commit" value="Sign in" data-disable-with="Sign in" />
+</form>
+  <a href="/passwords/new">Forgot password?</a>
+</article>
+{{end}}

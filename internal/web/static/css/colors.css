@@ -1,0 +1,113 @@
+:root {
+  color-scheme: light dark;
+
+  /* Base accent color - change this one variable to update entire color scheme.
+     Teal is the default; [data-color] further down swaps in another accent. */
+  --base-accent: var(--accent-teal);
+
+  --bg-color: light-dark(white, color(display-p3 0.091 0.091 0.091));
+  --bg-highlight-color: light-dark(#eee, #4d4d4d);
+  --bg-notification-color: light-dark(white, #222);
+  --fg-color: light-dark(black, white);
+  --mid-color: light-dark(#494949, #c6c6c6);
+  --border-color: light-dark(#ccc, #555);
+  --button-fg-color: white;
+
+  --highlight-color: var(--base-accent);
+  --highlight-contrast-color: var(--button-fg-color);
+
+  --link-color: light-dark(
+    oklch(from var(--base-accent) calc(l - 0.15) c h),
+    var(--base-accent)
+  );
+  --link-hover-color: light-dark(
+    var(--base-accent),
+    oklch(from var(--base-accent) calc(l - 0.15) c h)
+  );
+
+  /* Header colors with transparency */
+  --header-bg-color: oklch(from var(--base-accent) l c h / 0.85);
+  --header-link-hover-color: light-dark(
+    oklch(from var(--base-accent) calc(l + 0.1) calc(c + 0.05) h / 0.85),
+    oklch(from var(--base-accent) calc(l + 0.05) calc(c + 0.02) h / 0.85)
+  );
+
+  --header-shadow: light-dark(
+    0 0 0.5em rgba(106, 106, 106, 0.05),
+    0 0 0.5em rgba(0,0,0,0.02)
+  ),
+  light-dark(
+    0 0 0.5em rgba(0,0,0,0.02),
+    0 0 0.5em rgba(0,0,0,0.02)
+  ),
+  light-dark(
+    inset 0 -0.0625rem 0 0 rgba(255,255,255, 0.25),
+    inset 0 -0.0625em 0 0 rgba(255,255,255, 0.25)
+  ),
+  light-dark(
+    inset 0 0.0625em 0 0 rgba(255,255,255, 0.5),
+    inset 0 0.0625em 0 0 rgba(255,255,255, 0.25)
+  );
+
+  --danger-color: light-dark(rgb(180, 9, 9), rgb(231, 47, 47));
+  --positive-color: light-dark(color(display-p3 0.145 0.655 0.029), color(display-p3 0.23 0.786 0.104));
+}
+
+/* Explicit light theme - overrides system preference */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Explicit dark theme - overrides system preference */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root {
+  --accent-red:    light-dark(oklch(0.60 0.24 25),  oklch(0.55 0.24 25));
+  --accent-orange: light-dark(oklch(0.78 0.25 50),  oklch(0.78 0.25 50));
+  --accent-yellow: light-dark(oklch(0.82 0.17 90),  oklch(0.82 0.14 90));
+  --accent-green:  light-dark(oklch(0.60 0.25 135), oklch(0.75 0.25 135));
+  --accent-teal:   light-dark(oklch(0.75 0.17 170), oklch(0.75 0.17 170));
+  --accent-blue:   light-dark(oklch(0.58 0.22 250), oklch(0.58 0.22 250));
+  --accent-purple: light-dark(oklch(0.62 0.21 290), oklch(0.70 0.22 290));
+  --accent-pink:   light-dark(oklch(0.66 0.28 345), oklch(0.72 0.28 345));
+}
+
+[data-color="red"] {
+  --base-accent: var(--accent-red);
+}
+
+[data-color="orange"] {
+  --base-accent: var(--accent-orange);
+  --button-fg-color: black;
+}
+
+[data-color="yellow"] {
+  --base-accent: var(--accent-yellow);
+  --button-fg-color: black;
+}
+
+[data-color="green"] {
+  --base-accent: var(--accent-green);
+  --button-fg-color: light-dark(white, black);
+}
+
+[data-color="teal"] {
+  --base-accent: var(--accent-teal);
+  --button-fg-color: black;
+}
+
+[data-color="blue"] {
+  --base-accent: var(--accent-blue);
+}
+
+[data-color="purple"] {
+  --base-accent: var(--accent-purple);
+  --button-fg-color: light-dark(white, black);
+}
+
+[data-color="pink"] {
+  --base-accent: var(--accent-pink);
+  --button-fg-color: light-dark(white, black);
+}

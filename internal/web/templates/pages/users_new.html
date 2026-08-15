@@ -1,0 +1,35 @@
+{{define "content"}}<article>
+  <h1>Create User</h1>
+  <form action="/sign_up" accept-charset="UTF-8" method="post">
+{{with .Data.Errors}}    <div style="color: red">
+      <h2>{{pluralize (len .) "error"}} prohibited this user from being saved:</h2>
+
+      <ul>
+{{range .}}          <li>{{.}}</li>
+{{end}}      </ul>
+    </div>
+{{end}}
+  <div>
+{{if .Data.EmailInvalid}}    <div class="field_with_errors"><label style="display: block" for="user_email">Email</label></div>
+    <div class="field_with_errors"><input type="text"{{with .Data.Email}} value="{{.}}"{{end}} name="user[email]" id="user_email" /></div>
+{{else}}    <label style="display: block" for="user_email">Email</label>
+    <input type="text"{{with .Data.Email}} value="{{.}}"{{end}} name="user[email]" id="user_email" />
+{{end}}  </div>
+
+  <div>
+{{if .Data.PasswordInvalid}}    <div class="field_with_errors"><label style="display: block" for="user_password">Password</label></div>
+    <div class="field_with_errors"><input type="password" name="user[password]" id="user_password" /></div>
+{{else}}    <label style="display: block" for="user_password">Password</label>
+    <input type="password" name="user[password]" id="user_password" />
+{{end}}  </div>
+
+  <div>
+    <input type="submit" name="commit" value="Create User" data-disable-with="Create User" />
+  </div>
+</form>
+{{if .Data.AnyUsers}}    <div>
+      Already registered? <a href="/session/new">Log in</a>
+    </div>
+{{end}}</article>
+
+{{end}}

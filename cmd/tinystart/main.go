@@ -20,6 +20,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jaimerodas/tinystart/internal/postmark"
+	"github.com/jaimerodas/tinystart/internal/store"
+	"github.com/jaimerodas/tinystart/internal/web"
 )
 
 func main() {
@@ -30,22 +34,50 @@ func main() {
 }
 
 // config is everything the process reads from the outside world at startup.
-// Later phases add the database path and the secret key here; keeping it a
-// struct filled by one function means there is exactly one place to look for
-// "what does this app need to run".
+// Keeping it a struct filled by one function means there is exactly one place
+// to look for "what does this app need to run".
 type config struct {
-	addr string
+	addr          string
+	dbPath        string
+	secretKey     []byte
+	host          string
+	postmarkToken string
+	production    bool
 }
+
+// The environment variables, named so that a typo is a compile error rather
+// than a setting that silently does nothing.
+const (
+	envAddr          = "TINYSTART_ADDR"
+	envDB            = "TINYSTART_DB"
+	envSecretKey     = "TINYSTART_SECRET_KEY"
+	envHost          = "TINYSTART_HOST"
+	envEnvironment   = "TINYSTART_ENV"
+	envPostmarkToken = "POSTMARK_API_TOKEN"
+)
 
 // configFromEnv reads the environment through the getenv it is given rather
 // than os.Getenv, which is what lets the tests configure a run without
 // touching the process's real environment.
 func configFromEnv(getenv func(string) string) config {
-	cfg := config{addr: getenv("TINYSTART_ADDR")}
+	cfg := config{
+		addr:          getenv(envAddr),
+		dbPath:        getenv(envDB),
+		secretKey:     []byte(getenv(envSecretKey)),
+		host:          getenv(envHost),
+		postmarkToken: getenv(envPostmarkToken),
+		production:    getenv(envEnvironment) == "production",
+	}
 	if cfg.addr == "" {
 		// The Rails app's development port, kept so bin/dev habits carry over.
 		// The image overrides it with :80, which is what kamal-proxy expects.
 		cfg.addr = ":3000"
+	}
+	if cfg.dbPath == "" {
+		// Where the Rails app keeps its development database, so that running
+		// the binary from a checkout opens the data that is already there. The
+		// image sets /data/production.sqlite3, on the Kamal volume.
+		cfg.dbPath = "storage/development.sqlite3"
 	}
 	return cfg
 }
@@ -66,11 +98,39 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 	logger := slog.New(slog.NewTextHandler(stdout, nil))
 	cfg := configFromEnv(getenv)
 
-	mux := http.NewServeMux()
-	addRoutes(mux)
+	// The secret key signs every cookie and every password reset link. There
+	// is no sensible default — a hardcoded one would mean anyone could forge a
+	// session — so a missing key stops the process here rather than producing
+	// a server that looks fine and is not. Generate one with
+	// `openssl rand -hex 32`.
+	if len(cfg.secretKey) == 0 {
+		return fmt.Errorf("%s is not set; generate one with `openssl rand -hex 32`", envSecretKey)
+	}
+
+	db, err := store.Open(ctx, cfg.dbPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Migrating at boot is what replaces the Rails image's docker-entrypoint:
+	// an empty file becomes the full schema, and a database Rails has been
+	// writing is left exactly as it is.
+	if err := db.Migrate(ctx); err != nil {
+		return fmt.Errorf("migrating %s: %w", cfg.dbPath, err)
+	}
+
+	handler, err := web.NewServer(web.Config{
+		SecretKey:     cfg.secretKey,
+		SecureCookies: cfg.production,
+		Host:          cfg.host,
+	}, db, logger, &postmark.Client{Token: cfg.postmarkToken}, time.Now)
+	if err != nil {
+		return err
+	}
 
 	srv := &http.Server{
-		Handler: mux,
+		Handler: handler,
 		// A server on the public internet needs every one of these: without
 		// them a client that opens a connection and then says nothing holds a
 		// goroutine and a file descriptor forever.
@@ -92,7 +152,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return fmt.Errorf("listening on %s: %w", cfg.addr, err)
 	}
 
-	logger.Info("listening", "addr", listener.Addr().String())
+	logger.Info("listening", "addr", listener.Addr().String(), "database", cfg.dbPath)
 
 	serveErr := make(chan error, 1)
 	go func() {
@@ -124,16 +184,4 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return fmt.Errorf("shutting down: %w", err)
 	}
 	return <-serveErr
-}
-
-// addRoutes lists every route the server answers. It stays one function on
-// purpose: a single place to read the whole URL surface. It moves to
-// internal/web once there is more than a health check to put in it.
-func addRoutes(mux *http.ServeMux) {
-	// GET /up is kamal-proxy's health check, the same path the Rails image
-	// answered, so the deploy configuration does not have to change.
-	mux.HandleFunc("GET /up", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintln(w, "ok")
-	})
 }

@@ -53,6 +53,21 @@ const railsBcryptCost = 12
 // environment. Nothing outside a test ever assigns to it.
 var bcryptCost = railsBcryptCost
 
+// UseCheapPasswordHashing drops the cost to the cheapest bcrypt allows and
+// returns the function that puts it back. It exists for the tests in the
+// packages above this one: a single hash at cost 12 takes a quarter of a
+// second, and several seconds under -race, so a suite that signs a dozen
+// people up would spend all of its time here. Rails does the same thing with
+// ActiveModel::SecurePassword.min_cost in the test environment.
+//
+// Nothing but a test may call it. A digest written at the cheap cost is a
+// digest anyone can crack, and it stays in the database afterwards.
+func UseCheapPasswordHashing() (restore func()) {
+	previous := bcryptCost
+	bcryptCost = bcrypt.MinCost
+	return func() { bcryptCost = previous }
+}
+
 // maxPasswordLength is has_secure_password's limit, and bcrypt's: everything
 // past the 72nd byte is ignored by the algorithm, so accepting a longer
 // password would mean accepting a shorter one at sign-in too.

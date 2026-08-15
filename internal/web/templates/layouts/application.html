@@ -1,0 +1,30 @@
+{{define "application"}}<!DOCTYPE html>
+<html data-theme="{{.Theme}}" data-color="{{.Color}}">
+  <head>
+    <title>{{title .Title}}</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link href="https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    {{stylesheetTags}}
+    {{importmapTags}}
+  </head>
+
+  <body>
+{{range .Flash}}      {{template "flash" .}}{{end}}
+{{if .User}}      <header>
+        <nav>
+          <a class="main-menu-link" href="/">Start</a>
+          <form data-turbo="false" class="button_to" method="post" action="/session"><input type="hidden" name="_method" value="delete" /><button type="submit">Log out</button></form>
+        </nav>
+      </header>
+{{end}}
+    <article>{{template "content" .}}</article>
+  </body>
+</html>
+{{end}}

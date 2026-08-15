@@ -1,0 +1,75 @@
+header {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  background: var(--header-bg-color);
+  backdrop-filter: blur(0.25em);
+  box-shadow: var(--header-shadow);
+
+  nav {
+    display: flex;
+    gap: 1em;
+  }
+
+  form {
+    width: auto;
+    max-width: inherit;
+  }
+
+  a, button {
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--button-fg-color);
+
+    display: flex;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    /* A phone reaches this bar with a thumb, so the label alone is not the
+       target — the whole 4em band is. */
+    height: 4em;
+    padding: 0 1em;
+    min-width: 2em;
+    background: transparent;
+    border: none;
+
+    &:hover {
+      background: var(--header-link-hover-color);
+      color: var(--button-fg-color);
+      text-decoration: none;
+    }
+  }
+
+  button {
+    margin-right: 0;
+  }
+}
+
+@media screen and (min-width: 36em) {
+  header {
+    position: relative;
+    background: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    padding: 0 1em;
+  }
+
+  header :is(a, button) {
+    height: auto;
+    padding: 0.5em 0;
+    color: var(--link-color);
+
+    &:hover {
+      background: none;
+      color: var(--link-hover-color);
+      text-decoration: underline;
+    }
+  }
+}

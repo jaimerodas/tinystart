@@ -1,0 +1,9 @@
+{{define "flash"}}<div class="flash-overlay"
+     data-controller="flash"
+     data-action="click->flash#dismiss keydown.esc@window->flash#dismiss">
+  <div class="flash-card {{.Type}}" role="status" aria-live="polite">
+    {{if eq .Type "notice"}}{{icon "approved"}}{{end}}
+    <p>{{.Message}}</p>
+  </div>
+</div>
+{{end}}

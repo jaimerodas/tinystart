@@ -1,0 +1,26 @@
+{{define "start"}}<!DOCTYPE html>
+<html data-theme="{{.Theme}}" data-color="{{.Color}}">
+  <head>
+    <title>{{title .Title}}</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=SN+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    {{stylesheetTags}}
+    {{importmapTags}}
+  </head>
+
+  <body>
+{{range .Flash}}      {{template "flash" .}}{{end}}
+    <article>
+      {{template "content" .}}
+    </article>
+  </body>
+</html>
+{{end}}
