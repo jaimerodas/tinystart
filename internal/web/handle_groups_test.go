@@ -318,3 +318,20 @@ func TestGroupCreateRequiresAuthentication(t *testing.T) {
 
 // id is the string form of a row id, which every one of these paths needs.
 func id(value int64) string { return strconv.FormatInt(value, 10) }
+
+// The drag and keyboard controllers post JSON, not a form — see
+// lib/start_page_moves.js — and Rails read either without being asked to.
+func TestGroupMoveAcceptsTheJSONTheEditorSends(t *testing.T) {
+	ts, user := startPageServer(t)
+	ts.newGroup(user.ID, "Already there", 2)
+	group := ts.newGroup(user.ID, "Test Group", 1)
+
+	ts.turboJSON(http.MethodPost, "/start/groups/"+id(group.ID)+"/move", `{"column":2,"position":1}`).
+		assertStatus(http.StatusOK).
+		assertStreams("replace:column_2", "replace:column_1")
+
+	moved := ts.group(user.ID, group.ID)
+	if moved.Column != 2 || moved.Position != 1 {
+		t.Errorf("moved to column %d position %d, want 2/1", moved.Column, moved.Position)
+	}
+}

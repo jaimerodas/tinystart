@@ -416,3 +416,18 @@ func form(pairs ...string) url.Values {
 	}
 	return values
 }
+
+// turboJSON is what lib/start_page_moves.js actually sends: a JSON body with
+// the stream Accept header. The forms in the other tests are what Rails' own
+// tests sent, and the editor's moves never went through a form — which is how
+// a handler that only read form values passed every test and failed the page.
+func (ts *testServer) turboJSON(method, path, body string) *response {
+	ts.t.Helper()
+	req, err := http.NewRequestWithContext(ts.t.Context(), method, ts.http.URL+path, strings.NewReader(body))
+	if err != nil {
+		ts.t.Fatalf("building a %s %s request: %v", method, path, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", turboStreamMIME)
+	return ts.do(req)
+}

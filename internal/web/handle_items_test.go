@@ -398,3 +398,29 @@ func TestItemCreateRequiresAuthentication(t *testing.T) {
 	ts.post("/start/items", form("start_page_item[url]", itemURL, "start_page_item[title]", "One")).
 		assertRedirect("/session/new")
 }
+
+// The drag and keyboard controllers post JSON, not a form — see
+// lib/start_page_moves.js. group_id arrives as the string the data attribute
+// held, and position as a number; a reorder within the group omits group_id.
+func TestItemMoveAcceptsTheJSONTheEditorSends(t *testing.T) {
+	ts, user := startPageServer(t)
+	group := ts.newGroup(user.ID, "Test Group", 1)
+	first := ts.newItem(user.ID, group.ID, "One", "https://example.com/one")
+	ts.newItem(user.ID, group.ID, "Two", "https://example.com/two")
+	destination := ts.newGroup(user.ID, "New Group", 2)
+
+	ts.turboJSON(http.MethodPost, "/start/items/"+id(first.ID)+"/move", `{"position":1}`).
+		assertStatus(http.StatusOK).
+		assertStreams("replace:group_" + id(group.ID))
+	if moved := ts.item(user.ID, first.ID); moved.Position != 1 {
+		t.Errorf("after a reorder within the group, position = %d, want 1", moved.Position)
+	}
+
+	ts.turboJSON(http.MethodPost, "/start/items/"+id(first.ID)+"/move",
+		`{"position":0,"group_id":"`+id(destination.ID)+`"}`).
+		assertStatus(http.StatusOK).
+		assertStreams("replace:group_"+id(destination.ID), "replace:group_"+id(group.ID))
+	if moved := ts.item(user.ID, first.ID); moved.GroupID != destination.ID {
+		t.Errorf("after a move between groups, group = %d, want %d", moved.GroupID, destination.ID)
+	}
+}

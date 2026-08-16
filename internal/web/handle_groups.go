@@ -217,8 +217,13 @@ func (s *Server) handleGroupMove() http.Handler {
 			s.notFound(w)
 			return
 		}
-		column, _ := strconv.Atoi(r.PostFormValue("column"))
-		position, _ := strconv.Atoi(r.PostFormValue("position"))
+		params, err := readMoveParams(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		column, _ := strconv.Atoi(params["column"])
+		position, _ := strconv.Atoi(params["position"])
 
 		group, err := s.db.GroupByID(ctx, user.ID, id)
 		if errors.Is(err, store.ErrNotFound) {

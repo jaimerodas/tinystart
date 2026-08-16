@@ -252,8 +252,13 @@ func (s *Server) handleItemMove() http.Handler {
 			s.notFound(w)
 			return
 		}
-		position, _ := strconv.Atoi(r.PostFormValue("position"))
-		rawGroup := r.PostFormValue("group_id")
+		params, err := readMoveParams(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		position, _ := strconv.Atoi(params["position"])
+		rawGroup := params["group_id"]
 
 		item, err := s.db.ItemByID(ctx, user.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
