@@ -61,6 +61,12 @@ func sharedBrowser(t *testing.T) context.Context {
 			// the layout links Google Fonts, and a tile can point anywhere.
 			// Failing to resolve is instant; waiting for a timeout is not.
 			chromedp.Flag("host-resolver-rules", "MAP * ~NOTFOUND, EXCLUDE 127.0.0.1"),
+			// Chrome's sandbox needs unprivileged user namespaces, which
+			// Ubuntu 24.04 — the GitHub Actions runner — turns off, and Chrome
+			// then refuses to start at all ("No usable sandbox!"). This is a
+			// throwaway headless browser pointed at localhost; the sandbox
+			// protects nothing here.
+			chromedp.NoSandbox,
 		)
 		if path := chromePath(); path != "" {
 			options = append(options, chromedp.ExecPath(path))
