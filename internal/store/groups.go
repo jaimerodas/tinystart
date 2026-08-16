@@ -115,6 +115,22 @@ func (db *DB) GroupByID(ctx context.Context, userID, groupID int64) (*Group, err
 		groupID, userID))
 }
 
+// StartPageCounts is how many groups a page has and how many tiles are in
+// them — the two numbers Settings puts above everything else, links first.
+//
+// Two subqueries rather than a join with two COUNT(DISTINCT …): a group with
+// no tiles has to count as a group, and the join that gets that right is
+// harder to read than the two questions asked separately.
+func (db *DB) StartPageCounts(ctx context.Context, userID int64) (groups, items int, err error) {
+	err = db.sql.QueryRowContext(ctx,
+		`SELECT (SELECT COUNT(*) FROM start_page_groups WHERE user_id = ?),
+		        (SELECT COUNT(*) FROM start_page_items
+		         WHERE start_page_group_id IN
+		               (SELECT id FROM start_page_groups WHERE user_id = ?))`,
+		userID, userID).Scan(&groups, &items)
+	return groups, items, err
+}
+
 // GroupsByColumn is the whole grid in one query, bucketed the way the page
 // draws it. Columns with nothing in them are simply absent from the map, which
 // is what ranging over the user's column count and looking each one up

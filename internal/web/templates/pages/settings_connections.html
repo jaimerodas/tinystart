@@ -1,0 +1,58 @@
+{{define "content"}}
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li><a href="/settings">Settings</a></li>
+      <li>Connections</li>
+    </ol>
+
+    {{template "settings_nav" .Data.Nav}}
+  </nav>
+
+  <section class="user-section" id="connection-settings">
+    <p>Connect other apps so the command bar can search them alongside your
+      tiles. Connecting asks the other app to approve TinyStart, which hands
+      back a token stored here.</p>
+{{if .Data.Pending}}
+      <div class="connection-status pending"
+           data-controller="device-flow"
+           data-device-flow-url-value="/settings/connections/poll">
+        <p>
+          <strong>Waiting for approval.</strong>
+          Approve TinyStart in the other app, then come back — this page updates on its own.
+        </p>
+        <p>
+          <a target="_blank" rel="noopener" class="action-button" href="{{.Data.Pending.VerificationURL}}">Open the approval page</a>
+        </p>
+        <p class="help-text" data-device-flow-target="status">Checking…</p>
+      </div>
+
+{{else if .Data.Connected}}
+      <div class="connection-status connected">
+        <p class="connection-state"><strong>Connected</strong> to {{.Data.Connected.BaseURL}}</p>
+
+        <p class="connection-facts">
+          {{.Data.Connected.Scopes}}
+{{if .Data.Connected.Expiry}}            &middot; token expires {{.Data.Connected.Expiry}} from now
+{{end}}        </p>
+
+        <p class="connection-note">The token renews itself every time the command bar
+          uses it, so it only lapses after a long silence.</p>
+
+        <form class="button_to" method="post" action="/settings/connections"><input type="hidden" name="_method" value="delete" /><button class="action-button danger" data-turbo-confirm="Disconnect {{.Data.Connected.Hostname}}? Its results will stop appearing in the command bar." type="submit">Disconnect</button></form>
+      </div>
+
+{{else}}
+{{with .Data.LastError}}        <div class="connection-status disconnected">
+          <p><strong>Disconnected.</strong> {{.}}</p>
+        </div>
+{{end}}
+      <form class="connect-form" action="/settings/connections" accept-charset="UTF-8" method="post">
+        <div class="field">
+          <label for="base_url">App address</label>
+          <input value="{{.Data.BaseURL}}" required="required" type="url" name="base_url" id="base_url" />
+        </div>
+        <input type="submit" name="commit" value="Connect" class="action-button" data-disable-with="Connect" />
+</form>{{end}}  </section>
+</main>
+{{end}}

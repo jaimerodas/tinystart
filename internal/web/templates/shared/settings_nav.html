@@ -1,0 +1,11 @@
+{{/*
+  SettingsHelper#settings_secondary_nav: the row of tabs every Settings page
+  carries. It is one line of output because content_tag builds it without any
+  whitespace between the elements, and an <li> that gained a newline would gain
+  a text node with it.
+
+  The inactive tabs really do carry class="" — link_to writes the attribute
+  whatever is in it — and the Users tab is absent, not hidden, for anyone who
+  is not an admin.
+*/}}
+{{define "settings_nav"}}<ul class="secondary-nav">{{range .}}<li><a class="{{.Class}}" href="{{.Path}}">{{.Title}}</a></li>{{end}}</ul>{{end}}

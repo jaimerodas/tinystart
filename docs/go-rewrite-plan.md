@@ -273,6 +273,36 @@ Found while building phase 5a (the start page, the editor, groups and items):
   call wrapped in `Rails.application.executor.wrap` — a request leaves
   `ExecutionContext` cleared and the query log tags blow up without it.
 
+Found while building phase 5b+5c (search, settings, connections, import/export,
+admin):
+
+- **A cookie value may not carry every byte, and net/http drops the ones it
+  may not rather than complaining.** A flash saying `the link "Bare" was
+  rejected`, or anything with an em dash in it, came back a different string
+  from the one that was signed, failed to verify and vanished. `signValue` now
+  base64url-encodes the value; cutting at the *first* dot became safe in the
+  same change, since neither half can contain one.
+- **`http.Redirect` writes a one-line body for a redirected GET and Rails
+  writes none.** No browser renders either — it follows the `Location` — so
+  the parity normaliser drops a redirect's body, alongside the 302/303 and
+  full-URL/path substitutions it already made.
+- **The export's date is the application's, not the machine's.** `Date.current`
+  is UTC; `time.Now()` is local, so an export made at eight in the evening in
+  Mexico City was dated the day before the one Rails would have written.
+- **`POSTMARK_API_URL` was added** so a binary run from a checkout can point at
+  a fake and mail nobody, which is what Rails did in development with
+  letter_opener. Empty is the real API, which is what production leaves it as.
+- **The pending device grant's deadline lives inside the cookie's value, not on
+  the cookie.** A cookie lifetime is enforced by the browser's clock, and a
+  browser a few minutes behind would keep polling a grant the app has given up
+  on.
+- **`distance_of_time_in_words` had to be ported**, thresholds and wording and
+  all, for "member since … ago" and "token expires … from now"; it is
+  `timewords.go`, checked against a table taken from a Rails console.
+- **The parity harness for this phase runs a fake connected app** on a port,
+  so both sides drive the real device flow, the real federated search and the
+  real mailer over HTTP rather than one of them being mocked.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

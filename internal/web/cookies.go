@@ -30,6 +30,13 @@ const (
 	// server-side session store and a cookie that dies on use is exactly the
 	// lifetime it wants.
 	returnToCookie = "tinystart_return_to"
+
+	// connectionGrantCookie holds the device authorization that Settings →
+	// Connections has opened and is waiting on. Rails kept it in the session;
+	// it is a cookie here for the same reason as the one above. The deadline
+	// the other app gave is inside the value rather than on the cookie, so
+	// that a browser with a slow clock cannot keep a dead grant alive.
+	connectionGrantCookie = "tinystart_connection_grant"
 )
 
 // noExpiry is the zero time, which http.SetCookie reads as "no Expires
@@ -42,41 +49,53 @@ var noExpiry time.Time
 // would only help someone probing the signature.
 var errBadCookie = errors.New("web: cookie missing or not valid")
 
-// signValue attaches a signature to a value: "<value>.<base64url mac>".
+// signValue attaches a signature to a value:
+// "<base64url value>.<base64url mac>".
+//
+// Both halves are encoded, and the value's half is not decoration. A cookie
+// value may only contain a narrow range of bytes, and net/http drops the ones
+// it may not carry rather than refusing to write the cookie — so a flash
+// saying `the link "Bare" was rejected` or anything with an em dash in it
+// would come back a different string from the one that was signed, fail to
+// verify, and vanish. Encoding first means every value is carried intact.
 //
 // The name is mixed into the MAC. Without that, the signature says only "this
 // app wrote this string", and a value lifted out of one cookie and dropped
 // into another would verify — a flash message pasted in as a session id, say.
 // With it, a signature is only valid for the cookie it was made for.
 func (s *Server) signValue(name, value string) string {
-	return value + "." + base64.RawURLEncoding.EncodeToString(s.mac(name, value))
+	return base64.RawURLEncoding.EncodeToString([]byte(value)) + "." +
+		base64.RawURLEncoding.EncodeToString(s.mac(name, value))
 }
 
 // verifyValue undoes signValue.
 //
-// The split is at the last dot, not the first: a signature is base64url and so
-// never contains one, but a value very well may — the flash carries "Try
-// another email address or password." — and cutting at the first dot would
-// reject every message that ends in a full stop.
+// Cutting at the first dot is safe because neither half can contain one:
+// base64url's alphabet has no dot in it. That is the other thing the encoding
+// buys — before it, a value ending in a full stop had to be told apart from
+// its own signature.
 //
 // The comparison is constant-time so that a wrong signature takes the same
 // time to reject however much of it was right; a byte-at-a-time comparison
 // leaks the correct MAC one byte per few thousand requests.
 func (s *Server) verifyValue(name, signed string) (string, error) {
-	dot := strings.LastIndex(signed, ".")
-	if dot < 0 {
+	encoded, signature, found := strings.Cut(signed, ".")
+	if !found {
 		return "", errBadCookie
 	}
-	value, signature := signed[:dot], signed[dot+1:]
 
+	value, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", errBadCookie
+	}
 	given, err := base64.RawURLEncoding.DecodeString(signature)
 	if err != nil {
 		return "", errBadCookie
 	}
-	if !hmac.Equal(given, s.mac(name, value)) {
+	if !hmac.Equal(given, s.mac(name, string(value))) {
 		return "", errBadCookie
 	}
-	return value, nil
+	return string(value), nil
 }
 
 func (s *Server) mac(name, value string) []byte {

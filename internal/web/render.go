@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -171,8 +172,27 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, layo
 // and so belongs next to the page names rather than threaded through every
 // handler. A page with no entry gets the bare "TinyStart".
 var pageTitles = map[string]string{
-	"users_new":     "New user",
-	"passwords_new": "Forgot your password?",
+	"users_new":              "New user",
+	"passwords_new":          "Forgot your password?",
+	pageSettingsShow:         "Settings",
+	pageSettingsPasswordEdit: "Password",
+	pageSettingsConnections:  "Connections",
+	pageSettingsImportExport: "Import & Export",
+	pageSettingsUsers:        "Users",
+}
+
+// renderJSON writes one JSON body. Marshal rather than Encoder, because
+// Encoder appends a newline and the two endpoints that use this — the command
+// bar's search and the device flow's poller — answer bodies that Rails wrote
+// without one.
+func (s *Server) renderJSON(w http.ResponseWriter, r *http.Request, value any) {
+	body, err := json.Marshal(value)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(body) //nolint:errcheck // nothing to do if the client hangs up
 }
 
 // themeFor and colorFor are ApplicationHelper's theme_data_attribute and

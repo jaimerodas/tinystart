@@ -109,6 +109,20 @@ func TestConfigFromEnvDefaults(t *testing.T) {
 	}
 }
 
+// The mailer's address is configurable so that running the binary from a
+// checkout can point at a fake and mail nobody, which is what Rails did in
+// development with letter_opener. Unset is the real API.
+func TestConfigFromEnvPostmarkURL(t *testing.T) {
+	if url := configFromEnv(func(string) string { return "" }).postmarkURL; url != "" {
+		t.Errorf("postmarkURL = %q with nothing set, want empty", url)
+	}
+
+	cfg := configFromEnv(mapEnv(map[string]string{"POSTMARK_API_URL": "http://127.0.0.1:3098"}))
+	if cfg.postmarkURL != "http://127.0.0.1:3098" {
+		t.Errorf("postmarkURL = %q, want the configured address", cfg.postmarkURL)
+	}
+}
+
 func TestConfigFromEnv(t *testing.T) {
 	tests := []struct {
 		name     string

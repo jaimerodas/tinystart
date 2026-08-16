@@ -81,11 +81,45 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("POST /start/items/{id}/move", s.requireAuthentication(s.handleItemMove()))
 	mux.Handle("POST /start/items/{id}/visit", s.requireAuthentication(s.handleItemVisit()))
 
-	// Still to come, each in its own phase:
-	//   GET  /search, POST /visits
-	//   /settings, /settings/password, /settings/import_export
-	//   /settings/connections and its poll
-	//   /settings/admin/users and the two admin actions
+	// The command bar's federated half. Rails routed /search as a resource and
+	// the JS asks for /search.json; both spellings answer the same JSON,
+	// because the Rails controller rendered JSON whatever format was asked
+	// for.
+	mux.Handle("GET /search", s.requireAuthentication(s.handleSearch()))
+	mux.Handle("GET /search.json", s.requireAuthentication(s.handleSearch()))
+	mux.Handle("POST /visits", s.requireAuthentication(s.handleVisitCreate()))
+
+	// Settings. PUT alongside PATCH again, for the same reason as above.
+	mux.Handle("GET /settings", s.requireAuthentication(s.handleSettings()))
+	mux.Handle("PATCH /settings", s.requireAuthentication(s.handleSettingsUpdate()))
+	mux.Handle("PUT /settings", s.requireAuthentication(s.handleSettingsUpdate()))
+
+	mux.Handle("GET /settings/password/edit", s.requireAuthentication(s.handleSettingsPasswordEdit()))
+	mux.Handle("PATCH /settings/password", s.requireAuthentication(s.handleSettingsPasswordUpdate()))
+	mux.Handle("PUT /settings/password", s.requireAuthentication(s.handleSettingsPasswordUpdate()))
+
+	// Import and export of the interchange format in
+	// docs/start-page-format.md. The download is its own path rather than a
+	// format on the page, because the file is a .yml.
+	mux.Handle("GET /settings/import_export", s.requireAuthentication(s.handleImportExport()))
+	mux.Handle("POST /settings/import_export", s.requireAuthentication(s.handleImportCreate()))
+	mux.Handle("GET /settings/export", s.requireAuthentication(s.handleExport()))
+
+	// Connections. One per user — the plural is what the section is called and
+	// what the URL should read — and no admin gate: connecting your own
+	// account on the other app needs no privilege.
+	mux.Handle("GET /settings/connections", s.requireAuthentication(s.handleConnections()))
+	mux.Handle("POST /settings/connections", s.requireAuthentication(s.handleConnectionCreate()))
+	mux.Handle("DELETE /settings/connections", s.requireAuthentication(s.handleConnectionDestroy()))
+	mux.Handle("GET /settings/connections/poll", s.requireAuthentication(s.handleConnectionPoll()))
+
+	// The admin section, which is the only place adminOnly is used.
+	mux.Handle("GET /settings/admin/users",
+		s.requireAuthentication(s.adminOnly(s.handleAdminUsers())))
+	mux.Handle("POST /settings/admin/users/{id}/approve",
+		s.requireAuthentication(s.adminOnly(s.handleAdminUserApprove())))
+	mux.Handle("POST /settings/admin/users/{id}/password_reset",
+		s.requireAuthentication(s.adminOnly(s.handleAdminUserPasswordReset())))
 
 	// Anything else, GET /start included.
 	mux.Handle("/", s.handleNotFound())

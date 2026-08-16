@@ -1,0 +1,66 @@
+{{define "content"}}
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li>Settings</li>
+    </ol>
+    {{template "settings_nav" .Data.Nav}}
+  </nav>
+
+
+  <section id="start-page-stats" aria-label="Start page contents">
+    <div class="stat">
+      <span class="stat-value">{{.Data.Items}}</span>
+      <span class="stat-label">{{.Data.ItemsLabel}}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{.Data.Groups}}</span>
+      <span class="stat-label">{{.Data.GroupsLabel}}</span>
+    </div>
+  </section>
+
+  <section id="user-details" class="user-section">
+    <h2>Account</h2>
+    <ul>
+      <li><b>Email:</b> {{.User.Email}}</li>
+      <li>
+        <b>Member since:</b>
+        <time datetime="{{.Data.MemberSince}}">
+          {{.Data.MemberSinceDate}}
+        </time>
+        ({{.Data.MemberSinceAgo}} ago)
+      </li>
+      <li><a href="/settings/password/edit">Change password</a></li>
+    </ul>
+  </section>
+
+  <section id="user-display" class="user-section">
+    <h2>Display</h2>
+    <form data-controller="theme" data-action="turbo:submit-end-&gt;theme#updateTheme" action="/settings" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" />
+      <div class="form-group">
+        <label>Theme</label>
+        <div class="radio-group">
+{{range .Data.Themes}}          <div class="radio-field">
+            <input id="theme_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[theme_preference]" />
+            <label for="theme_{{.Value}}">{{.Label}}</label>
+          </div>
+{{end}}        </div>
+        <p class="help-text">Choose your preferred color scheme. System will follow your device's theme setting.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Accent color</label>
+        <div class="color-picker">
+{{range .Data.Colors}}            <div class="color-option">
+              <input id="color_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[color_preference]" />
+              <label data-color="{{.Value}}" style="background: var(--accent-{{.Value}})" for="color_{{.Value}}"></label>
+            </div>
+{{end}}        </div>
+        <p class="help-text">Choose your preferred accent color for links and interface elements.</p>
+      </div>
+
+      <input type="submit" name="commit" value="Save display preferences" class="action-button" data-disable-with="Save display preferences" />
+</form>  </section>
+
+</main>
+{{end}}

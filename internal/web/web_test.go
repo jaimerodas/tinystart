@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"io"
 	"log/slog"
@@ -250,16 +251,24 @@ func (ts *testServer) sessionCookie() string {
 
 // currentSessionID is the row id inside that cookie. Reading it is also a
 // check on the cookie's shape: the value is the id and a signature over it,
-// and nothing else.
+// both base64url, and nothing else.
 func (ts *testServer) currentSessionID() int64 {
 	ts.t.Helper()
 	value := ts.sessionCookie()
 	if value == "" {
 		ts.t.Fatal("no session cookie")
 	}
-	id, err := strconv.ParseInt(value[:strings.Index(value, ".")], 10, 64)
+	encoded, _, found := strings.Cut(value, ".")
+	if !found {
+		ts.t.Fatalf("session cookie %q carries no signature", value)
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
-		ts.t.Fatalf("session cookie %q does not start with a row id: %v", value, err)
+		ts.t.Fatalf("session cookie %q is not base64url: %v", value, err)
+	}
+	id, err := strconv.ParseInt(string(decoded), 10, 64)
+	if err != nil {
+		ts.t.Fatalf("session cookie %q does not carry a row id: %v", value, err)
 	}
 	return id
 }
@@ -384,6 +393,12 @@ func (c *testClock) Now() time.Time {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.now
+}
+
+func (c *testClock) set(now time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.now = now
 }
 
 func (c *testClock) advance(d time.Duration) {

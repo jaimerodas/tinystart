@@ -1,0 +1,16 @@
+{{define "content"}}
+<main>
+  <nav class="dual-nav">
+    <ol class="breadcrumbs">
+      <li><a href="/settings">Settings</a></li>
+      <li>Users</li>
+    </ol>
+
+    {{template "settings_nav" .Data.Nav}}
+  </nav>
+
+  <ul id="users-list" class="item-list">
+{{range .Data.Users}}      {{template "admin_user" .}}
+{{end}}  </ul>
+</main>
+{{end}}

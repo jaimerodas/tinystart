@@ -42,6 +42,7 @@ type config struct {
 	secretKey     []byte
 	host          string
 	postmarkToken string
+	postmarkURL   string
 	production    bool
 }
 
@@ -54,6 +55,13 @@ const (
 	envHost          = "TINYSTART_HOST"
 	envEnvironment   = "TINYSTART_ENV"
 	envPostmarkToken = "POSTMARK_API_TOKEN"
+
+	// envPostmarkURL points the mailer somewhere other than Postmark. It is
+	// what makes running the binary from a checkout safe: Rails in development
+	// used letter_opener and mailed nobody, and without this a password reset
+	// on a laptop would go to a real inbox. Empty means the real API, which is
+	// what production leaves it as.
+	envPostmarkURL = "POSTMARK_API_URL"
 )
 
 // configFromEnv reads the environment through the getenv it is given rather
@@ -66,6 +74,7 @@ func configFromEnv(getenv func(string) string) config {
 		secretKey:     []byte(getenv(envSecretKey)),
 		host:          getenv(envHost),
 		postmarkToken: getenv(envPostmarkToken),
+		postmarkURL:   getenv(envPostmarkURL),
 		production:    getenv(envEnvironment) == "production",
 	}
 	if cfg.addr == "" {
@@ -124,7 +133,7 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		SecretKey:     cfg.secretKey,
 		SecureCookies: cfg.production,
 		Host:          cfg.host,
-	}, db, logger, &postmark.Client{Token: cfg.postmarkToken}, time.Now)
+	}, db, logger, &postmark.Client{Token: cfg.postmarkToken, BaseURL: cfg.postmarkURL}, time.Now)
 	if err != nil {
 		return err
 	}

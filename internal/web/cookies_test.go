@@ -10,7 +10,14 @@ import (
 func TestSignedValuesRoundTrip(t *testing.T) {
 	s := newBareServer(t)
 
-	for _, value := range []string{"", "42", "alert:Try another email address or password.", "/start/edit?x=1"} {
+	// The last two are the reason the value is encoded before it goes into
+	// the cookie: net/http silently drops a byte a cookie may not carry, so
+	// either of them would come back changed and fail to verify.
+	for _, value := range []string{
+		"", "42", "alert:Try another email address or password.", "/start/edit?x=1",
+		`alert:Nothing was imported: the link "Bare" (example.com) was rejected`,
+		"notice:Imported 6 links — expected if you edited the file",
+	} {
 		signed := s.signValue(flashCookie, value)
 		got, err := s.verifyValue(flashCookie, signed)
 		if err != nil {
@@ -136,4 +143,29 @@ func TestNoticeAndAlertRenderDifferently(t *testing.T) {
 	ts.get("/session/new").
 		assertContains(`<div class="flash-card alert" role="status" aria-live="polite">`).
 		assertNotContains(`<svg aria-hidden="true" focusable="false"`)
+}
+
+// The same thing end to end, because the round trip above verifies the
+// signature and this verifies that the browser gets to keep it: the flash
+// after a refused import is the longest, punctuated, non-ASCII message the app
+// produces, and it disappeared entirely when the value went into the cookie
+// raw.
+func TestAFlashWithQuotesAndAnEmDashSurvivesTheCookie(t *testing.T) {
+	ts := newTestServer(t)
+	user := ts.createUser("one@example.com")
+	ts.signIn(user.Email)
+
+	message := `Nothing was imported: the link "Bare" (example.com) — rejected`
+	rec := httptest.NewRecorder()
+	ts.app.setFlash(rec, flashNotice, message)
+
+	req := httptest.NewRequest(http.MethodGet, "/settings", nil)
+	for _, cookie := range rec.Result().Cookies() {
+		req.AddCookie(cookie)
+	}
+
+	flash := ts.app.takeFlash(httptest.NewRecorder(), req)
+	if len(flash) != 1 || flash[0].Message != message {
+		t.Errorf("flash = %+v, want one message %q", flash, message)
+	}
 }

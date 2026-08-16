@@ -383,3 +383,36 @@ func TestDeleteGroup(t *testing.T) {
 		t.Errorf("%d tiles survived the group", len(items))
 	}
 }
+
+// Settings puts these two numbers above everything else, so an empty page has
+// to count as zero rather than fail, a group with no tiles has to count as a
+// group, and neither number may include anybody else's.
+func TestStartPageCounts(t *testing.T) {
+	db := newTestDB(t)
+	user := newUser(t, db, "test@example.com")
+	other := newUser(t, db, "other@example.com")
+
+	assertCounts(t, db, user.ID, 0, 0)
+
+	work := newGroup(t, db, user.ID, "Work", 1)
+	newGroup(t, db, user.ID, "Empty", 1)
+	newItem(t, db, user.ID, work.ID, "One", "https://example.com/one")
+	newItem(t, db, user.ID, work.ID, "Two", "https://example.com/two")
+
+	theirs := newGroup(t, db, other.ID, "Theirs", 1)
+	newItem(t, db, other.ID, theirs.ID, "Theirs", "https://theirs.example")
+
+	assertCounts(t, db, user.ID, 2, 2)
+	assertCounts(t, db, other.ID, 1, 1)
+}
+
+func assertCounts(t *testing.T, db *DB, userID int64, wantGroups, wantItems int) {
+	t.Helper()
+	groups, items, err := db.StartPageCounts(t.Context(), userID)
+	if err != nil {
+		t.Fatalf("StartPageCounts: %v", err)
+	}
+	if groups != wantGroups || items != wantItems {
+		t.Errorf("counts = %d groups, %d tiles; want %d and %d", groups, items, wantGroups, wantItems)
+	}
+}

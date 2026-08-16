@@ -1,0 +1,23 @@
+{{/*
+  settings/users/_user: one row of the admin list. The two blank lines inside
+  .item-actions are Rails': `<%= reset_password(user) %>` renders nothing for
+  your own row and `<%= status_toggle(user) %>` nothing for an approved admin,
+  and the indentation around them stays either way.
+*/}}
+{{define "admin_user"}}<li id="user_{{.ID}}" class="item user">
+  <div class="item-info">
+    <h3>{{.Email}}</h3>
+    <div class="item-meta">
+      <span class="user-status {{.Status}}">{{.StatusLabel}}</span>
+{{if .Admin}}        &middot; <span class="user-admin">Admin</span>
+{{end}}    </div>
+  </div>
+
+  <div class="item-actions">
+{{if .CanReset}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/password_reset"><button type="submit">Reset password</button></form>
+{{else}}    
+{{end}}{{if .CanToggle}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/approve"><button type="submit">{{.ToggleLabel}}</button></form>
+{{else}}    
+{{end}}  </div>
+</li>
+{{end}}
