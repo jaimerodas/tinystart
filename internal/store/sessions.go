@@ -30,10 +30,10 @@ const sessionColumns = `id, user_id, user_agent, ip_address, expires_at, created
 // is what every caller wants and what Rails' set_initial_expiration did.
 func (db *DB) CreateSession(ctx context.Context, userID int64, userAgent, ip string, expiresAt time.Time) (*Session, error) {
 	if expiresAt.IsZero() {
-		expiresAt = time.Now().UTC().Add(SessionLifetime)
+		expiresAt = utcNow().Add(SessionLifetime)
 	}
 
-	now := time.Now().UTC()
+	now := utcNow()
 	result, err := db.sql.ExecContext(ctx,
 		`INSERT INTO sessions (user_id, user_agent, ip_address, expires_at, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?)`,
@@ -68,7 +68,7 @@ func (db *DB) CreateSession(ctx context.Context, userID int64, userAgent, ip str
 func (db *DB) ActiveSession(ctx context.Context, id int64) (*Session, error) {
 	return scanSession(db.sql.QueryRowContext(ctx,
 		`SELECT `+sessionColumns+` FROM sessions WHERE id = ? AND expires_at >= ?`,
-		id, railsTime(time.Now().UTC())))
+		id, railsTime(utcNow())))
 }
 
 // ExtendSession pushes the expiry out. The web layer calls it when a session
@@ -76,12 +76,12 @@ func (db *DB) ActiveSession(ctx context.Context, id int64) (*Session, error) {
 // never signed out and someone who disappears for a month is.
 func (db *DB) ExtendSession(ctx context.Context, id int64, expiresAt time.Time) error {
 	if expiresAt.IsZero() {
-		expiresAt = time.Now().UTC().Add(SessionLifetime)
+		expiresAt = utcNow().Add(SessionLifetime)
 	}
 	// created_at is deliberately untouched: it is when this browser signed in,
 	// and the Settings page shows it.
 	return db.update(ctx, `UPDATE sessions SET expires_at = ?, updated_at = ? WHERE id = ?`,
-		railsTime(expiresAt), railsTime(time.Now().UTC()), id)
+		railsTime(expiresAt), railsTime(utcNow()), id)
 }
 
 // DeleteSession is signing out.
@@ -95,7 +95,7 @@ func (db *DB) DeleteSession(ctx context.Context, id int64) error {
 func (db *DB) DeleteExpiredSessions(ctx context.Context, userID int64) error {
 	_, err := db.sql.ExecContext(ctx,
 		`DELETE FROM sessions WHERE user_id = ? AND expires_at < ?`,
-		userID, railsTime(time.Now().UTC()))
+		userID, railsTime(utcNow()))
 	return err
 }
 

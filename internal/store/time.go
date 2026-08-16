@@ -37,6 +37,17 @@ const railsTimeLayout = "2006-01-02 15:04:05"
 // rather than as *time.Time that every caller would have to nil-check.
 type railsTime time.Time
 
+// utcNow is the moment a row is stamped with, already in the shape it will have
+// on disk: UTC and whole microseconds. Every created_at, updated_at and
+// expires_at in this package comes from here and not from time.Now() directly,
+// so the struct a write hands back carries exactly the value a later read
+// returns. time.Now() itself has nanoseconds on Linux and microseconds on
+// macOS — which is how a comparison between the two passed on a laptop and
+// failed on the first CI run.
+func utcNow() time.Time {
+	return time.Now().UTC().Truncate(time.Microsecond)
+}
+
 // Value implements driver.Valuer. UTC because that is what ActiveRecord
 // stores — its default_timezone is :utc — and the text is compared as text by
 // the expiry queries, which only sorts correctly if every row is in the same

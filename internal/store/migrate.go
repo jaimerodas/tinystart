@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"slices"
 	"strings"
-	"time"
 )
 
 //go:embed schema.sql
@@ -105,7 +104,7 @@ func (db *DB) installSchema(ctx context.Context) error {
 		// decide whether db/schema.rb is stale. Only the environment matters
 		// to a running app — it is what makes `rails db:drop` refuse in
 		// production — and this app has exactly one environment.
-		now := time.Now().UTC()
+		now := utcNow()
 		_, err := tx.ExecContext(ctx,
 			`INSERT INTO ar_internal_metadata (key, value, created_at, updated_at)
 			 VALUES ('environment', 'production', ?, ?)`,

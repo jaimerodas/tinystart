@@ -125,7 +125,7 @@ func (db *DB) CreateUser(ctx context.Context, email, password string) (*User, er
 		}
 		first := !any
 
-		now := time.Now().UTC()
+		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`INSERT INTO users (email, password_digest, admin, approved,
 				theme_preference, color_preference, "columns", created_at, updated_at)
@@ -248,7 +248,7 @@ func (db *DB) UpdatePreferences(ctx context.Context, userID int64, theme, color 
 	}
 
 	return db.update(ctx, `UPDATE users SET theme_preference = ?, color_preference = ?, updated_at = ?
-		WHERE id = ?`, theme, color, railsTime(time.Now().UTC()), userID)
+		WHERE id = ?`, theme, color, railsTime(utcNow()), userID)
 }
 
 // UpdateColumns widens or narrows the grid.
@@ -286,7 +286,7 @@ func (db *DB) UpdateColumns(ctx context.Context, userID int64, columns int) erro
 		}
 
 		_, err = tx.ExecContext(ctx, `UPDATE users SET "columns" = ?, updated_at = ? WHERE id = ?`,
-			columns, railsTime(time.Now().UTC()), userID)
+			columns, railsTime(utcNow()), userID)
 		return err
 	})
 }
@@ -361,7 +361,7 @@ func (db *DB) UpdatePassword(ctx context.Context, userID int64, existingPassword
 		return err
 	}
 	return db.update(ctx, `UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
-		string(digest), railsTime(time.Now().UTC()), userID)
+		string(digest), railsTime(utcNow()), userID)
 }
 
 // ResetPassword sets a password without asking for the old one. It is what the
@@ -381,7 +381,7 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 		return err
 	}
 	return db.update(ctx, `UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
-		string(digest), railsTime(time.Now().UTC()), userID)
+		string(digest), railsTime(utcNow()), userID)
 }
 
 // ToggleApproved flips the approval switch, which is the one thing the admin
@@ -392,7 +392,7 @@ func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 	err := db.tx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx,
 			`UPDATE users SET approved = NOT approved, updated_at = ? WHERE id = ?`,
-			railsTime(time.Now().UTC()), userID)
+			railsTime(utcNow()), userID)
 		if err != nil {
 			return err
 		}

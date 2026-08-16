@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/jaimerodas/tinystart/internal/startpage"
 )
@@ -122,7 +121,7 @@ func (db *DB) ReplaceStartPage(ctx context.Context, userID int64, layout startpa
 		// column 3 would fail on its very first group otherwise. Narrowing is
 		// safe here for the mirror-image reason: the groups a narrower page
 		// would strand have just been deleted.
-		now := time.Now().UTC()
+		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`UPDATE users SET "columns" = ?, updated_at = ? WHERE id = ?`,
 			layout.Width, railsTime(now), userID)
@@ -157,7 +156,7 @@ func writeGroup(ctx context.Context, tx *sql.Tx, userID int64, column, position 
 		return &RejectedError{Group: group.Name, Errors: fields}
 	}
 
-	now := time.Now().UTC()
+	now := utcNow()
 	result, err := tx.ExecContext(ctx,
 		`INSERT INTO start_page_groups (user_id, name, "column", position, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?)`,

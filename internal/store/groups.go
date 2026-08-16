@@ -44,7 +44,7 @@ func (db *DB) CreateGroup(ctx context.Context, userID int64, name string, column
 			return err
 		}
 
-		now := time.Now().UTC()
+		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`INSERT INTO start_page_groups (user_id, name, "column", position, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?, ?)`,
@@ -88,7 +88,7 @@ func (db *DB) UpdateGroup(ctx context.Context, userID, groupID int64, name strin
 			return err
 		}
 
-		now := time.Now().UTC()
+		now := utcNow()
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE start_page_groups SET name = ?, updated_at = ? WHERE id = ?`,
 			name, railsTime(now), groupID); err != nil {

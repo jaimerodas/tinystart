@@ -56,7 +56,7 @@ func (db *DB) CreateItem(ctx context.Context, userID, groupID int64, title, item
 			return err
 		}
 
-		now := time.Now().UTC()
+		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`INSERT INTO start_page_items (start_page_group_id, title, url, position, visit_count, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, 0, ?, ?)`,
@@ -97,7 +97,7 @@ func (db *DB) UpdateItem(ctx context.Context, userID, itemID int64, title, itemU
 			return err
 		}
 
-		now := time.Now().UTC()
+		now := utcNow()
 		if _, err := tx.ExecContext(ctx,
 			`UPDATE start_page_items SET title = ?, url = ?, updated_at = ? WHERE id = ?`,
 			title, itemURL, railsTime(now), itemID); err != nil {
@@ -257,7 +257,7 @@ func (db *DB) MoveItemToGroup(ctx context.Context, userID, itemID, groupID int64
 			// shuffling it up and down inside one is not.
 			if _, err := tx.ExecContext(ctx,
 				`UPDATE start_page_items SET start_page_group_id = ?, updated_at = ? WHERE id = ?`,
-				groupID, railsTime(time.Now().UTC()), itemID); err != nil {
+				groupID, railsTime(utcNow()), itemID); err != nil {
 				return err
 			}
 			item.GroupID = groupID

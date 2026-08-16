@@ -76,7 +76,7 @@ func (db *DB) ReplaceConnection(ctx context.Context, userID int64, baseURL, toke
 			return err
 		}
 
-		now := time.Now().UTC()
+		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`INSERT INTO connections (user_id, base_url, token, scopes, token_expires_at, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -115,7 +115,7 @@ func (db *DB) DeleteConnection(ctx context.Context, userID int64) error {
 func (db *DB) RecordConnectionFailure(ctx context.Context, connectionID int64, message string) error {
 	return db.update(ctx,
 		`UPDATE connections SET last_failed_at = ?, last_error = ? WHERE id = ?`,
-		railsTime(time.Now().UTC()), message, connectionID)
+		railsTime(utcNow()), message, connectionID)
 }
 
 // ClearConnectionFailure forgets a recorded failure, and writes nothing when
