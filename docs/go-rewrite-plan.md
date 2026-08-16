@@ -342,6 +342,48 @@ Found while building phase 6 (the parity harness, `script/parity/`):
   `charset=utf-8` on the two 404s, which comes from Rails' exception
   middleware and is case-insensitive by RFC 9110.
 
+Found while building phase 7 (the browser suite, `internal/web/browser_*_test.go`):
+
+- **One Chrome for the binary, one tab per test, and the browser is closed from
+  `TestMain`.** A `t.Cleanup` would take it down with whichever test happened to
+  start it, so `web_test.go` holds a `closeBrowser` hook the tagged files fill
+  in. A tab costs milliseconds; the browser costs the better part of a second.
+- **A background tab is not a focused document, and autofocus is skipped for
+  one.** Every command bar test failed until the tab was `page.BringToFront()`ed
+  on the way in. Nothing else in the suite depended on it, which is what made it
+  look like a bug in the page.
+- **HTML5 drag still does not start from synthesised mouse events** — the drag
+  is begun inside the browser process, out of reach of
+  `Input.dispatchMouseEvent` — so `dragTo` dispatches `dragstart`/`dragover`/
+  `drop`/`dragend` with a real `DataTransfer`, which is exactly what Capybara's
+  own `drag_to` shim does. Everything from the parting list to the stored
+  position is the page's code; only the browser's decision to begin a drag is
+  simulated. Three drag tests, no flakiness in nine runs.
+- **`checkVisibility()` alone counts `visibility: hidden` as visible.** The drag
+  handles withdraw exactly that way, so the harness asks with
+  `{ checkVisibilityCSS: true }` — the answer a reader would give.
+- **`innerText` is what was rendered, not what was written.** The command bar's
+  section headers are `text-transform: uppercase`, so the federated one asserts
+  on `FROM 127.0.0.1`.
+- **The flash is `position: fixed; inset: 0`**, so while it is up it is what
+  every click on the page lands on. A second sign-in attempt has to dismiss it
+  first, which is what the Ruby suite's `dismiss_flash` was for.
+- **The colour radios are `opacity: 0` behind their swatches**, so the swatch —
+  the `<label for>` — is what there is to click, for a test as much as for
+  anyone else.
+- **Chrome is started with `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE
+  127.0.0.1`.** The layout links Google Fonts and a tile can point anywhere; the
+  suite has no business leaving the machine, and a failed resolution is instant
+  where a timeout is not.
+- **Uncaught page exceptions fail the test that saw them**, through a
+  `runtime.EventExceptionThrown` listener. That is what turns "every page
+  loads" into a real assertion: the importmap eager-loads every controller by
+  name, and a module that 404s only says so in a browser.
+- **The suite bites.** With `params.go` reverted to reading form values only —
+  the bug of commit `d96559a` — twelve tests fail: every keyboard move, all
+  three drags, the refused-move notice, and ⌥S dropping a carried tile on the
+  way out. Restored, the suite is green again.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

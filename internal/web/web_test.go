@@ -31,8 +31,18 @@ func TestMain(m *testing.M) {
 	restore := store.UseCheapPasswordHashing()
 	code := m.Run()
 	restore()
+	if closeBrowser != nil {
+		closeBrowser()
+	}
 	os.Exit(code)
 }
+
+// closeBrowser shuts down the Chrome the browser suite shares, and is nil
+// unless that suite is compiled in (-tags browser) and something opened one.
+// It lives here because after the last test is the only moment it can run, and
+// that moment belongs to TestMain: a t.Cleanup would take the browser down
+// with whichever test happened to start it.
+var closeBrowser func()
 
 // testPassword is the one password every test user has. Long enough to pass
 // the model's validations and short enough to read.

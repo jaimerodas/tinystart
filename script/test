@@ -36,3 +36,20 @@ go run golang.org/x/vuln/cmd/govulncheck ./...
 # -race because the server, its shutdown and the tests driving it all run on
 # separate goroutines; a data race here would otherwise surface in production.
 go test -race ./...
+
+# The browser suite: internal/web/browser_*_test.go, behind //go:build browser
+# so the run above never sees them. They need Chrome, which CI has not got and
+# this machine has, so they run when one is found and are announced when not —
+# skipping quietly is how a suite stops being run at all.
+#
+# Not -race: nothing here exercises the server differently from the tests
+# above, and the browser is slow enough already.
+chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+if [ -x "$chrome" ] || command -v google-chrome >/dev/null 2>&1; then
+  echo "==> browser tests (chromedp)"
+  go vet -tags browser ./internal/web
+  go run honnef.co/go/tools/cmd/staticcheck -tags browser ./internal/web
+  go test -tags browser -run Browser ./internal/web
+else
+  echo "==> browser tests skipped: no Chrome on this machine"
+fi
