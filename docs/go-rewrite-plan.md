@@ -384,7 +384,12 @@ Found while building phase 7 (the browser suite, `internal/web/browser_*_test.go
   three drags, the refused-move notice, and ⌥S dropping a carried tile on the
   way out. Restored, the suite is green again.
 
-Found while preparing phase 8 (cutover, not yet deployed):
+Phase 8 happened on 2026-08-15: `kamal deploy` from `047192d`, healthy on the
+first try, RSS 16–19 MB on the droplet against ~150 MB before; `main` was
+fast-forwarded and pushed the same evening. CI moved to `script/test` on
+GitHub Actions (`.github/workflows/ci.yml`) and Dependabot to `gomod`.
+
+Found while preparing phase 8:
 
 - **A fresh named volume mounted at `/data` is root-owned unless the image
   owns the mount point.** The binary runs as uid 1000 and could not create the
