@@ -63,7 +63,7 @@ jobs:
       # for the droplet's architecture and without pushing, means a broken
       # Dockerfile is found on the commit that broke it, not on deploy day.
       - name: Build the production image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
