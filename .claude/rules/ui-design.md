@@ -13,31 +13,34 @@ re-flag. The design system lives in the code; this points at it.
 - **Buttons**: `.action-button` in `buttons.css`, with a `.danger` modifier — the
   only button shape in Settings. `.button-link` is the start page header's.
 - **Type**: SN Pro, 16px base (`application.css`).
-- One file per concern in `app/assets/stylesheets/`; `stylesheet_link_tag :app`
-  bundles the directory, so a new file needs no wiring.
+- One file per concern in `internal/web/static/css/`; `assets.go` links every
+  file in the directory, alphabetically, so a new file needs no wiring.
 
 ## Screenshot Capture
 
-System tests drive a real headless Chrome at 1400×1400, so looking at a page
-means a scratch system test — `visit`, then `page.save_screenshot`, plus
-`evaluate_script` for geometry. Delete the scratch test afterwards.
+The browser tests (`internal/web/browser_*_test.go`, `//go:build browser`)
+drive a real headless Chrome at 1400×1400 through chromedp, so looking at a page
+means a scratch browser test — `visit`, then a screenshot action, plus
+`chromedp.Evaluate` for geometry. Delete the scratch test afterwards.
 
-Safari MCP is the other route, against `bin/dev` by hand. Either way, **trust
-`evaluate_javascript`/`evaluate_script` over a screenshot** for anything
-measurable: a downscaled screenshot has misled me about both colour and spacing
-here, and computed styles have not.
+Safari MCP is the other route, against `go run ./cmd/tinystart` by hand. Either
+way, **trust `evaluate_javascript`/`chromedp.Evaluate` over a screenshot** for
+anything measurable: a downscaled screenshot has misled me about both colour
+and spacing here, and computed styles have not.
 
 ## Navigation
 
-| Views | Page |
+Templates live in `internal/web/templates/`.
+
+| Templates | Page |
 |---|---|
-| `start_pages/show`, `_grid`, `_column`, `_group`, `_item` | `/` |
-| `start_pages/edit`, `_column_count`, `_keyboard_legend`, `_shortcuts_dialog` | `/start/edit` |
-| `settings/show` | `/settings` |
-| `settings/import_export/` | `/settings/import_export` |
-| `settings/connections/` | `/settings/connections` |
-| `settings/users/` | `/settings/admin/users` |
-| `sessions/`, `users/`, `passwords/` | `/session/new`, `/sign_up` |
+| `pages/start_show`, `startpage/{grid,column,group,item}` | `/` |
+| `pages/start_edit`, `startpage/{column_count,keyboard_legend,shortcuts_dialog,…}` | `/start/edit` |
+| `pages/settings_show` | `/settings` |
+| `pages/settings_import_export` | `/settings/import_export` |
+| `pages/settings_connections` | `/settings/connections` |
+| `pages/settings_users`, `shared/admin_user` | `/settings/admin/users` |
+| `pages/sessions_new`, `users_new`, `passwords_*` | `/session/new`, `/sign_up`, `/passwords/…` |
 
 ## Visual Standards
 
@@ -96,8 +99,8 @@ reached by key, not by Tab.
 
 Page chords live in `start_shortcuts_controller.js`: `⌥E` opens the editor, `⌥S`
 goes back, `?` lists every shortcut on either page. The lists are data in
-`StartPageHelper` (`grid_shortcuts`, `show_page_shortcuts`, `editor_shortcuts`)
-so the dialog cannot drift from the keys the controllers implement.
+`internal/web/startpage.go` (the grid, show-page and editor shortcut lists) so
+the dialog cannot drift from the keys the controllers implement.
 
 **Keyboard mode is a state the page shows.** The grid carries `.keyboard-mode`
 while focus is in it; the legend swaps for the key list and the drag handles

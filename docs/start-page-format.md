@@ -5,9 +5,14 @@ A start page as a small YAML file. It was written to carry one out of
 extracted from it, and tinystart now both reads and writes it.
 
 Two things produce this format: `StartPageExportService` in tinylinks (once,
-for the migration) and `StartPageExporter` in tinystart. One thing consumes it:
-`StartPageImporter`. Both ends of tinystart's half live at **Settings →
-Import & Export** (`Settings::ImportExportController`, `/settings/import_export`).
+for the migration) and `startpage.Export` in tinystart. One thing consumes it:
+`startpage.Import`, with `store.ReplaceStartPage` doing the writing. Both ends
+of tinystart's half live at **Settings → Import & Export**
+(`internal/web/handle_import_export.go`, `/settings/import_export`). The
+package is `internal/startpage`; the names below (`StartPageImporter`,
+`StartPageExporter`) are the Rails services it replaced, kept where the
+reasoning was written against them — the behaviour is the same, and the Go
+export is byte-identical to the Ruby one for the same page.
 
 It carries the layout and nothing else — no visit counts, so the command bar's
 ranking starts cold after an import. It is **not a backup format**; that is
@@ -227,23 +232,27 @@ Each is covered by a test in tinylinks'
 
 ## Parsing notes
 
-- Load with `YAML.safe_load` (or `safe_load_file`). Its default permitted
-  classes — String, Integer — are exactly right here. **Do not enable
-  aliases**, and do not use `YAML.load_file`.
-- **Coerce item keys with `to_s`.** In a hand-edited file, an unquoted `123:`
-  key does not arrive as a String, and a tile can legitimately be called `123`.
-  Column keys are the other way round: `StartPageImporter` *requires* them to be
-  Integers rather than coercing, because that is the version check below. An
-  unquoted `2026-01-01:` anywhere is a `Psych::DisallowedClass` under
-  `safe_load` and never reaches either.
+- **Load safely.** No aliases, no tags beyond plain scalars, sequences and
+  mappings. Ruby's `YAML.safe_load` did this by default; the Go importer walks
+  the `yaml.Node` tree and refuses an alias or a `!!timestamp` with the same
+  "could not be read as YAML" sentence, so a hand-edited file that tries either
+  is turned away with the reason rather than misread.
+- **Coerce item keys to text.** In a hand-edited file, an unquoted `123:` key
+  is a number to the parser, and a tile can legitimately be called `123`.
+  Column keys are the other way round: the importer *requires* them to be
+  integers rather than coercing, because that is the version check below. An
+  unquoted `2026-01-01:` anywhere is a timestamp tag and is refused before it
+  reaches either.
 - **Mapping-order preservation is load-bearing.** YAML mappings are formally
   unordered; this format depends on the parser handing back keys in document
-  order. Psych does, because Ruby hashes are ordered — both ends of this
-  migration are Ruby, so it is safe. A parser that doesn't would scramble every
-  tile's position.
-- **Psych drops duplicate keys silently**, keeping the last. A hand edit that
-  repeats a title within one `items` block loses a tile with no error from
-  anywhere. The header counts (below) are the cheap defence.
+  order. Psych does, because Ruby hashes are ordered; the Go importer reads the
+  node tree, which is the document's order by construction. A parser that
+  doesn't would scramble every tile's position.
+- **Duplicate keys: last value wins, first position stays.** That is what
+  Psych did silently and what the Go importer does on purpose (`pairs` in
+  `import.go`), so a hand edit that repeats a title within one `items` block
+  loses a tile with no error from anywhere. The header counts (below) are the
+  cheap defence.
 
 ## The header
 
