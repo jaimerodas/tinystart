@@ -46,11 +46,8 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
-/go.Dockerfile
 
 # Go. Nothing here excludes go.mod, go.sum, cmd/ or internal/, and nothing
-# added here may: go.Dockerfile copies those four paths by name, so ignoring
-# any of them fails the build outright rather than quietly. They also end up in
-# the Rails image, which copies the whole context — a few kilobytes, and it
-# stops being true when Rails goes.
+# added here may: the Dockerfile copies those four paths by name, so ignoring
+# any of them fails the build outright rather than quietly.
 /tinystart

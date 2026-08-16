@@ -36,36 +36,55 @@ builder:
 
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 #
-# Only these two. The token for federated search is *not* here: it's obtained
-# through the other app's device flow and stored in tinystart's database, so
-# rotating it never needs a redeploy.
+# The token for federated search is *not* here: it's obtained through the other
+# app's device flow and stored in tinystart's database, so rotating it never
+# needs a redeploy.
 env:
   secret:
-    - RAILS_MASTER_KEY
+    # Signs every cookie and every password reset link (cmd/tinystart/main.go).
+    - TINYSTART_SECRET_KEY
     - POSTMARK_API_TOKEN
+    # Transition only: the Rails image is still what `kamal rollback` would
+    # boot, and it cannot start without its master key. Remove once the Go
+    # image has run for a while and rolling back to Rails is no longer a
+    # thing anyone would do.
+    - RAILS_MASTER_KEY
+  clear:
+    TINYSTART_ENV: production
+    TINYSTART_DB: /data/production.sqlite3
+    # Absolute links — only the password reset mail has any — come from here,
+    # never from the request's Host header, which is whatever the client sent.
+    TINYSTART_HOST: https://start.pati.to
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal logs -r job" will tail logs from the first server in the job section.
 #
 aliases:
-  console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f
-  dbc: app exec --interactive --reuse "bin/rails dbconsole"
+  dbc: app exec --interactive --reuse "sqlite3 /data/production.sqlite3"
+  # What `bin/rails console` was mostly for. Reads the new password from the
+  # terminal: bin/kamal set-password jaime@example.com
+  set-password: app exec --interactive --reuse "tinystart set-password"
 
 # Use a persistent storage volume for the sqlite database files.
 #
 # This name must stay different from tinylinks'. A named volume is host-side
 # storage, independent of the image: mounting tinylinks_storage here would put
-# both apps on the same /rails/storage/production.sqlite3.
+# both apps on the same production.sqlite3.
+#
+# The same volume is mounted twice on purpose, for now: the Go image reads
+# /data/production.sqlite3, and the Rails image `kamal rollback` would boot
+# reads /rails/storage/production.sqlite3 — same file, same volume, two paths.
+# Drop the second mount together with RAILS_MASTER_KEY above.
 volumes:
+  - "tinystart_storage:/data"
   - "tinystart_storage:/rails/storage"
 
-# Bridge fingerprinted assets, like JS and CSS, between versions to avoid
-# hitting 404 on in-flight requests. Combines all files from new and old
-# version inside the asset_path.
-#
-asset_path: /rails/public/assets
+# No asset_path: the CSS and JavaScript are compiled into the binary and served
+# from it with content digests in their names, so there is nothing on disk to
+# bridge between versions. A page mid-deploy that asks for an old digest gets
+# a 404 and Turbo reloads it (data-turbo-track="reload").
 
 # Configure rolling deploys by setting a wait time between batches of restarts.
 #

@@ -384,6 +384,24 @@ Found while building phase 7 (the browser suite, `internal/web/browser_*_test.go
   three drags, the refused-move notice, and ⌥S dropping a carried tile on the
   way out. Restored, the suite is green again.
 
+Found while preparing phase 8 (cutover, not yet deployed):
+
+- **A fresh named volume mounted at `/data` is root-owned unless the image
+  owns the mount point.** The binary runs as uid 1000 and could not create the
+  database on a new volume; the Dockerfile now `mkdir /data && chown` it, which
+  a new volume copies. Production's existing volume was always uid 1000 (the
+  Rails image made it so), so the uid must stay 1000.
+- **The build stage cross-compiles** (`--platform=$BUILDPLATFORM`, `GOOS`/
+  `GOARCH` from `TARGETOS`/`TARGETARCH`) so Kamal's amd64 build on an arm64
+  laptop runs Go natively instead of under QEMU.
+- **Rollback stays real for a while.** `kamal rollback` boots the Rails image
+  with the *current* config, so `config/deploy.yml` keeps `RAILS_MASTER_KEY`
+  and mounts the volume at `/rails/storage` as well as `/data` until the Go
+  image has earned its keep; both are marked "transition only" and go together.
+- `go.Dockerfile` is now `Dockerfile`; the Rails one is gone. `asset_path` is
+  gone (assets live in the binary). `bin/backup_db` reads `/data`. The
+  `console`/`dbc` aliases became `set-password`/`sqlite3`.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

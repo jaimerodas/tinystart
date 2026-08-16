@@ -32,9 +32,10 @@ if [ -z "$CONTAINER" ]; then
 fi
 
 # .backup rather than a file copy: it takes a consistent snapshot of a live
-# database instead of catching it mid-write. Only production.sqlite3 —
-# production_cache.sqlite3 is Solid Cache and regenerates itself.
-docker exec "$CONTAINER" sqlite3 /rails/storage/production.sqlite3 ".backup '/tmp/backup.sqlite3'"
+# database instead of catching it mid-write. Only production.sqlite3 — the
+# production_cache.sqlite3 next to it on the volume was the Rails app's Solid
+# Cache and nothing reads it any more.
+docker exec "$CONTAINER" sqlite3 /data/production.sqlite3 ".backup '/tmp/backup.sqlite3'"
 docker cp "$CONTAINER:/tmp/backup.sqlite3" "/tmp/${DUMP_FILE}"
 docker exec "$CONTAINER" rm /tmp/backup.sqlite3
 
