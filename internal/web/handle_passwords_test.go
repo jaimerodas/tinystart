@@ -47,6 +47,13 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 	if !strings.Contains(sent[0].HTMLBody, `<a href="https://start.example.com/passwords/`) {
 		t.Errorf("HTMLBody = %q, want an absolute reset link", sent[0].HTMLBody)
 	}
+	// The link is the last thing in the plain text, and then a blank line —
+	// Rails' mailer.text.erb layout is `<%= yield %>` and contributes the
+	// newline after it. The parity harness compares the message as sent, so
+	// the mail's whitespace is as much a part of it as a page's.
+	if !strings.HasSuffix(sent[0].TextBody, "/edit\n\n") {
+		t.Errorf("TextBody = %q, want it to end with the link and a blank line", sent[0].TextBody)
+	}
 
 	ts.get("/session/new").assertContains(resetSentNotice)
 }

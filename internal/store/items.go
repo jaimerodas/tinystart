@@ -137,17 +137,23 @@ func (db *DB) ItemsInGroup(ctx context.Context, groupID int64) ([]Item, error) {
 // LinksForCommandBar is every tile the user owns, flattened.
 //
 // Rails asked for these through a has_many :through with no order at all and
-// took whatever the join gave it, which happens to be group by group in id
-// order. This says so out loud instead: the groups in the order they were
-// made, the tiles inside each group in the order they are drawn. Deterministic,
-// and the same answer for the data that exists today.
+// took whatever the join gave it: group by group in id order, and inside each
+// group rowid by rowid. This says so out loud instead of leaving it to a query
+// plan — but it says the same thing, id and id, because the order is what
+// somebody sees their suggestions in and a rewrite is not the place to change
+// it. It is creation order, not drawing order: a tile dragged to the top of
+// its group stays where it is in this list.
+//
+// The first version ordered the tiles by position, on the assumption that
+// drawing order was what the join gave; the parity harness proved otherwise
+// against a start page that had been rearranged.
 func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, error) {
 	rows, err := db.sql.QueryContext(ctx,
 		`SELECT i.title, i.url, i.id
 		 FROM start_page_items i
 		 JOIN start_page_groups g ON g.id = i.start_page_group_id
 		 WHERE g.user_id = ?
-		 ORDER BY g.id, i.position`, userID)
+		 ORDER BY g.id, i.id`, userID)
 	if err != nil {
 		return nil, err
 	}

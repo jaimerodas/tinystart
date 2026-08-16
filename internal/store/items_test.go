@@ -409,6 +409,40 @@ func TestLinksForCommandBar(t *testing.T) {
 	}
 }
 
+// The order is the order the tiles were made, not the order they are drawn.
+//
+// Rails asked for these through a has_many :through with no ORDER BY and took
+// what SQLite gave it, which is group by group and rowid by rowid — so a tile
+// dragged to the top of its group stays at the bottom of this list. The
+// parity harness caught the difference the first time a development database
+// had a group whose drawing order and creation order disagreed. It matters
+// because this list is what the command bar filters, and its order is the
+// order somebody sees the suggestions in.
+func TestLinksForCommandBarIsInCreationOrderNotDrawingOrder(t *testing.T) {
+	db := newTestDB(t)
+	user := newUser(t, db, "test@example.com")
+	group := newGroup(t, db, user.ID, "Search", 1)
+
+	newItem(t, db, user.ID, group.ID, "First", "https://first.example.com")
+	newItem(t, db, user.ID, group.ID, "Second", "https://second.example.com")
+	last := newItem(t, db, user.ID, group.ID, "Last", "https://last.example.com")
+
+	// Drawn first from now on, and still made last.
+	if err := db.MoveItem(t.Context(), user.ID, last.ID, 0); err != nil {
+		t.Fatalf("MoveItem: %v", err)
+	}
+
+	links, err := db.LinksForCommandBar(t.Context(), user.ID)
+	if err != nil {
+		t.Fatalf("LinksForCommandBar: %v", err)
+	}
+	titles := make([]string, len(links))
+	for i, link := range links {
+		titles[i] = link.Title
+	}
+	assertEqualStrings(t, titles, []string{"First", "Second", "Last"})
+}
+
 // The page serialises this straight to JSON, and a nil slice would be the
 // literal null rather than an empty array.
 func TestLinksForCommandBarWithNoTiles(t *testing.T) {

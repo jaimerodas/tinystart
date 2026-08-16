@@ -303,6 +303,45 @@ admin):
   so both sides drive the real device flow, the real federated search and the
   real mailer over HTTP rather than one of them being mocked.
 
+Found while building phase 6 (the parity harness, `script/parity/`):
+
+- **Both apps run as servers and one script drives them.** Earlier phases
+  captured Rails through an integration session and Go through curl, which
+  meant the sequence existed twice and could drift. `capture.py` is one
+  sequence, run twice, which is also what keeps the ids on the two sides
+  identical.
+- **`bin/rails server` cannot be used**: `consider_all_requests_local`,
+  forgery protection, the view annotations and letter_opener all have to
+  change before the middleware stack is built, and none of them has an
+  environment variable. `serve.rb` requires `config/application`, adds an
+  initializer of the application's own — which runs after
+  `config/environments/development.rb` and before the stack is built — and
+  then calls `initialize!` and serves with Puma.
+- **Rails in development answers a 404 with its debug page**, which is why the
+  harness sets `consider_all_requests_local = false`: then Rails serves
+  `public/404.html`, which is what the Go app serves everywhere.
+- **Rails' mail goes to the fake Postmark too** (`postmark_settings` takes
+  `host`, `port`, `secure: false`), so the mailbox is a capture like any other
+  — and it is how each side's reset token is fetched, since neither app can
+  verify the other's.
+- **The mailbox capture found two real differences.** The plain text body was
+  missing the newline Rails' `mailer.text.erb` layout adds; fixed. The
+  postmark-rails `Headers` array and the CSS comment `html/template` drops out
+  of the mail layout's `<style>` are left as reported known differences.
+- **`LinksForCommandBar` was ordering by position and Rails orders by id.**
+  Rails' `has_many :through` has no `ORDER BY`, so the order is SQLite's:
+  group by group in id order, rowid by rowid inside each. Only a start page
+  whose drawing order and creation order disagree shows it, which is why five
+  phases of tests missed it and the first development database with a
+  rearranged group caught it.
+- **The harness never opens the development database**: it copies it, `-wal`
+  and all, and checks the fingerprint again at the end. That file is somebody's
+  working data, and the sequence includes every destructive write the app has.
+- **Three differences are known and reported rather than normalised**: `/up`
+  (Rails' green health page against `ok`), and the `charset=UTF-8` against
+  `charset=utf-8` on the two 404s, which comes from Rails' exception
+  middleware and is case-insensitive by RFC 9110.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under
