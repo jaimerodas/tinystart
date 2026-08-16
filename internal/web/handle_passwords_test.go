@@ -203,7 +203,7 @@ func TestAResetTokenWithATamperedSignatureIsRefused(t *testing.T) {
 	ts.createUser("one@example.com")
 	token := ts.resetToken("one@example.com")
 
-	tampered := token[:len(token)-1] + flipLastCharacter(token)
+	tampered := tamperSignature(token)
 
 	ts.get("/passwords/" + tampered + "/edit").assertRedirect("/passwords/new")
 }
@@ -259,12 +259,20 @@ func tokenFromMail(t *testing.T, body string) string {
 	return match[1]
 }
 
-func flipLastCharacter(s string) string {
-	last := s[len(s)-1]
-	if last == 'A' {
-		return "B"
+// tamperSignature changes the first character after the dot — the first six
+// bits of the signature, every one of them significant. Not the last
+// character: a 32-byte HMAC in raw base64url is 43 characters, and the last one
+// carries only two bits of data above four bits of padding that the decoder
+// ignores. Flipping it between A and B changed nothing the verifier could see,
+// which made this test pass or fail depending on how the token happened to end.
+func tamperSignature(token string) string {
+	dot := strings.LastIndexByte(token, '.')
+	first := token[dot+1]
+	replacement := byte('A')
+	if first == 'A' {
+		replacement = 'B'
 	}
-	return "A"
+	return token[:dot+1] + string(replacement) + token[dot+2:]
 }
 
 // errMailerDown stands in for Postmark being unreachable.
