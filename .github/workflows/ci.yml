@@ -29,7 +29,7 @@ jobs:
 
       # go-version-file honours both the go directive and the toolchain pin, and
       # caches the module download and build caches on its own.
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
