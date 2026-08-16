@@ -9,6 +9,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,7 +29,7 @@ import (
 )
 
 func main() {
-	if err := run(context.Background(), os.Args, os.Getenv, os.Stdout); err != nil {
+	if err := run(context.Background(), os.Args, os.Getenv, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "tinystart: %v\n", err)
 		os.Exit(1)
 	}
@@ -91,13 +93,11 @@ func configFromEnv(getenv func(string) string) config {
 	return cfg
 }
 
-// run starts the server and blocks until the context is cancelled or the
-// server fails, then shuts down and returns. The args parameter is unused for
-// now — there are no flags yet — but it stays in the signature because it is
-// the natural place for them, and adding it later would change every caller.
-func run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
-	_ = args
-
+// run is the program. With no arguments it serves the start page and blocks
+// until the context is cancelled or the server fails, then shuts down and
+// returns. With a subcommand — there is one, set-password — it does that
+// instead and returns when it is done. stdin is only read by a subcommand.
+func run(ctx context.Context, args []string, getenv func(string) string, stdin io.Reader, stdout io.Writer) error {
 	// SIGTERM is how Kamal stops a container, and SIGINT is Ctrl-C in
 	// development: both cancel ctx, and the shutdown below is the one path
 	// that runs on every deploy.
@@ -106,6 +106,15 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 
 	logger := slog.New(slog.NewTextHandler(stdout, nil))
 	cfg := configFromEnv(getenv)
+
+	if len(args) > 1 {
+		switch args[1] {
+		case "set-password":
+			return setPassword(ctx, cfg, args[2:], stdin, stdout)
+		default:
+			return fmt.Errorf("unknown command %q (the only one is set-password)", args[1])
+		}
+	}
 
 	// The secret key signs every cookie and every password reset link. There
 	// is no sensible default — a hardcoded one would mean anyone could forge a
@@ -129,11 +138,20 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return fmt.Errorf("migrating %s: %w", cfg.dbPath, err)
 	}
 
+	// No token, no Postmark: mail goes to the log. On a laptop that is the
+	// point; on the server it would mean the secret went missing, and the
+	// warning is how that gets noticed before someone waits for a reset link.
+	var mailer web.Mailer = &postmark.Client{Token: cfg.postmarkToken, BaseURL: cfg.postmarkURL}
+	if cfg.postmarkToken == "" {
+		logger.Warn(envPostmarkToken + " is not set; mail is written to the log instead of sent")
+		mailer = web.LogMailer{Logger: logger}
+	}
+
 	handler, err := web.NewServer(web.Config{
 		SecretKey:     cfg.secretKey,
 		SecureCookies: cfg.production,
 		Host:          cfg.host,
-	}, db, logger, &postmark.Client{Token: cfg.postmarkToken, BaseURL: cfg.postmarkURL}, time.Now)
+	}, db, logger, mailer, time.Now)
 	if err != nil {
 		return err
 	}
@@ -193,4 +211,55 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 		return fmt.Errorf("shutting down: %w", err)
 	}
 	return <-serveErr
+}
+
+// setPassword is `tinystart set-password <email>`: the way back into an
+// account when the reset mail cannot reach anyone — a laptop with no Postmark
+// token, or an admin locked out in production, where it runs through
+// `kamal app exec`. It is what `bin/rails console` was for.
+//
+// The password is read from stdin, one line, so it never appears in a shell
+// history or a process list:
+//
+//	tinystart set-password jaime@example.com   (then type it and press Enter)
+//	tinystart set-password jaime@example.com < password.txt
+//
+// It goes through the store's ResetPassword, so the same rules apply as to a
+// reset from the page, and existing sessions are left alone — the person at
+// the keyboard is the account's owner, and signing them out everywhere is not
+// what they asked for.
+func setPassword(ctx context.Context, cfg config, args []string, stdin io.Reader, stdout io.Writer) error {
+	if len(args) != 1 {
+		return errors.New("usage: tinystart set-password <email>  (the password is read from stdin)")
+	}
+	email := args[0]
+
+	password, err := bufio.NewReader(stdin).ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("reading the password: %w", err)
+	}
+	password = strings.TrimRight(password, "\r\n")
+	if password == "" {
+		return errors.New("the password is empty; it is read as one line from stdin")
+	}
+
+	db, err := store.Open(ctx, cfg.dbPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	user, err := db.UserByEmail(ctx, email)
+	if errors.Is(err, store.ErrNotFound) {
+		return fmt.Errorf("no account has the email %s", email)
+	}
+	if err != nil {
+		return err
+	}
+	if err := db.ResetPassword(ctx, user.ID, password); err != nil {
+		return fmt.Errorf("setting the password: %w", err)
+	}
+
+	fmt.Fprintf(stdout, "password set for %s\n", user.Email)
+	return nil
 }

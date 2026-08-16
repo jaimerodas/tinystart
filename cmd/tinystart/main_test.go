@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jaimerodas/tinystart/internal/store"
 )
 
 // The whole program under test is run(), so these tests start a real server on
@@ -28,7 +30,7 @@ func TestRunServesUpUntilTheContextIsCancelled(t *testing.T) {
 	go func() {
 		// Port 0 asks the kernel for a free port, so the test never fights
 		// another process (or another test) over a fixed one.
-		done <- run(ctx, []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0"), out)
+		done <- run(ctx, []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0"), strings.NewReader(""), out)
 	}()
 
 	addr := waitForAddr(t, out)
@@ -66,7 +68,7 @@ func TestRunReturnsAnErrorWhenTheAddressCannotBeBound(t *testing.T) {
 	// 99999 is past the top of the port range, so listening fails before the
 	// server ever starts — the one failure that has to reach main's exit code
 	// rather than being logged and forgotten.
-	err := run(t.Context(), []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:99999"), io.Discard)
+	err := run(t.Context(), []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:99999"), strings.NewReader(""), io.Discard)
 	if err == nil {
 		t.Fatal("run returned nil for an unbindable address, want an error")
 	}
@@ -76,7 +78,7 @@ func TestRunReturnsAnErrorWhenTheAddressCannotBeBound(t *testing.T) {
 // there is no default to fall back to and no starting without one.
 func TestRunRefusesToStartWithoutASecretKey(t *testing.T) {
 	env := testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0")
-	err := run(t.Context(), []string{"tinystart"}, withoutKey(env), io.Discard)
+	err := run(t.Context(), []string{"tinystart"}, withoutKey(env), strings.NewReader(""), io.Discard)
 	if err == nil {
 		t.Fatal("run returned nil with no secret key, want an error")
 	}
@@ -215,4 +217,88 @@ func (b *syncBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.buf.String()
+}
+
+// set-password is the replacement for `bin/rails console`: the way to get back
+// into an account when there is no working mail, on a laptop or through
+// `kamal app exec`. The password comes in on stdin so it never sits in a shell
+// history or a process list.
+func TestSetPasswordChangesThePassword(t *testing.T) {
+	restore := store.UseCheapPasswordHashing()
+	defer restore()
+
+	env := testEnv(t)
+	db := openTestDB(t, env("TINYSTART_DB"))
+	if _, err := db.CreateUser(t.Context(), "jaime@example.com", "old-password"); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	err := run(t.Context(), []string{"tinystart", "set-password", "jaime@example.com"}, env,
+		strings.NewReader("new-password\n"), &out)
+	if err != nil {
+		t.Fatalf("set-password: %v", err)
+	}
+	if !strings.Contains(out.String(), "jaime@example.com") {
+		t.Errorf("stdout = %q, want it to name the account", out.String())
+	}
+
+	if _, err := db.Authenticate(t.Context(), "jaime@example.com", "new-password"); err != nil {
+		t.Errorf("the new password does not authenticate: %v", err)
+	}
+	if _, err := db.Authenticate(t.Context(), "jaime@example.com", "old-password"); err == nil {
+		t.Error("the old password still authenticates")
+	}
+}
+
+func TestSetPasswordRefusesWhatItCannotDo(t *testing.T) {
+	restore := store.UseCheapPasswordHashing()
+	defer restore()
+
+	env := testEnv(t)
+	db := openTestDB(t, env("TINYSTART_DB"))
+	if _, err := db.CreateUser(t.Context(), "jaime@example.com", "old-password"); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name  string
+		args  []string
+		stdin string
+		want  string
+	}{
+		{"unknown email", []string{"tinystart", "set-password", "nobody@example.com"}, "x\n", "nobody@example.com"},
+		{"missing email", []string{"tinystart", "set-password"}, "x\n", "usage"},
+		{"empty password", []string{"tinystart", "set-password", "jaime@example.com"}, "\n", "empty"},
+		{"unknown command", []string{"tinystart", "frobnicate"}, "", "frobnicate"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := run(t.Context(), tt.args, env, strings.NewReader(tt.stdin), io.Discard)
+			if err == nil {
+				t.Fatal("run returned nil, want an error")
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("error = %v, want it to mention %q", err, tt.want)
+			}
+		})
+	}
+	if _, err := db.Authenticate(t.Context(), "jaime@example.com", "old-password"); err != nil {
+		t.Errorf("a refused set-password changed the password: %v", err)
+	}
+}
+
+// openTestDB opens the same file run will, so a test can seed it and read it
+// back through the store rather than raw SQL.
+func openTestDB(t *testing.T, path string) *store.DB {
+	t.Helper()
+	db, err := store.Open(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrate(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
 }
