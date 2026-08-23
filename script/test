@@ -1,19 +1,11 @@
 #!/usr/bin/env bash
 # prove_it: full test suite—runs before every git commit
 #
-# The gate for the Go app. Rails keeps its own, script/test_rails, until it is
-# deleted at the end of the rewrite.
+# The gate for the Go app.
 set -e
 trap 'rc=$?; command -v prove_it >/dev/null 2>&1 && prove_it record --name full-tests --result $rc' EXIT
 
 cd "$(dirname "$0")/.."
-
-# Rails keeps an (empty) vendor/ directory that its Dockerfile copies, and Go
-# turns vendoring on the moment it sees one — which then fails, because there
-# is no vendor/modules.txt. -mod=readonly means "ignore vendor/, and do not
-# rewrite go.mod either". Both this and the `go run` calls below go away with
-# Rails; until then a bare `go build` at the repo root needs the same flag.
-export GOFLAGS=-mod=readonly
 
 # gofmt has no exit code for "would reformat": it only names the files, so the
 # check is that it named none.
@@ -27,20 +19,18 @@ fi
 go vet ./...
 
 # staticcheck and govulncheck are tool directives in go.mod, so the version is
-# pinned there and nothing has to be installed globally. `go run` rather than
-# the tidier `go tool`, which takes no -mod flag and so cannot be told to
-# ignore vendor/; swap it back once Rails is gone.
-go run honnef.co/go/tools/cmd/staticcheck ./...
-go run golang.org/x/vuln/cmd/govulncheck ./...
+# pinned there and nothing has to be installed globally.
+go tool staticcheck ./...
+go tool govulncheck ./...
 
 # -race because the server, its shutdown and the tests driving it all run on
 # separate goroutines; a data race here would otherwise surface in production.
 go test -race ./...
 
 # The browser suite: internal/web/browser_*_test.go, behind //go:build browser
-# so the run above never sees them. They need Chrome, which CI has not got and
-# this machine has, so they run when one is found and are announced when not —
-# skipping quietly is how a suite stops being run at all.
+# so the run above never sees them. They need Chrome — this machine and the CI
+# runner both have one — so they run when one is found and are announced when
+# not: skipping quietly is how a suite stops being run at all.
 #
 # Not -race: nothing here exercises the server differently from the tests
 # above, and the browser is slow enough already.
@@ -48,7 +38,7 @@ chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 if [ -x "$chrome" ] || command -v google-chrome >/dev/null 2>&1; then
   echo "==> browser tests (chromedp)"
   go vet -tags browser ./internal/web
-  go run honnef.co/go/tools/cmd/staticcheck -tags browser ./internal/web
+  go tool staticcheck -tags browser ./internal/web
   go test -tags browser -run Browser ./internal/web
 else
   echo "==> browser tests skipped: no Chrome on this machine"

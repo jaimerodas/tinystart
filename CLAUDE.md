@@ -30,9 +30,7 @@ kamal deploy         # ship (kamal setup the first time)
 
 Nothing runs `./script/test` for you — no git hook is installed. Run it before
 every commit and keep it green; a govulncheck or staticcheck finding is a
-blocker, not a note. Until phase 9 of the plan every Go command run by hand
-needs `GOFLAGS=-mod=readonly` (Rails' empty `vendor/` puts Go in vendor mode);
-`script/test` sets it.
+blocker, not a note.
 
 ## Map
 
@@ -127,13 +125,3 @@ explained at the place it lives; this is the list, not the reasoning.
 - `.claude/rules/` — `done.md` (verified, not assumed), `testing.md` (test
   first), `ui-design.md` (the editor's keyboard model, the visual standards, and
   the deliberate exceptions to them).
-
-## Transition (until phase 9 of the plan)
-
-The Rails tree (`app/`, `config/*.rb`, `db/`, `test/`, `Gemfile*`, `bin/rails*`,
-`vendor/`) is still in the repo and no longer deployed. Do not edit it; it is
-reference material for `script/parity` (Rails-vs-Go screen diff) and
-`static_parity_test.go` (embedded JS/CSS equal `app/`), and `script/test_rails`
-runs its suite. `config/deploy.yml` keeps `RAILS_MASTER_KEY` and a second
-volume mount so `kamal rollback` to the Rails image still works. Phase 9
-deletes all of it in one commit and switches `script/test` back to `go tool`.

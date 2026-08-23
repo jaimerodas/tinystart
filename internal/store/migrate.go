@@ -17,15 +17,14 @@ var schemaSQL string
 //go:embed migrations
 var migrationFiles embed.FS
 
-// railsMigrations is every version in db/migrate, oldest first. Rails records
-// these in schema_migrations as it runs them and refuses to run one twice; a
-// database that Go created has to carry the same list, or a `kamal rollback`
-// to the Rails image would find an empty schema_migrations, believe none of
-// the migrations had run, and try to create the tables again.
+// railsMigrations is every migration the Rails app ever ran, oldest first.
+// Rails recorded these in schema_migrations and refused to run one twice; a
+// database that Go created has to carry the same list, or a Rails image booted
+// against it would find an empty schema_migrations, believe no migration had
+// run, and try to create the tables again.
 //
-// They are the timestamps in the db/migrate filenames. That directory goes
-// away with the rest of Rails at the end of the rewrite, which is why the list
-// is copied here rather than derived from it.
+// They are the timestamps of the old db/migrate filenames. That directory is
+// gone with the rest of Rails, which is why the list lives here.
 var railsMigrations = []string{
 	"20260806210000", // create_users
 	"20260806210100", // create_sessions

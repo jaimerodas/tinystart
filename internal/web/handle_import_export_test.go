@@ -62,11 +62,11 @@ func (ts *testServer) page(userID int64) []string {
 	return lines
 }
 
-// fixtureFile is the sample export the Rails suite used, kept as the one file
-// both suites agree on.
+// fixtureFile is the sample export the Rails suite used, inherited when that
+// suite was deleted.
 func fixtureFile(t *testing.T) []byte {
 	t.Helper()
-	body, err := os.ReadFile("../../test/fixtures/files/start_page.yml")
+	body, err := os.ReadFile("testdata/start_page.yml")
 	if err != nil {
 		t.Fatalf("reading the fixture: %v", err)
 	}

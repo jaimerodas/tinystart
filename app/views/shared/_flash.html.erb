@@ -1,8 +1,0 @@
-<div class="flash-overlay"
-     data-controller="flash"
-     data-action="click->flash#dismiss keydown.esc@window->flash#dismiss">
-  <div class="flash-card <%= type %>" role="status" aria-live="polite">
-    <%= icon("approved") if type == "notice" %>
-    <p><%= message %></p>
-  </div>
-</div>

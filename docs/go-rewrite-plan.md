@@ -407,6 +407,19 @@ Found while preparing phase 8:
   gone (assets live in the binary). `bin/backup_db` reads `/data`. The
   `console`/`dbc` aliases became `set-password`/`sqlite3`.
 
+Found while building phase 9 (done 2026-08-22, a week after the cutover):
+
+- **`kamal` never came from the binstub.** `bin/kamal` was Bundler's, but the
+  command on PATH is the gem in mise's global Ruby — so the Gemfile, the
+  binstub, `.ruby-version` and `.tool-versions` all went together and deploys
+  still work.
+- **`storage/` survives the purge.** It looks like Rails furniture, but
+  `cmd/tinystart` defaults `TINYSTART_DB` to `storage/development.sqlite3`.
+- **`script/test_fast` still ran `bin/rails test`.** Nothing invoked it (no
+  hook, no prove_it config), so it was deleted rather than repointed.
+- The migration versions never needed copying out of `db/migrate`: `migrate.go`
+  has carried the list since phase 1, exactly so this directory could go.
+
 ## Execution: Opus agents, in a worktree
 
 - **Worktree first.** `EnterWorktree` (branch `go-rewrite`, worktree under

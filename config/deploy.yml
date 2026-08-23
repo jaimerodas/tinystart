@@ -44,11 +44,6 @@ env:
     # Signs every cookie and every password reset link (cmd/tinystart/main.go).
     - TINYSTART_SECRET_KEY
     - POSTMARK_API_TOKEN
-    # Transition only: the Rails image is still what `kamal rollback` would
-    # boot, and it cannot start without its master key. Remove once the Go
-    # image has run for a while and rolling back to Rails is no longer a
-    # thing anyone would do.
-    - RAILS_MASTER_KEY
   clear:
     TINYSTART_ENV: production
     TINYSTART_DB: /data/production.sqlite3
@@ -56,15 +51,15 @@ env:
     # never from the request's Host header, which is whatever the client sent.
     TINYSTART_HOST: https://start.pati.to
 
-# Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
-# "bin/kamal logs -r job" will tail logs from the first server in the job section.
+# Aliases are triggered with "kamal <alias>". You can overwrite arguments on invocation:
+# "kamal logs -r job" will tail logs from the first server in the job section.
 #
 aliases:
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f
   dbc: app exec --interactive --reuse "sqlite3 /data/production.sqlite3"
   # What `bin/rails console` was mostly for. Reads the new password from the
-  # terminal: bin/kamal set-password jaime@example.com
+  # terminal: kamal set-password jaime@example.com
   set-password: app exec --interactive --reuse "tinystart set-password"
 
 # Use a persistent storage volume for the sqlite database files.
@@ -72,14 +67,8 @@ aliases:
 # This name must stay different from tinylinks'. A named volume is host-side
 # storage, independent of the image: mounting tinylinks_storage here would put
 # both apps on the same production.sqlite3.
-#
-# The same volume is mounted twice on purpose, for now: the Go image reads
-# /data/production.sqlite3, and the Rails image `kamal rollback` would boot
-# reads /rails/storage/production.sqlite3 — same file, same volume, two paths.
-# Drop the second mount together with RAILS_MASTER_KEY above.
 volumes:
   - "tinystart_storage:/data"
-  - "tinystart_storage:/rails/storage"
 
 # No asset_path: the CSS and JavaScript are compiled into the binary and served
 # from it with content digests in their names, so there is nothing on disk to

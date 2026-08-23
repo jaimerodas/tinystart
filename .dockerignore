@@ -1,53 +1,23 @@
-# See https://docs.docker.com/engine/reference/builder/#dockerignore-file for more about ignoring files.
-
-# Ignore git directory.
+# The Dockerfile copies go.mod, go.sum, cmd/ and internal/ by name, so the
+# build context barely matters — this just keeps the biggest non-sources out
+# of the upload. Nothing here may exclude those four paths: ignoring any of
+# them fails the build outright rather than quietly.
 /.git/
 /.gitignore
-
-# Ignore bundler config.
-/.bundle
 
 # Ignore all environment files.
 /.env*
 
-# Ignore all default key files.
-/config/master.key
-/config/credentials/*.key
-
-# Ignore all logfiles and tempfiles.
-/log/*
-/tmp/*
-!/log/.keep
-!/tmp/.keep
-
-# Ignore pidfiles, but keep the directory.
-/tmp/pids/*
-!/tmp/pids/.keep
-
-# Ignore storage (uploaded files in development and any SQLite databases).
-/storage/*
-!/storage/.keep
-/tmp/storage/*
-!/tmp/storage/.keep
-
-# Ignore assets.
-/node_modules/
-/app/assets/builds/*
-!/app/assets/builds/.keep
-/public/assets
+# The development database.
+/storage/
 
 # Ignore Kamal files.
 /config/deploy*.yml
 /.kamal
 
-# Ignore development files
-/.devcontainer
-
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
 
-# Go. Nothing here excludes go.mod, go.sum, cmd/ or internal/, and nothing
-# added here may: the Dockerfile copies those four paths by name, so ignoring
-# any of them fails the build outright rather than quietly.
+# The binary a bare `go build` drops at the repo root.
 /tinystart

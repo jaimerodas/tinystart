@@ -142,11 +142,3 @@ kamal shell
 kamal dbc                            # sqlite3 sobre la base de producción
 kamal set-password jaime@example.com # lo que antes era `kamal console`
 ```
-
-## Transición
-El árbol de Rails (`app/`, `config/*.rb`, `Gemfile`, `test/`…) sigue en el repo
-un rato más, sin desplegarse: `config/deploy.yml` conserva `RAILS_MASTER_KEY` y
-un segundo montaje del volumen para que `kamal rollback` a la imagen de Rails
-siga funcionando mientras la de Go se gana la confianza. `script/test_rails`
-corre su suite y `script/parity` compara las dos apps pantalla por pantalla.
-Todo eso se va junto en la última fase del plan.

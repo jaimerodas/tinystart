@@ -250,7 +250,7 @@ func TestBrowserImportAsksBeforeItReplacesThePage(t *testing.T) {
 	p.ts.newItem(user.ID, group.ID, "Fastmail", "https://app.fastmail.com")
 
 	p.visit("/settings/import_export")
-	p.attachFile("#file", "../../test/fixtures/files/start_page.yml")
+	p.attachFile("#file", "testdata/start_page.yml")
 
 	p.onConfirm(true)
 	p.clickOn("", "Import")
@@ -277,7 +277,7 @@ func TestBrowserDismissingTheImportConfirmLeavesThePageAlone(t *testing.T) {
 	p.ts.newItem(user.ID, group.ID, "Fastmail", "https://app.fastmail.com")
 
 	p.visit("/settings/import_export")
-	p.attachFile("#file", "../../test/fixtures/files/start_page.yml")
+	p.attachFile("#file", "testdata/start_page.yml")
 
 	p.onConfirm(false)
 	p.clickOn("", "Import")
