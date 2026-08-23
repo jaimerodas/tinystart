@@ -67,6 +67,12 @@ func sharedBrowser(t *testing.T) context.Context {
 			// throwaway headless browser pointed at localhost. The sandbox
 			// protects nothing here.
 			chromedp.NoSandbox,
+			// chromedp waits 20 seconds for Chrome to announce its DevTools
+			// URL, then gives up. A busy CI machine can hold Chrome's start
+			// past that, and every test then fails with "websocket url
+			// timeout reached". A longer wait costs nothing when Chrome is
+			// healthy.
+			chromedp.WSURLReadTimeout(time.Minute),
 		)
 		if path := chromePath(); path != "" {
 			options = append(options, chromedp.ExecPath(path))
@@ -215,12 +221,23 @@ func (p *browserPage) run(actions ...chromedp.Action) {
 	}
 }
 
-// visit is Capybara's visit: a real navigation, waiting for the document to be
-// ready so the Stimulus controllers are connected before anything is typed.
+// visit is Capybara's visit: a real navigation, waiting until the page can
+// hear what a test does next.
+//
+// readyState alone is not that. stimulus-loading registers each controller
+// through a dynamic import(), which does not hold back "complete". So the
+// document can be ready while the controllers are still on their way, and a
+// keystroke sent in that gap lands on a page with no listener. CI's slower
+// machines hit the gap. So this also waits for every controller the page
+// names to be connected.
 func (p *browserPage) visit(path string) {
 	p.t.Helper()
 	p.run(chromedp.Navigate(p.ts.http.URL + path))
-	p.waitFor(`document.readyState === "complete"`, "the page to load "+path)
+	p.waitFor(`document.readyState === "complete" && window.Stimulus &&
+		[...document.querySelectorAll("[data-controller]")].every(node =>
+			node.getAttribute("data-controller").split(/\s+/).filter(Boolean).every(name =>
+				window.Stimulus.getControllerForElementAndIdentifier(node, name)))`,
+		"the page to load "+path)
 }
 
 func (p *browserPage) currentPath() string {
