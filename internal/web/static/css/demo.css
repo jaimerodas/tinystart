@@ -1,0 +1,13 @@
+/* Bordered call-to-action box for the demo start page. Using a border instead of a
+   filled background keeps the text color foreground, maintaining the 4.5:1 contrast
+   ratio the rest of the app relies on. */
+.demo-cta {
+  border: 0.125rem solid var(--highlight-color);
+  border-radius: 0.5em;
+  padding: 1em;
+  text-align: center;
+
+  p {
+    margin: 0 0 1em;
+  }
+}

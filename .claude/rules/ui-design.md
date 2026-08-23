@@ -34,7 +34,8 @@ Templates live in `internal/web/templates/`.
 
 | Templates | Page |
 |---|---|
-| `pages/start_show`, `startpage/{grid,column,group,item}` | `/` |
+| `pages/start_show`, `startpage/command_bar` | `/` |
+| `pages/start_demo`, `startpage/command_bar` | `/` (signed out) |
 | `pages/start_edit`, `startpage/{column_count,keyboard_legend,shortcuts_dialog,…}` | `/start/edit` |
 | `pages/settings_show` | `/settings` |
 | `pages/settings_import_export` | `/settings/import_export` |

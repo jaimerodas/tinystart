@@ -52,8 +52,10 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("PATCH /passwords/{token}", s.handlePasswordUpdate())
 
 	// The start page. "/{$}" is the root and only the root: without the {$}
-	// the pattern is a prefix and swallows every URL below it.
-	mux.Handle("GET /{$}", s.requireAuthentication(s.handleStartPage()))
+	// the pattern is a prefix and swallows every URL below it. Signed out, the
+	// same URL serves the demo page instead of bouncing to sign-in: resumeSession
+	// runs on every request, so the handler can tell which one to draw.
+	mux.Handle("GET /{$}", s.handleStartPage())
 
 	// The editor. There is deliberately no GET /start — the start page is
 	// served at "/" and nowhere else — so a visit there falls through to the

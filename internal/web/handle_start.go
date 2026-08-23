@@ -55,9 +55,17 @@ type showGroup struct {
 // /start survives as the PATCH target and as the prefix the group and item
 // routes hang off, and a GET there is a 404 on purpose.
 func (s *Server) handleStartPage() http.Handler {
+	demo := s.handleStartDemo()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		user := userFrom(ctx)
+		// GET / is not behind requireAuthentication any more, so a signed-out
+		// visitor reaches here with a nil user. Send the demo instead of
+		// dereferencing user.ID below.
+		if user == nil {
+			demo.ServeHTTP(w, r)
+			return
+		}
 
 		links, err := s.db.LinksForCommandBar(ctx, user.ID)
 		if err != nil {

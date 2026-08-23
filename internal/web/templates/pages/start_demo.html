@@ -1,0 +1,44 @@
+{{/* The signed-out look, not the real page: no start_page_header partial (no
+account to show), no data-start-shortcuts-edit-value (⌥E stays swallowed, on
+purpose — see demoPageShortcuts), no data-command-bar-source-value (nothing to
+federate against), no visit-tracker controller or data-item-id on the links
+(the visit route needs auth), no reconnect notice, no empty-state line: the
+grid is always full here. */}}
+{{define "content"}}<main class="start-page" data-controller="command-bar start-shortcuts"
+      data-command-bar-links-value="{{.Data.LinksJSON}}"
+      data-command-bar-federation-value="off"
+      data-action="keydown@window->start-shortcuts#keydown turbo:before-cache@window->start-shortcuts#closeDialog">
+  {{template "shortcuts_dialog" .Data.Shortcuts}}
+
+  {{template "command_bar"}}
+
+  <section class="start-page-grid" data-columns="3">
+    <div class="start-page-column">
+{{range .Data.Left.Groups}}          <section>
+            <h2>{{.Name}}</h2>
+            <ul>
+{{range .Items}}                <li>
+                  <a href="{{.URL}}">{{.Title}}</a>
+                </li>
+{{end}}            </ul>
+          </section>
+{{end}}      </div>
+    <div class="start-page-column">
+      <section class="demo-cta">
+        <p>TinyStart is a personal start page: a command bar over a grid of hand-curated links.</p>
+        <a class="action-button" href="/session/new">Sign in</a>
+      </section>
+    </div>
+    <div class="start-page-column">
+{{range .Data.Right.Groups}}          <section>
+            <h2>{{.Name}}</h2>
+            <ul>
+{{range .Items}}                <li>
+                  <a href="{{.URL}}">{{.Title}}</a>
+                </li>
+{{end}}            </ul>
+          </section>
+{{end}}      </div>
+  </section>
+</main>
+{{end}}

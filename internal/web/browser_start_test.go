@@ -88,6 +88,7 @@ func TestBrowserThePagesForVisitorsLoadWithoutAScriptError(t *testing.T) {
 		{"/session/new", "#login form"},
 		{"/sign_up", "form"},
 		{"/passwords/new", "form"},
+		{"/", ".demo-cta"},
 	} {
 		p.visit(each.path)
 		p.assertSelector(each.marker)
@@ -128,6 +129,23 @@ func TestBrowserCommandBarFiltersTheTilesOnThePage(t *testing.T) {
 	p.assertText(".command-bar-suggestions", "Apple")
 	p.assertNoTextNow(".command-bar-suggestions", "Amazon")
 	p.assertNoTextNow(".command-bar-suggestions", "GitHub")
+}
+
+// The signed-out twin of the test above: no account, no tiles from the
+// database, just the fixed demo grid — but the same local filtering over it.
+func TestBrowserDemoCommandBarFiltersTheDemoTiles(t *testing.T) {
+	p := newBrowserPage(t)
+
+	p.visit("/")
+	p.assertSelector(".command-bar input[autofocus]")
+
+	p.fillIn(".command-bar input", "gmail")
+
+	p.assertText(".command-bar-suggestions", "Gmail")
+	p.assertNoTextNow(".command-bar-suggestions", "GitHub")
+
+	p.fillIn(".command-bar input", "")
+	p.assertNoSelector(".command-bar-suggestions")
 }
 
 // Nothing to federate to means no "All Links" at all — not a header that

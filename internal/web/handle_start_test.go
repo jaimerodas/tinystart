@@ -293,11 +293,12 @@ func TestStartPageShowsOnlyTheSignedInUsersTiles(t *testing.T) {
 	}
 }
 
-func TestStartPageRequiresAuthentication(t *testing.T) {
+// / has a demo for a signed-out visitor now (handle_demo_test.go); only the
+// editor still turns them away.
+func TestEditorRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createApprovedUser("one@example.com")
 
-	ts.get("/").assertRedirect("/session/new")
 	ts.get("/start/edit").assertRedirect("/session/new")
 }
 

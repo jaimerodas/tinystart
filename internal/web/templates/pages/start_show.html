@@ -13,18 +13,7 @@
       <a href="/settings/connections">Reconnect</a>.
     </p>
 {{end}}
-  <section class="command-bar">
-    <input type="text"
-           data-command-bar-target="input"
-           data-action="input->command-bar#search keydown->command-bar#handleKeydown"
-           placeholder="Search links, web, or type URL..."
-           spellcheck="false"
-           autocomplete="off"
-           autofocus>
-    <div class="command-bar-suggestions" data-command-bar-target="suggestions">
-      {{htmlComment "Dynamic suggestions will be inserted here"}}
-    </div>
-  </section>
+  {{template "command_bar"}}
 
 {{if not .Data.HasTiles}}    <p class="start-page-empty">
       No links added yet, <a href="/start/edit">edit the page</a> to add some.

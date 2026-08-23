@@ -64,14 +64,24 @@ var gridShortcuts = []shortcut{
 	{[]string{"Tab"}, "leave the grid"},
 }
 
-var showPageShortcuts = []shortcut{
-	{[]string{"⌥", "E"}, "edit the start page"},
+var commandBarShortcuts = []shortcut{
 	{[]string{"?"}, "show this list"},
 	{[]string{"↑", "↓"}, "move through results"},
 	{[]string{"Enter"}, "open"},
 	{[]string{"⌘", "Enter"}, "open in a new tab"},
 	{[]string{"Esc"}, "clear the bar, then leave it"},
 }
+
+// showPageShortcuts is the command bar's keys plus the chord that opens the
+// editor.
+var showPageShortcuts = append([]shortcut{
+	{[]string{"⌥", "E"}, "edit the start page"},
+}, commandBarShortcuts...)
+
+// demoPageShortcuts has no ⌥E: the demo's <main> carries no
+// data-start-shortcuts-edit-value, so the controller swallows that chord
+// anyway. Listing a key that does nothing would be worse than the gap.
+var demoPageShortcuts = commandBarShortcuts
 
 // editorShortcuts is the grid's keys plus the two page chords. The grid's keys
 // are only written down once, above: the legend stopped listing them when it
