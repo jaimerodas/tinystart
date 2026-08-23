@@ -135,8 +135,8 @@ func TestAuthenticate(t *testing.T) {
 		t.Errorf("Authenticate with a capitalised email: %v", err)
 	}
 
-	// A wrong password and an unknown address give the same answer, so that a
-	// sign-in form cannot be used to find out who has an account here.
+	// A wrong password and an unknown address give the same answer. This way,
+	// nobody can use a sign-in form to find out who has an account here.
 	_, err = db.Authenticate(t.Context(), "test@example.com", "wrongpassword")
 	assertNotFound(t, err)
 
@@ -144,12 +144,12 @@ func TestAuthenticate(t *testing.T) {
 	assertNotFound(t, err)
 }
 
-// The digest below was made by the Ruby side, at the cost Rails uses:
+// The Ruby side made the digest below, at the cost Rails uses:
 //
 //	bundle exec ruby -rbcrypt -e 'puts BCrypt::Password.create("password123", cost: 12)'
 //
-// Every password in production is one of these. If Go could not verify them,
-// nobody would be able to sign in after the cutover.
+// Every password in production is one of these. If Go cannot make sure that
+// they are correct, nobody can sign in after the cutover.
 func TestAuthenticateAcceptsADigestRailsMade(t *testing.T) {
 	const railsDigest = "$2a$12$EtqmeoUoVPpd432xuXr.1u1dG9BK5oqEVVXpHUxZfLDb5VQG1leBe"
 
@@ -168,8 +168,9 @@ func TestAuthenticateAcceptsADigestRailsMade(t *testing.T) {
 	}
 }
 
-// The other direction: a digest written here has to be one the Rails image can
-// still read, because `kamal rollback` is the plan if the cutover goes wrong.
+// The other direction: a digest written here has to match the ones Rails
+// left in the database, prefix and cost alike. One digest format, whoever
+// wrote the row.
 func TestCreateUserHashesAtRailsCost(t *testing.T) {
 	bcryptCost = railsBcryptCost
 	t.Cleanup(func() { bcryptCost = bcrypt.MinCost })
@@ -195,8 +196,8 @@ func TestUpdatePreferences(t *testing.T) {
 	}{
 		{"a theme it does not know", "neon", "teal", []string{"Theme preference neon is not a valid theme"}},
 		{"a colour it does not know", "dark", "chartreuse", []string{"Color preference chartreuse is not a valid color"}},
-		// Grey left the palette and everyone holding it was migrated to teal;
-		// nothing should be able to put it back.
+		// Grey left the palette and everyone holding it was migrated to teal.
+		// Nothing can put it back.
 		{"grey, which left the palette", "dark", "gray", []string{"Color preference gray is not a valid color"}},
 		{"both wrong", "neon", "gray", []string{
 			"Theme preference neon is not a valid theme",
@@ -257,9 +258,9 @@ func TestUpdateColumnsBounds(t *testing.T) {
 	}
 }
 
-// Narrowing used to hide any group past the new limit: gone from the start
-// page and gone from the editor, so its move and delete controls were
-// unreachable, while its tiles carried on showing up in the command bar.
+// Narrowing used to hide any group past the new limit. It vanished from the
+// start page and from the editor both, so its move and delete controls were
+// unreachable. Its tiles carried on showing up in the command bar.
 func TestUpdateColumnsRefusesToStrandAGroup(t *testing.T) {
 	t.Run("names the one group it would hide", func(t *testing.T) {
 		db := newTestDB(t)
@@ -335,7 +336,7 @@ func TestUpdatePassword(t *testing.T) {
 			err := db.UpdatePassword(t.Context(), user.ID, test.existing, test.next)
 			assertInvalid(t, err, test.want)
 
-			// Nothing was changed on the way to being refused.
+			// Nothing changed on the way to being refused.
 			if _, err := db.Authenticate(t.Context(), user.Email, "password123"); err != nil {
 				t.Errorf("the old password stopped working: %v", err)
 			}

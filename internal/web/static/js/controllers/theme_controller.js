@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="theme"
 export default class extends Controller {
   updateTheme(event) {
-    // Only proceed if the form submission was successful
+    // If the form submission succeeded, proceed.
     if (event.detail.success) {
       // Find the checked radio button for theme_preference
       const selectedTheme = this.element.querySelector('input[name="user[theme_preference]"]:checked')

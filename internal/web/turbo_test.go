@@ -31,7 +31,7 @@ func TestWantsTurboStream(t *testing.T) {
 // The wire format is turbo_stream_action_tag's, down to the empty <template>
 // on a remove and to the joiner between two actions — which is nothing at all.
 // Rails concatenated the elements with no separator, and the parity capture
-// says so byte for byte; a newline here would be a text node between them.
+// says so byte for byte. A newline here becomes a text node between them.
 func TestTurboStreamResponse(t *testing.T) {
 	s := newBareServer(t)
 	rec := httptest.NewRecorder()

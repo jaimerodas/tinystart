@@ -11,7 +11,7 @@ of tinystart's half live at **Settings → Import & Export**
 (`internal/web/handle_import_export.go`, `/settings/import_export`). The
 package is `internal/startpage`; the names below (`StartPageImporter`,
 `StartPageExporter`) are the Rails services it replaced, kept where the
-reasoning was written against them — the behaviour is the same, and the Go
+reasoning was written against them — the behavior is the same, and the Go
 export is byte-identical to the Ruby one for the same page.
 
 It carries the layout and nothing else — no visit counts, so the command bar's

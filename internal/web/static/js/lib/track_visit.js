@@ -1,7 +1,7 @@
 // Fire-and-forget visit recording.
 //
 // keepalive lets the request finish even when the same click navigates the
-// current tab away, so the visit is never lost. Failures are swallowed —
+// current tab away, so we never lose the visit. This code swallows failures —
 // tracking must never get in the way of opening a link.
 //
 // Two destinations, because the two kinds of result live in different places:

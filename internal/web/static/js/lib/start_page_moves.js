@@ -1,18 +1,18 @@
 // The one way the editor tells the server something moved. Shared by the two
-// paths that can move a tile or a group: dragging it with a pointer, and
-// picking it up with Space and walking it there with the arrow keys.
+// paths that can move a tile or a group. One drags it with a pointer. The
+// other picks it up with Space and walks it there with the arrow keys.
 //
 // Both kinds of move POST the position the node already occupies in the DOM.
 // Positions are always compacted 0..n-1 server-side, so an index is a position.
 
 // Resolves to whether the server answered at all — not to whether it allowed
-// the move. A refusal still comes back as a stream that says so and redraws the
-// truth, so the caller has nothing left to do; only a request that never landed
-// leaves the page for its caller to put right.
+// the move. A refusal still comes back as a stream that says so and redraws
+// the truth, so the caller has nothing left to do. Only a request that never
+// landed leaves the page for its caller to put right.
 //
-// Note this resolves once the stream has been handed to Turbo, which applies it
-// a tick later. Anything that has to run after the DOM has actually changed
-// belongs in a Stimulus target callback, not in a .then on this.
+// Note that this resolves once Turbo receives the stream, which it applies a
+// tick later. Anything that must run after the DOM actually changes belongs
+// in a Stimulus target callback, not in a .then on this.
 async function postMove(url, params) {
   // Whatever the last move had to say about itself, this one supersedes it —
   // otherwise a refusal stays on screen above a move that has since succeeded,
@@ -41,9 +41,9 @@ async function postMove(url, params) {
 }
 
 // The meta tag is absent whenever forgery protection is off — the test
-// environment, most obviously. Reading .content straight off the lookup threw a
-// TypeError there, which the catch above then reported as an unreachable
-// server: a move that never left the browser, blamed on the network.
+// environment, most obviously. Reading .content straight off the lookup threw
+// a TypeError there. The catch above then reported it as an unreachable
+// server — a move that never left the browser, blamed on the network.
 function headersWithToken() {
   const headers = {
     "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 # The Dockerfile copies go.mod, go.sum, cmd/ and internal/ by name, so the
-# build context barely matters — this just keeps the biggest non-sources out
-# of the upload. Nothing here may exclude those four paths: ignoring any of
-# them fails the build outright rather than quietly.
+# build context barely matters. This just keeps the biggest non-sources out
+# of the upload. Do not exclude those four paths here: ignoring one of them
+# fails the build outright rather than quietly.
 /.git/
 /.gitignore
 

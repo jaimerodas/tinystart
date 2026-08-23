@@ -31,11 +31,11 @@ func TestMethodOverrideRewritesAPostCarryingMethod(t *testing.T) {
 		{"delete", http.MethodPost, "delete", http.MethodDelete},
 		{"patch", http.MethodPost, "patch", http.MethodPatch},
 		{"put, uppercase", http.MethodPost, "PUT", http.MethodPut},
-		// Anything else is left alone. A form asking to be a GET would turn a
+		// Anything else is left alone. A form asking to be a GET turns a
 		// state-changing request into one the cross-origin check waves through.
 		{"get is not a method a form may ask for", http.MethodPost, "get", http.MethodPost},
 		{"nonsense is ignored", http.MethodPost, "nonsense", http.MethodPost},
-		// Only a POST may be overridden: otherwise a plain link could be made
+		// Only a POST can be overridden: otherwise a plain link can be made
 		// to delete something.
 		{"a GET is never rewritten", http.MethodGet, "delete", http.MethodGet},
 	}
@@ -58,8 +58,8 @@ func TestMethodOverrideRewritesAPostCarryingMethod(t *testing.T) {
 	}
 }
 
-// The body the override consumed has to still be there for the handler, or
-// every form that uses it would arrive empty.
+// The body the override consumed has to still be there for the handler.
+// Otherwise every form that uses it arrives empty.
 func TestMethodOverrideLeavesTheRestOfTheFormReadable(t *testing.T) {
 	var got string
 	handler := methodOverride(okHandler(func(r *http.Request) { got = r.PostFormValue("password") }))
@@ -75,8 +75,8 @@ func TestMethodOverrideLeavesTheRestOfTheFormReadable(t *testing.T) {
 	}
 }
 
-// A multipart upload is not a form the override reads: parsing it here would
-// buffer a file to find a field that is never in one.
+// A multipart upload is not a form the override reads: parsing it here
+// buffers a file to find a field that is never in one.
 func TestMethodOverrideIgnoresNonFormBodies(t *testing.T) {
 	var got string
 	handler := methodOverride(okHandler(func(r *http.Request) { got = r.Method }))

@@ -14,9 +14,9 @@ import (
 //
 // This file is the only place the two packages meet, and the dependency points
 // this way on purpose. startpage is the format — parsing, validating, writing
-// YAML — and knows nothing about a database; store knows what a layout means in
-// SQL. The other direction would be a cycle, and would also mean the format
-// could not be reasoned about without a database in the room.
+// YAML — and knows nothing about a database. store knows what a layout means
+// in SQL. The other direction creates a cycle, and it also means you cannot
+// reason about the format without a database in the room.
 
 // StartPageLayout reads a user's page as the exporter wants it: columns in
 // order, groups in position order inside them, tiles in position order inside
@@ -44,8 +44,9 @@ func (db *DB) StartPageLayout(ctx context.Context, userID int64) (startpage.Layo
 	}
 	defer rows.Close()
 
-	// The join repeats a group once per tile, so both "is this a new column"
-	// and "is this a new group" are answered by looking at the row before.
+	// The join repeats a group once per tile, so this code answers both "is
+	// this a new column" and "is this a new group" by looking at the row
+	// before.
 	var groupID int64
 	for rows.Next() {
 		var (
@@ -78,18 +79,18 @@ func (db *DB) StartPageLayout(ctx context.Context, userID int64) (startpage.Layo
 
 // ReplaceStartPage rebuilds a user's page from a layout, in one transaction.
 //
-// It replaces rather than merges — the groups are deleted and the page is built
+// It replaces rather than merges — it deletes the groups and builds the page
 // again from the file — which is what makes export, hand-edit, import again
-// idempotent. Merging would have to invent answers for renamed groups and
-// removed tiles that nobody needs.
+// idempotent. Merging has to invent answers for renamed groups and removed
+// tiles that nobody needs.
 //
 // Because it replaces, a refusal has to change nothing: every validation runs
 // inside the same transaction as the delete, so a file that fails on its last
 // tile leaves the page exactly as it was.
 //
 // A rejected record comes back as a *RejectedError, whose message names the
-// group or the tile and repeats what the model said about it. Anything else is
-// a database that could not be written to.
+// group or the tile and repeats what the model said about it. Anything else
+// means the database refused the write.
 func (db *DB) ReplaceStartPage(ctx context.Context, userID int64, layout startpage.Layout) error {
 	if layout.Width < 1 {
 		return invalid(FieldError{"columns", "must be greater than 0"})
@@ -98,10 +99,10 @@ func (db *DB) ReplaceStartPage(ctx context.Context, userID int64, layout startpa
 		return invalid(FieldError{"columns", fmt.Sprintf("must be less than or equal to %d", MaxColumns)})
 	}
 
-	// Ascending, because a group's column is checked against the page's width
-	// and because the first group with a repeated name is the one the refusal
-	// should name — both of which depend on the order things are created in,
-	// and neither of which should depend on the caller.
+	// Ascending, because this code makes sure that a group's column fits the
+	// page's width. The first group with a repeated name is also the one the
+	// refusal must name. Both facts depend on the order things are created
+	// in, and the caller must not control that order.
 	columns := slices.Clone(layout.Columns)
 	slices.SortFunc(columns, func(a, b startpage.Column) int { return a.Number - b.Number })
 
@@ -116,11 +117,11 @@ func (db *DB) ReplaceStartPage(ctx context.Context, userID int64, layout startpa
 			return err
 		}
 
-		// The width goes in before the first group. users.columns starts at 1
-		// and a group whose column is past it is refused, so a file using
-		// column 3 would fail on its very first group otherwise. Narrowing is
-		// safe here for the mirror-image reason: the groups a narrower page
-		// would strand have just been deleted.
+		// The width goes in before the first group. users.columns starts at 1,
+		// and validation refuses a group whose column is past it. Without
+		// that order, a file using column 3 fails on its very first group.
+		// Narrowing is safe here for the mirror-image reason: this code
+		// already deleted the groups a narrower page cannot show.
 		now := utcNow()
 		result, err := tx.ExecContext(ctx,
 			`UPDATE users SET "columns" = ?, updated_at = ? WHERE id = ?`,
@@ -144,9 +145,10 @@ func (db *DB) ReplaceStartPage(ctx context.Context, userID int64, layout startpa
 }
 
 // writeGroup creates one group and its tiles. Positions are the indexes
-// themselves: the page was emptied first, so counting from zero and creating in
-// file order reproduces the file's order with no arithmetic — which is exactly
-// what the models' place_at_end_of_column and place_at_end_of_group did.
+// themselves. Because ReplaceStartPage empties the page first, counting from
+// zero and creating in file order reproduces the file's order with no
+// arithmetic. That is exactly what the models' place_at_end_of_column and
+// place_at_end_of_group did.
 func writeGroup(ctx context.Context, tx *sql.Tx, userID int64, column, position int, group startpage.Group) error {
 	fields, err := groupErrors(ctx, tx, userID, 0, group.Name, column)
 	if err != nil {
@@ -189,14 +191,14 @@ func writeGroup(ctx context.Context, tx *sql.Tx, userID int64, column, position 
 	return nil
 }
 
-// RejectedError is one record an import could not write, worded the way the
+// RejectedError is one record an import failed to write, worded the way the
 // import's own message was: it names the group or the tile, because "Name has
 // already been taken" on its own does not say which of forty tiles it is about.
 type RejectedError struct {
 	// Group is the group's name, or the name of the group a tile belongs to.
 	Group string
-	// Title and URL are the tile's, and are empty when the group itself was
-	// the thing that was rejected.
+	// Title and URL are the tile's, and are empty when the group itself, not
+	// a tile, was rejected.
 	Title string
 	URL   string
 	// Errors is what the record's validations said, in ActiveRecord's order.

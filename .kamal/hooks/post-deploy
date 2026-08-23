@@ -1,12 +1,12 @@
 #!/bin/bash
-# Keeps the backup infrastructure on the server in sync with this repo, so the
-# script and the schedule are whatever the last deploy said they were rather than
-# whatever somebody last edited by hand.
+# Keeps the backup infrastructure on the server in sync with this repo. The
+# script and the schedule are whatever the last deploy said they were,
+# rather than whatever somebody last edited by hand.
 #
-# The same droplet runs tinylinks and gastitos, both of which do this too. Every
-# path here is namespaced to tinystart for that reason — the cron entry is a
-# drop-in file rather than a crontab edit, so the three never overwrite each
-# other's schedules.
+# The same droplet runs tinylinks and gastitos, both of which do this too.
+# For that reason, this script namespaces every path here to tinystart. The
+# cron entry is a drop-in file rather than a crontab edit, so the three
+# never overwrite each other's schedules.
 
 source .kamal/secrets 2>/dev/null || true
 

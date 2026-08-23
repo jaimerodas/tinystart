@@ -33,11 +33,11 @@ func (s *Server) handleSearch() http.Handler {
 // handleItemVisit instead.
 //
 // Fire and forget, and 204 either way — the browser has already navigated away
-// and there is nothing it could do with a failure.
+// and there is nothing it can do with a failure.
 func (s *Server) handleVisitCreate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The id arrives in the query string, which is where track_visit.js
-		// puts it; reading the form as well costs nothing and means a plain
+		// puts it. Reading the form as well costs nothing and means a plain
 		// form post works too.
 		linkID := r.URL.Query().Get("link_id")
 		if linkID == "" {
@@ -87,7 +87,7 @@ func (s *Server) federatedSearch(r *http.Request, query string) []tinylinks.Link
 
 // recordSearchFailure is the other half of that contract. A rejected token is
 // the one failure worth surfacing, because a lapsed credential and an empty
-// archive look identical from the command bar; everything else is the other
+// archive look identical from the command bar. Everything else is the other
 // app's problem and only reaches the log.
 func (s *Server) recordSearchFailure(ctx context.Context, connection *store.Connection, err error) {
 	switch {

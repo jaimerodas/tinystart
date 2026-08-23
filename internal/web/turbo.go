@@ -18,9 +18,9 @@ const turboStreamMIME = "text/vnd.turbo-stream.html"
 
 // wantsTurboStream reports whether the caller will understand a stream.
 //
-// Matching on a substring rather than parsing Accept properly is deliberate:
-// Turbo puts the type in the header verbatim, q-values never appear on it, and
-// the alternative — a full Accept parser — would be fifty lines to answer a
+// Matching on a substring rather than parsing Accept properly is deliberate.
+// Turbo puts the type in the header verbatim, and q-values never appear on
+// it. The alternative — a full Accept parser — is fifty lines to answer a
 // yes-or-no question that has one possible source.
 func wantsTurboStream(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Accept"), turboStreamMIME)
@@ -35,7 +35,7 @@ type streamAction struct {
 	HTML   template.HTML
 }
 
-// The actions this app uses. Turbo defines more; these are the three the
+// The actions this app uses. Turbo defines more. These are the three the
 // editor needs, and naming them means a typo is a compile error.
 const (
 	streamReplace = "replace"
@@ -43,11 +43,11 @@ const (
 	streamRemove  = "remove"
 )
 
-// replaceStream swaps the element itself; updateStream swaps only its
+// replaceStream swaps the element itself. updateStream swaps only its
 // contents. The difference matters for #start_page_notice, which is a live
-// region: a screen reader announces a change inside a region it already knows
-// about, and not the arrival of a region with the text already in it. So the
-// notice is always updated and never replaced.
+// region. A screen reader announces a change inside a region it already
+// knows about. It does not announce the arrival of a region that already
+// has the text in it. So the notice is always updated and never replaced.
 func replaceStream(target string, html template.HTML) streamAction {
 	return streamAction{Action: streamReplace, Target: target, HTML: html}
 }
@@ -65,10 +65,10 @@ func removeStream(target string) streamAction {
 // writeTurboStream sends one or more actions as a stream response.
 //
 // The wire format is exactly what turbo-rails' turbo_stream_action_tag
-// produced, down to the empty <template> on a remove, because the parity check
-// diffs these bodies too — and down to the joiner between two actions, which
-// is nothing at all: Rails concatenated the elements with no separator, and a
-// newline here would show up as a text node between them.
+// produced, down to the empty <template> on a remove, because the parity
+// check diffs these bodies too. It also matches the joiner between two
+// actions, which is nothing at all. Rails concatenated the elements with no
+// separator, and a newline here shows up as a text node between them.
 func (s *Server) writeTurboStream(w http.ResponseWriter, status int, actions ...streamAction) {
 	var body bytes.Buffer
 	for _, action := range actions {

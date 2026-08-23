@@ -8,8 +8,8 @@ import (
 
 // The two sentinels every caller can branch on with errors.Is.
 var (
-	// ErrNotFound is returned instead of sql.ErrNoRows, so that nothing
-	// outside this package has to import database/sql to read an error.
+	// ErrNotFound stands in for sql.ErrNoRows, so nothing outside this
+	// package needs database/sql to read an error.
 	ErrNotFound = errors.New("store: not found")
 
 	// ErrConflict means a unique index refused a write and there is no form
@@ -32,16 +32,16 @@ type FieldError struct {
 
 // FullMessage is Rails' errors.full_messages entry: the humanised attribute
 // name and the message. "Url must be a valid URL", "Theme preference neon is
-// not a valid theme". The pages show these strings verbatim, so they have to
-// come out of here already assembled.
+// not a valid theme". The pages show these strings verbatim, so FullMessage
+// must return them already assembled.
 func (f FieldError) FullMessage() string {
 	return humanize(f.Attribute) + " " + f.Message
 }
 
-// ValidationError is what a write returns when the record was refused. It is a
-// slice because ActiveRecord runs every validation and reports all of them at
-// once, and the editor joins them with ", " — one error would change what the
-// page says.
+// ValidationError is what a write returns when validation refuses the record.
+// It is a slice because ActiveRecord runs every validation and reports all of
+// them at once, and the editor joins them with ", ". A single value cannot
+// carry every message, and that changes what the page says.
 //
 // Callers pull it out with errors.As:
 //
@@ -53,9 +53,9 @@ func (v ValidationError) Error() string {
 	return strings.Join(v.FullMessages(), ", ")
 }
 
-// FullMessages is every message, in the order ActiveRecord would have produced
-// them — which is the order the validations are declared in the model, and so
-// the order they are checked in here.
+// FullMessages returns every message in the order the model declares its
+// validations. This code runs them in that same order, which matches Rails'
+// own order for errors.full_messages.
 func (v ValidationError) FullMessages() []string {
 	messages := make([]string, len(v))
 	for i, field := range v {
@@ -65,7 +65,7 @@ func (v ValidationError) FullMessages() []string {
 }
 
 // On reports whether the named attribute was one of the rejected ones, for a
-// form deciding which field to outline.
+// form that decides which field to outline.
 func (v ValidationError) On(attribute string) bool {
 	for _, field := range v {
 		if field.Attribute == attribute {
@@ -76,8 +76,8 @@ func (v ValidationError) On(attribute string) bool {
 }
 
 // invalid turns a list of field errors into an error, or into nil when the
-// list is empty. Returning ValidationError(nil) directly would give the caller
-// a non-nil error interface wrapping an empty slice, which is the classic Go
+// list is empty. Returning ValidationError(nil) directly gives the caller a
+// non-nil error interface that wraps an empty slice, which is the classic Go
 // way to make `if err != nil` lie.
 func invalid(fields ...FieldError) error {
 	if len(fields) == 0 {

@@ -8,10 +8,11 @@ import (
 	"time"
 )
 
-// The pragmas are set in the DSN rather than run once after opening, because
-// they are per-connection and a connection opened later would quietly not have
-// them. journal_mode is the exception — it lives in the file — and is checked
-// here too, since the weekly backup copies the file while the app is running.
+// This code sets the pragmas in the DSN rather than running them once after
+// opening. They are per-connection, so a connection opened later quietly
+// does not have them. journal_mode is the exception — it lives in the file —
+// and this test makes sure it holds here too. The weekly backup copies the
+// file while the app runs.
 func TestOpenAppliesThePragmas(t *testing.T) {
 	db := newTestDB(t)
 
@@ -80,9 +81,10 @@ func TestTransactionsRollBackOnError(t *testing.T) {
 	}
 }
 
-// Every uniqueness rule is checked before the write, so the index only catches
-// what the check could not: two requests at the same instant. There is no
-// field to blame then, which is what the sentinel is for.
+// This package makes sure that every uniqueness rule holds before the write,
+// so the index only catches what the check cannot: two requests at the same
+// instant. There is no field to blame then, which is what the sentinel is
+// for.
 func TestUniqueIndexViolationsBecomeErrConflict(t *testing.T) {
 	db := newTestDB(t)
 	newUser(t, db, "first@example.com")

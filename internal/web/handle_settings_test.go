@@ -49,13 +49,13 @@ func TestSettingsCountsAnEmptyPage(t *testing.T) {
 		assertContains(`<span class="stat-label">groups</span>`)
 }
 
-// The date is the fact; the relative span is the thing you actually wanted to
+// The date is the fact. The relative span is the thing you actually wanted to
 // know, and the machine-readable one is what a reader's tooling gets.
 func TestSettingsSaysMemberSinceThreeWays(t *testing.T) {
 	ts, user := settingsServer(t)
-	// Far enough that the account's real created_at — the store stamps it from
-	// the wall clock, not from the test's — cannot drift the answer across a
-	// boundary. A day either side of a year is still "about 1 year".
+	// Far enough that the account's real created_at cannot drift the answer
+	// across a boundary — the store stamps it from the wall clock, not the
+	// test's. A day either side of a year is still "about 1 year".
 	ts.clock.advance(400 * 24 * time.Hour)
 
 	created := user.CreatedAt.UTC()
@@ -65,9 +65,9 @@ func TestSettingsSaysMemberSinceThreeWays(t *testing.T) {
 		assertContains("(about 1 year ago)")
 }
 
-// The column count moved to /start/edit, where the groups a shrink would
-// strand are on screen. This page must not quietly keep writing it, or the two
-// controls drift apart.
+// The column count moved to /start/edit, where the groups a shrink can
+// strand are on screen. This page must not quietly continue to write it, or
+// the two controls drift apart.
 func TestSettingsNeitherOffersNorAcceptsAColumnCount(t *testing.T) {
 	ts, user := settingsServer(t)
 
@@ -137,7 +137,7 @@ func TestSettingsRefusesABodyWithNoUserKey(t *testing.T) {
 		assertStatus(http.StatusBadRequest)
 }
 
-// The Users tab is built for an admin and absent for everybody else — someone
+// The Users tab is built for an admin and absent for everybody else. Someone
 // who cannot reach the page has no reason to know it is there.
 func TestSettingsNavOffersUsersToAdminsOnly(t *testing.T) {
 	ts := newTestServer(t)
@@ -174,7 +174,7 @@ func TestPasswordUpdate(t *testing.T) {
 }
 
 // Every refusal re-renders the form with 422 rather than redirecting, because
-// the messages name the fields: "Existing password is incorrect" only means
+// the messages name the fields. "Existing password is incorrect" only means
 // anything beside the box it is about.
 func TestPasswordUpdateRefusals(t *testing.T) {
 	tests := []struct {

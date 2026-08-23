@@ -134,7 +134,7 @@ func TestGroupsByColumn(t *testing.T) {
 		t.Errorf("column 2 = %v", byColumn[2])
 	}
 	// A column with nothing in it is simply absent, which is what the page
-	// ranging over the user's columns expects.
+	// that ranges over the user's columns expects.
 	if _, ok := byColumn[3]; ok {
 		t.Errorf("an empty column showed up in the map")
 	}
@@ -179,9 +179,9 @@ func TestMoveGroupRefusesAColumnOffTheGrid(t *testing.T) {
 
 			assertInvalid(t, db.MoveGroup(t.Context(), user.ID, group.ID, test.column, 0), test.want)
 
-			// Refused, and left exactly where it was: a group parked outside
-			// the grid renders nowhere and has no controls left to bring it
-			// back.
+			// The move is refused, and the group stays exactly where it was:
+			// a group parked outside the grid renders nowhere and has no
+			// controls left to bring it back.
 			stored, err := db.GroupByID(t.Context(), user.ID, group.ID)
 			if err != nil {
 				t.Fatalf("GroupByID: %v", err)
@@ -194,8 +194,8 @@ func TestMoveGroupRefusesAColumnOffTheGrid(t *testing.T) {
 }
 
 // Dropping a group anywhere in a column means the position it lands on is
-// usually already taken. Writing it without shifting the neighbours would
-// leave two groups sharing a position.
+// usually already taken. Writing it without shifting the neighbours leaves
+// two groups sharing a position.
 func TestMoveGroupRenumbersTheColumn(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -280,8 +280,8 @@ func TestMoveGroupToAnotherColumn(t *testing.T) {
 }
 
 // Rails renumbered with update_column, which skips the callbacks: a group's
-// timestamp records when it was last renamed, not when a neighbour was dragged
-// past it.
+// timestamp records when it was last renamed, not when someone dragged a
+// neighbour past it.
 func TestMovingAGroupLeavesItsNeighboursTimestampsAlone(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")
@@ -373,8 +373,8 @@ func TestDeleteGroup(t *testing.T) {
 	assertEqualStrings(t, groupNames(t, db, user.ID, 1), []string{"Second", "Last"})
 	assertEqualInts(t, groupPositions(t, db, user.ID, 1), []int{0, 1})
 
-	// The tiles went with it, which the foreign key would have refused had
-	// they not gone first.
+	// The tiles went with it. The foreign key refuses to delete a group
+	// before its tiles are gone.
 	items, err := db.ItemsInGroup(t.Context(), first.ID)
 	if err != nil {
 		t.Fatalf("ItemsInGroup: %v", err)
@@ -384,9 +384,9 @@ func TestDeleteGroup(t *testing.T) {
 	}
 }
 
-// Settings puts these two numbers above everything else, so an empty page has
-// to count as zero rather than fail, a group with no tiles has to count as a
-// group, and neither number may include anybody else's.
+// Settings puts these two numbers above everything else. An empty page has to
+// count as zero rather than fail, and a group with no tiles has to count as a
+// group. Neither number counts anybody else's.
 func TestStartPageCounts(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")

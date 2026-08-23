@@ -9,7 +9,7 @@ import (
 )
 
 // test/controllers/users_controller_test.rb, ported, plus the two copy rules
-// the sessions test held: the sign-up page offers a way back to sign-in only
+// the sessions test held. The sign-up page offers a way back to sign-in only
 // once there is somebody to sign in as.
 
 func TestSignUpPageRenders(t *testing.T) {
@@ -52,7 +52,7 @@ func TestSignUpCreatesAUser(t *testing.T) {
 }
 
 // A new account is not signed in. Everyone after the first waits for an admin,
-// so there would be nothing to sign in to.
+// so there is nothing to sign in to.
 func TestSignUpDoesNotSignTheNewUserIn(t *testing.T) {
 	ts := newTestServer(t)
 
@@ -130,9 +130,9 @@ func TestSignUpWithNoUserParametersIsABadRequest(t *testing.T) {
 		assertStatus(http.StatusBadRequest)
 }
 
-// The first person to sign up runs the installation, so they are approved and
-// an admin; everyone after them waits. The rule lives in the store, and this
-// pins that the handler does not undo it.
+// The first person to sign up runs the installation, so they are approved
+// and an admin. Everyone after them waits. The rule lives in the store, and
+// this pins that the handler does not undo it.
 func TestTheFirstUserToSignUpIsAnApprovedAdmin(t *testing.T) {
 	ts := newTestServer(t)
 

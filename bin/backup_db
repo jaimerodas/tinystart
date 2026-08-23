@@ -3,14 +3,14 @@
 # /usr/local/bin/tinystart-backup by .kamal/hooks/post-deploy, and run weekly by
 # /etc/cron.d/tinystart-backup.
 #
-# Weekly rather than the nightly that tinylinks and gastitos use: a start page is
-# a few dozen hand-curated tiles that change when you decide to change them, and
-# a week of lost edits is a few minutes of retyping.
+# Weekly rather than the nightly that tinylinks and gastitos use. A start page
+# is a few dozen hand-curated tiles that change when you decide to change
+# them. A week of lost edits is a few minutes of retyping.
 #
-# It is not conditional on the data having changed. That was the first idea, and
-# it does not work here — visit_count increments on every tile click, so the file
-# differs from the last one almost always and a content check would upload every
-# week regardless while costing a hash comparison to learn nothing.
+# It is not conditional on whether the data changed. That was the first idea,
+# and it does not work here. visit_count increments on every tile click, so
+# the file differs from the last one almost always. A content check still
+# uploads every week and costs a hash comparison that teaches nothing.
 set -euo pipefail
 
 set -a
@@ -39,8 +39,8 @@ docker exec "$CONTAINER" sqlite3 /data/production.sqlite3 ".backup '/tmp/backup.
 docker cp "$CONTAINER:/tmp/backup.sqlite3" "/tmp/${DUMP_FILE}"
 docker exec "$CONTAINER" rm /tmp/backup.sqlite3
 
-# Worth the second it costs: this is the only copy of tiles that were curated by
-# hand, and an unreadable backup that uploaded cleanly is worse than a failure,
+# Worth the second it costs: this is the only copy of tiles that you curated
+# by hand. An unreadable backup that uploaded cleanly is worse than a failure,
 # because nothing tells you until you need it.
 INTEGRITY=$(sqlite3 "/tmp/${DUMP_FILE}" "PRAGMA integrity_check;" 2>&1 || echo "unreadable")
 if [ "$INTEGRITY" != "ok" ]; then

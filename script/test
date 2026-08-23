@@ -18,19 +18,21 @@ fi
 
 go vet ./...
 
-# staticcheck and govulncheck are tool directives in go.mod, so the version is
-# pinned there and nothing has to be installed globally.
+# staticcheck and govulncheck are tool directives in go.mod, so go.mod pins
+# the version there and nothing has to be installed globally.
 go tool staticcheck ./...
 go tool govulncheck ./...
 
-# -race because the server, its shutdown and the tests driving it all run on
-# separate goroutines; a data race here would otherwise surface in production.
+# -race because the server, its shutdown, and the tests that drive it all run
+# on separate goroutines. Without -race, a data race here surfaces in
+# production instead.
 go test -race ./...
 
 # The browser suite: internal/web/browser_*_test.go, behind //go:build browser
 # so the run above never sees them. They need Chrome — this machine and the CI
-# runner both have one — so they run when one is found and are announced when
-# not: skipping quietly is how a suite stops being run at all.
+# runner both have one. The tests run when the script finds Chrome, and they
+# announce a skip when it does not. Skipping quietly is how a suite stops
+# running at all.
 #
 # Not -race: nothing here exercises the server differently from the tests
 # above, and the browser is slow enough already.

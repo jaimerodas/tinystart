@@ -55,7 +55,7 @@ func (r *recorder) calls() int {
 	return len(r.requests)
 }
 
-// request is the only request the fake was sent, and a failure otherwise —
+// request is the only request sent to the fake, and a failure otherwise —
 // every test here expects exactly one call.
 func (r *recorder) request(t *testing.T) received {
 	t.Helper()
@@ -67,8 +67,8 @@ func (r *recorder) request(t *testing.T) received {
 	return r.requests[0]
 }
 
-// fake answers everything with the same status and body, and remembers what it
-// was asked.
+// fake answers everything with the same status and body, and remembers each
+// request.
 func fake(t *testing.T, status int, body string) (*httptest.Server, *recorder) {
 	t.Helper()
 	got := &recorder{}

@@ -80,8 +80,8 @@ func TestExportWritesTheDocumentedFile(t *testing.T) {
 	}
 }
 
-// An empty column is omitted, and the keys around it keep their real numbers.
-// Re-indexing here would shift the whole page left on the way back in.
+// The exporter omits an empty column, and the keys around it keep their real
+// numbers. Re-indexing here shifts the whole page left on the way back in.
 func TestExportKeepsTheRealColumnNumbers(t *testing.T) {
 	layout := Layout{Width: 3, Columns: []Column{
 		column(1, group("Left", item("L", "https://l.example"))),
@@ -117,9 +117,10 @@ func TestExportEmptyPage(t *testing.T) {
 	}
 }
 
-// tinystart's unique index is on (group, url), so one group may hold two tiles
-// with the same title — and a YAML mapping cannot. The emitter would keep the
-// last and the tile would vanish from the file, so the exporter numbers them.
+// tinystart's unique index is on (group, url), so one group can hold two
+// tiles with the same title — and a YAML mapping cannot. Left alone, the
+// emitter keeps the last, and the tile vanishes from the file, so the
+// exporter numbers them.
 func TestExportNumbersRepeatedTitles(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -211,7 +212,7 @@ func TestExportHeader(t *testing.T) {
 		{
 			// The count line describes the file, not the page: an empty
 			// trailing column is not in the file, so re-importing narrows the
-			// page. Say so rather than let it be discovered.
+			// page. Say so instead of letting readers discover it on their own.
 			name:   "warns when the page is wider than the file",
 			layout: Layout{Width: 3, Columns: []Column{column(1, group("One", item("A", "https://a.example")))}},
 			want: "# The page is 3 columns wide but nothing is past column 1, " +
@@ -244,9 +245,9 @@ func TestExportSaysNothingAboutWidthWhenThePageIsFull(t *testing.T) {
 	}
 }
 
-// A warning line is built by interpolating a title into "# …", so a title
-// holding a newline would spill onto a second line above the --- marker, where
-// it is no longer a comment and the file no longer parses.
+// The code builds a warning line by interpolating a title into "# …". As a
+// result, a title with a newline spills onto a second line above the ---
+// marker. There it is no longer a comment, and the file no longer parses.
 func TestExportNewlineInARenamedTitleCannotBreakTheHeader(t *testing.T) {
 	file := exported(t, Layout{Width: 1, Columns: []Column{column(1, group("Only",
 		item("Two\nlines", "https://a.example"),
@@ -269,9 +270,9 @@ func TestExportNewlineInARenamedTitleCannotBreakTheHeader(t *testing.T) {
 	assertTitles(t, result.Layout.Columns[0].Groups[0], []string{"Two\nlines", "Two\nlines (2)"})
 }
 
-// Ruby quotes a scalar on rules of its own, and every start page export that
-// exists was written by Ruby. Each of these is what Psych 5.3 emitted for the
-// same title — see psych.go for what the rules are and why they are here.
+// Ruby quotes a scalar on rules of its own, and Ruby wrote every start page
+// export that exists. Each of these is what Psych 5.3 emitted for the same
+// title — see psych.go for what the rules are and why they are here.
 func TestExportQuotesTitlesLikePsych(t *testing.T) {
 	tests := []struct{ title, want string }{
 		{"Plain", "Plain"},
@@ -288,7 +289,7 @@ func TestExportQuotesTitlesLikePsych(t *testing.T) {
 		{"e", "e"},
 		{"ee", "ee"},
 
-		// Scalars that would load back as something other than a String.
+		// Scalars that load back as something other than a String.
 		{"123", "'123'"},
 		{"1.5", "'1.5'"},
 		{"1_000", "'1_000'"},
@@ -360,8 +361,9 @@ func TestExportQuotesTitlesLikePsych(t *testing.T) {
 	}
 }
 
-// A title with a newline in it is a literal block, and the key is written in
-// the explicit `? …` form because it no longer fits beside its value.
+// A title with a newline in it is a literal block, and the exporter writes
+// the key in the explicit `? …` form because it no longer fits beside its
+// value.
 func TestExportWritesAMultilineTitleAsABlock(t *testing.T) {
 	file := exported(t, Layout{Width: 1, Columns: []Column{
 		column(1, group("Only", item("Two\nlines", "https://a.example"))),

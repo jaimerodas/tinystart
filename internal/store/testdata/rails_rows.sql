@@ -7,9 +7,9 @@
 -- The point of keeping them is the datetime format, which Rails does not write
 -- consistently: it appends ".%06d" only when the microseconds are non-zero, so
 -- connections.token_expires_at below has no fractional part while everything
--- else does. Both shapes have to read back, and anything the store writes has
--- to come out the same way or the Rails image and the Go image disagree about
--- the same row. See railsTime in time.go.
+-- else does. Both shapes have to read back, and anything the store writes
+-- has to come out the same way, so a row keeps one shape whoever wrote it.
+-- See railsTime in time.go.
 --
 -- Loaded on top of schema.sql by the tests; see rails_rows_test.go.
 

@@ -7,14 +7,15 @@ import (
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// This file is StartPageHelper: the dom ids every stream aims at, the keyboard
-// shortcuts both pages list, and the small structs the start page templates
-// are handed. It holds no HTTP and no SQL — handle_start.go and handle_editor.go
-// bring those — so that "what does the editor draw" can be read in one place.
+// This file is StartPageHelper. It holds the dom ids every stream aims at,
+// and the keyboard shortcuts both pages list. It also holds the small
+// structs the start page templates are handed. None of it is HTTP or SQL —
+// handle_start.go and handle_editor.go bring those — so that "what does the
+// editor draw" can be read in one place.
 
 // The Turbo Stream targets. Every write on the editor replaces the smallest
 // node that can have changed, so these ids are named by the handlers, the
-// templates and the tests alike; they live here so they exist only once.
+// templates and the tests alike. They live here so they exist only once.
 func columnDOMID(column int) string { return "column_" + strconv.Itoa(column) }
 
 func newGroupDOMID(column int) string { return "new_group_column_" + strconv.Itoa(column) }
@@ -31,8 +32,8 @@ func groupNameDOMID(id int64) string { return "group_name_" + strconv.FormatInt(
 
 const (
 	// columnCountDOMID is the toolbar's column picker. A refused change
-	// replaces it, because it is left showing the value the database would
-	// not take.
+	// replaces it, because it is left showing the value the database
+	// refused.
 	columnCountDOMID = "column_count"
 
 	// noticeDOMID is the live region a refused move speaks through. It is
@@ -81,7 +82,7 @@ var editorShortcuts = append([]shortcut{
 }, gridShortcuts...)
 
 // The three states the command bar's "All Links" section can be in. Nothing to
-// search means no section at all; a rejected token means a notice rather than
+// search means no section at all. A rejected token means a notice rather than
 // a query that will only be rejected again.
 const (
 	federationOff       = "off"
@@ -104,8 +105,8 @@ func federationState(connection *store.Connection) string {
 //
 // One struct per partial, holding what that partial draws and nothing else.
 // They are built by the handlers and passed straight through, so a template
-// never has to reach back into the store or ask a question the handler could
-// have answered.
+// never has to reach back into the store or ask a question the handler can
+// answer.
 
 // columnView is one column of the grid: the groups in it and the add-group
 // slot at its foot.
@@ -149,9 +150,9 @@ type itemView struct {
 func (i itemView) DOMID() string { return itemDOMID(i.ID) }
 
 // newGroupView and newItemView are the add-group and add-link slots. Open is
-// what the handlers set: true after a rejected create, so the errors arrive
-// with the form still showing, and true after a successful add of a tile, so
-// the next link can be typed straight away.
+// what the handlers set. It is true after a rejected create, so the errors
+// arrive with the form still showing. It is also true after a successful
+// add of a tile, so the next link can be typed straight away.
 type newGroupView struct {
 	Column int
 	Open   bool
@@ -173,8 +174,8 @@ func (n newItemView) DOMID() string { return newItemDOMID(n.GroupID) }
 // one: what is in the field, what Cancel restores, and the messages above it.
 //
 // Name and Pristine part company only after a refusal. The field has to show
-// what was typed or the correction is lost, and Cancel has to restore what is
-// on disk or "discard" would mean "keep the value the database refused".
+// what was typed, or the correction is lost. Cancel has to restore what is
+// on disk, or "discard" means "keep the value the database refused".
 type groupForm struct {
 	ID       int64 // zero while the group does not exist yet
 	Name     string
@@ -192,8 +193,8 @@ func (f groupForm) Persisted() bool { return f.ID != 0 }
 // ShowValue is Rails' rule for the value attribute: it is written whenever the
 // attribute is not nil, and the attribute is nil only on a record nobody has
 // filled in yet. So a fresh add form has no value attribute at all, while a
-// rejected save renders value="" — otherwise a field someone cleared would
-// come back holding the old text.
+// rejected save renders value="". Otherwise a field someone cleared comes
+// back holding the old text.
 func (f groupForm) ShowValue() bool { return f.Persisted() || f.Typed }
 
 func (f groupForm) Action() string {

@@ -32,7 +32,7 @@ func requestIDFrom(ctx context.Context) string {
 // Sixteen hex digits from crypto/rand: enough that two requests in the same
 // log file will not collide, short enough to read out loud. It is not
 // forwarded from a header — the proxy in front does not set one, and accepting
-// a client-supplied id would let anyone poison the logs.
+// a client-supplied id lets anyone poison the logs.
 func requestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var raw [8]byte
@@ -105,9 +105,9 @@ func logRequests(logger *slog.Logger) middleware {
 // costs one deferred function per request and turns "the site is down" into
 // "one page is broken, and here is the stack in the log".
 //
-// The body is public/500.html, the same file Rails served, because the panic
-// may well have come from the template layer and rendering a page to apologise
-// for a rendering failure is how one error becomes two.
+// The body is public/500.html, the same file Rails served. A panic can come
+// from the template layer, and rendering a page to apologize for a rendering
+// failure is how one error becomes two.
 func (s *Server) recoverPanics(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -116,7 +116,7 @@ func (s *Server) recoverPanics(next http.Handler) http.Handler {
 				return
 			}
 			// ErrAbortHandler is net/http's way for a handler to give up on a
-			// connection deliberately; the server already logs it, and it is
+			// connection deliberately. The server already logs it, and it is
 			// not a failure of ours.
 			if problem == http.ErrAbortHandler {
 				panic(problem)
@@ -142,11 +142,11 @@ const hstsHeader = "max-age=63072000; includeSubDomains"
 // strictTransportSecurity adds the header in production and nowhere else.
 //
 // There is no http-to-https redirect to go with it, and there was none in
-// Rails either: production.rb sets assume_ssl, so by the time a request
-// reaches the app kamal-proxy has already terminated TLS and the redirect
-// would never fire. Sending the header in development would be worse than
-// useless — a browser told that localhost is HTTPS-only stays told, for two
-// years, for every other project on the machine.
+// Rails either: production.rb sets assume_ssl. By the time a request reaches
+// the app, kamal-proxy has already terminated TLS, so a redirect never fires.
+// Sending the header in development is worse than useless. A browser told
+// that localhost is HTTPS-only stays told, for two years, for every other
+// project on the machine.
 func strictTransportSecurity(enabled bool) middleware {
 	return func(next http.Handler) http.Handler {
 		if !enabled {
@@ -166,11 +166,11 @@ func strictTransportSecurity(enabled bool) middleware {
 // rewrites the request before routing. The markup is unchanged here — it is
 // part of what the parity check compares — so the rewrite has to happen too.
 //
-// The rules are Rack's, and each of them matters: only a POST may be
-// overridden, because otherwise a GET link could be made to delete something;
-// only the form body is read, not a header or the query string, for the same
-// reason; and only the three methods a form could plausibly have meant are
-// accepted.
+// The rules are Rack's, and each of them matters. This overrides only a
+// POST, because otherwise someone can turn a GET link into one that deletes
+// something. It reads only the form body, not a header or the query string,
+// for the same reason. And it only accepts the three methods a form can
+// plausibly mean.
 func methodOverride(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -201,7 +201,7 @@ func methodOverride(next http.Handler) http.Handler {
 // crossOriginProtection is what replaces Rails' authenticity tokens.
 //
 // A token in every form was the old way to tell "this form was served by us"
-// from "this form is on someone else's page"; browsers now say so themselves,
+// from "this form is on someone else's page". Browsers now say so themselves,
 // in Sec-Fetch-Site, and net/http reads it. Safe methods pass — GET must not
 // change anything, which is the rule this depends on — and so do same-origin
 // requests, which is every fetch the Stimulus controllers make. The forms no

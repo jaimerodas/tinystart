@@ -21,8 +21,8 @@ func TestGroupCreate(t *testing.T) {
 }
 
 // The add-group form sits at the bottom of a column and sends no position, so
-// a new group has to land after the ones already there — and a position sent
-// by hand has to be ignored, since the column alone decides.
+// a new group lands after the ones already there. A position sent by hand
+// has to be ignored, because the column alone decides.
 func TestGroupCreateAppendsToTheEndOfItsColumn(t *testing.T) {
 	ts, user := startPageServer(t)
 	ts.newGroup(user.ID, "First", 2)
@@ -104,7 +104,7 @@ func TestGroupDestroyCompactsTheColumn(t *testing.T) {
 
 // --- turbo stream responses ---
 //
-// Every write is scoped to the smallest node that can have changed, so the
+// Every write is scoped to the smallest node that changed. So the
 // rest of the page — including any other form someone has open — stays put.
 
 func TestGroupCreateReplacesOnlyTheColumn(t *testing.T) {
@@ -147,8 +147,8 @@ func TestGroupUpdateReplacesOnlyTheGroup(t *testing.T) {
 	}
 }
 
-// A rejected rename shows the typed value in the form and the saved one in the
-// header: the header describes stored state, not an edit in flight.
+// A rejected rename shows the typed value in the form and the saved one in
+// the header. The header describes stored state, not an edit in flight.
 func TestGroupUpdateFailureKeepsTheFormOpenWithItsErrors(t *testing.T) {
 	ts, user := startPageServer(t)
 	ts.newGroup(user.ID, "Taken", 1)
@@ -225,9 +225,9 @@ func TestGroupMoveRefusesAColumnOffTheEndOfTheGrid(t *testing.T) {
 }
 
 // A move renumbers the column it left and the column it landed in, and nothing
-// else — so those are what get redrawn. Redrawing the whole grid would take
+// else — so those are what get redrawn. Redrawing the whole grid takes
 // #start_page_grid with it, and that node carries the drag and keyboard
-// controllers: replacing it drops the keyboard highlight on every move.
+// controllers. Replacing it drops the keyboard highlight on every move.
 func TestGroupMoveStreamsTheTwoColumnsAndNotTheGrid(t *testing.T) {
 	ts, user := startPageServer(t)
 	ts.newGroup(user.ID, "Already there", 2)
@@ -252,13 +252,13 @@ func TestGroupMoveWithinOneColumnStreamsThatColumnAlone(t *testing.T) {
 }
 
 // The failure branch used to answer 200 with a stream aimed at an id that is
-// rendered nowhere — so Turbo applied it to nothing and the client's
+// rendered nowhere. So Turbo applied it to nothing, and the client's
 // response.ok check passed. A failed move was silent from both ends.
 //
-// The client also moved the group before it asked, so a refusal that only says
-// so leaves the page showing a column the database does not have, and the next
-// move computes its index from that page. Only the columns that exist are
-// worth redrawing; the refused one is off the end of the grid.
+// The client also moved the group before it asked. A refusal that only says
+// so leaves the page showing a column the database does not have. The next
+// move then computes its index from that page. Only the columns that exist
+// are worth redrawing. The refused one is off the end of the grid.
 func TestGroupMoveRefusalAnswers422AndRedrawsWhatExists(t *testing.T) {
 	ts, user := startPageServer(t)
 	group := ts.newGroup(user.ID, "Test Group", 1)
@@ -280,7 +280,7 @@ func TestGroupMoveRefusalAnswers422AndRedrawsWhatExists(t *testing.T) {
 // --- scoping ---
 
 // An id that belongs to someone else is not "forbidden", it is "not there":
-// telling the two apart would confirm the group exists.
+// telling the two apart works as confirmation that the group exists.
 func TestGroupWritesAreScopedToTheSignedInUser(t *testing.T) {
 	ts, _ := startPageServer(t)
 	other := ts.createApprovedUser("two@example.com")

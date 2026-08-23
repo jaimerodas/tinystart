@@ -26,7 +26,7 @@ import (
 type moveParams map[string]string
 
 // readMoveParams decodes the request body by its Content-Type. A body that
-// claims to be JSON and is not is a request the page never made; it is
+// claims to be JSON and is not is a request the page never made. It is
 // reported so the handler can answer 400 rather than move something to
 // position zero.
 func readMoveParams(r *http.Request) (moveParams, error) {
@@ -54,7 +54,7 @@ func readMoveParams(r *http.Request) (moveParams, error) {
 		case string:
 			params[key] = v
 		case float64:
-			// JSON numbers decode as float64; a position is a small integer
+			// JSON numbers decode as float64. A position is a small integer
 			// and formats as one. Anything with a fraction is not a position,
 			// and Atoi in the handler refuses it the same way it refuses "x".
 			params[key] = strconv.FormatFloat(v, 'f', -1, 64)

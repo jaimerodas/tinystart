@@ -22,7 +22,7 @@ func TestAssetURLsCarryADigest(t *testing.T) {
 }
 
 // Two files with different contents have to get different URLs, or a deploy
-// would leave people on the old one.
+// leaves people on the old one.
 func TestTheDigestFollowsTheContents(t *testing.T) {
 	first, second := digest([]byte("a")), digest([]byte("b"))
 	if first == second {
@@ -51,7 +51,7 @@ func TestAssetsAreServedImmutably(t *testing.T) {
 }
 
 // A URL with the wrong digest is a 404 rather than a fallback to the current
-// file: a wrong digest means a stale page, and serving it anyway hides that.
+// file. A wrong digest means a stale page, and serving it anyway hides that.
 func TestAnUnknownAssetIsNotFound(t *testing.T) {
 	ts := newTestServer(t)
 
@@ -60,7 +60,7 @@ func TestAnUnknownAssetIsNotFound(t *testing.T) {
 }
 
 // The importmap has to name every controller, because stimulus-loading reads
-// it to decide what to eager-load: a controller missing from the map is a
+// it to decide what to eager-load. A controller missing from the map is a
 // controller that never registers.
 func TestTheImportmapNamesEveryModule(t *testing.T) {
 	assets, err := newAssets()

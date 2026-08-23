@@ -59,9 +59,9 @@ func (s *Server) handleGroupCreate() http.Handler {
 			return
 		}
 
-		// A form that sent no column at all would address a slot that does not
-		// exist, and Turbo applies a stream with no target to nothing — the
-		// error would vanish. Fall back to the first column, as Rails did.
+		// A form that sends no column at all addresses a slot that does not
+		// exist. Turbo applies a stream with no target to nothing, so the
+		// error vanishes. This falls back to the first column, as Rails did.
 		target := column
 		if raw == "" {
 			target = 1
@@ -270,14 +270,14 @@ func (s *Server) handleGroupMove() http.Handler {
 			return
 		}
 		// The client moved the group before it asked, so saying no is not
-		// enough: the columns have to be redrawn from what is actually stored,
-		// or the page keeps a placement the database never accepted and the
-		// next move takes its index from it.
+		// enough. This handler has to redraw the columns from what is
+		// actually stored. Otherwise the page keeps a placement the database
+		// never accepted, and the next move takes its index from it.
 		//
-		// Only the columns that exist, and in that order. A move is refused
-		// precisely when the column asked for is off the end of the grid, and
-		// there is no node on the page to redraw for a column the user has not
-		// got.
+		// Only the columns that exist, and in that order. The store refuses
+		// a move precisely when the column asked for is off the end of the
+		// grid. There is no node on the page to redraw for a column the
+		// user does not have.
 		streams := []streamAction{notice}
 		for _, number := range dedupe(source, column) {
 			if number < 1 || number > user.Columns {

@@ -114,8 +114,8 @@ func TestSearchDoesNotCallOutForABlankQuery(t *testing.T) {
 }
 
 // An object with no "links" key is a success with nothing in it, not a
-// failure: Rails' fetch("links", []) said the same, and the caller has to
-// clear a recorded failure on the strength of it.
+// failure. Rails' fetch("links", []) said the same. The caller has to clear
+// a recorded failure on the strength of it.
 func TestSearchTreatsABodyWithoutLinksAsEmpty(t *testing.T) {
 	server, _ := fake(t, http.StatusOK, `{"meta":{"total_items":0}}`)
 	client := NewClient(server.URL, "a-token", server.Client())
@@ -221,7 +221,7 @@ func TestSearchSurvivesATimeout(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	// A short injected timeout: the point is the shape of the failure, not
-	// the four seconds DefaultHTTPClient would really wait.
+	// the four seconds DefaultHTTPClient really waits.
 	client := NewClient(server.URL, "a-token", &http.Client{Timeout: 20 * time.Millisecond})
 
 	links, err := client.Search(t.Context(), "alpha")
@@ -252,7 +252,7 @@ func TestSearchSurvivesAnAppThatIsNotThere(t *testing.T) {
 	}
 }
 
-// A base URL with no host names nothing a person would recognise, so the
+// A base URL with no host names nothing a person can recognize, so the
 // messages fall back to "the connected app" the way Connection#hostname did.
 func TestFailuresNameTheConnectedAppWhenTheHostIsUnknown(t *testing.T) {
 	client := NewClient("links.example.com", "a-token", &http.Client{Timeout: time.Second})
@@ -331,8 +331,8 @@ func TestRecordVisitReportsAnUnreachableApp(t *testing.T) {
 	}
 }
 
-// The timeouts are the Ruby's, so a regression here would be a silent change
-// to how long the command bar can hang.
+// The timeouts are the Ruby's, so a regression here silently changes how
+// long the command bar can hang.
 func TestDefaultHTTPClientTimeout(t *testing.T) {
 	if timeout := DefaultHTTPClient().Timeout; timeout != 0 {
 		t.Errorf("Timeout = %v, want the transport to do the timing out", timeout)

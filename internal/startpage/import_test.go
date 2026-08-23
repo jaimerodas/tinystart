@@ -38,13 +38,14 @@ var samplePage = []string{
 	"2/1 Otras cosas: YouTube, LinkedIn",
 }
 
-// file wraps a body in a header whose counts are right for it, so that a test
-// about anything other than the header does not have to count for itself.
+// file wraps a body in a header whose counts are right for it. That way, a
+// test about anything other than the header does not have to count for
+// itself.
 func file(body string) string {
 	layout, err := Import([]byte("---\n" + body))
 	if err != nil {
-		// A test asking for a header on a file that does not parse wants the
-		// counts to be zero rather than an explosion.
+		// A test that asks for a header on a file that does not parse wants
+		// the counts to be zero rather than an explosion.
 		return "# test file\n# 0 columns, 0 groups, 0 tiles\n---\n" + body
 	}
 	counts := layout.Layout.Counts()
@@ -55,7 +56,7 @@ func file(body string) string {
 }
 
 // summarize renders a layout the way these tests talk about one: a line per
-// group, in the order they would be created.
+// group, in the order the importer creates them.
 func summarize(layout Layout) []string {
 	var lines []string
 	for _, column := range layout.Columns {
@@ -118,7 +119,7 @@ func TestImportReadsTheDocumentedFile(t *testing.T) {
 }
 
 // The same file as the Rails app's fixture, so that both halves of the rewrite
-// are reading the same bytes.
+// read the same bytes.
 func TestImportReadsTheFixtureFile(t *testing.T) {
 	source, err := os.ReadFile("testdata/start_page.yml")
 	if err != nil {
@@ -148,8 +149,8 @@ func TestImportKeepsAccentedNames(t *testing.T) {
 	assertPage(t, result.Layout, "1/0 Diseño: Tipografía")
 }
 
-// The single most likely way to get this wrong: iterating the values would put
-// "Right" in column 2 and shift the page left.
+// The single most likely way to get this wrong: iterating the values puts
+// "Right" in column 2 and shifts the page left.
 func TestImportReadsTheColumnFromTheKey(t *testing.T) {
 	result := imported(t, file(`1:
 - name: Left
@@ -196,7 +197,7 @@ func TestImportCoercesANumericTitle(t *testing.T) {
 }
 
 // The emitter keeps the last of two identical keys and says nothing, which is
-// the one kind of damage a hand edit does silently — the tile really is gone.
+// the one kind of damage a hand edit does silently. The tile really is gone.
 func TestImportCollapsesARepeatedTitle(t *testing.T) {
 	result := imported(t, "---\n1:\n- name: Group\n  items:\n    Same: https://a.example\n    Same: https://b.example\n")
 
@@ -288,9 +289,9 @@ func TestImportRefusals(t *testing.T) {
 			want:   emptyFile,
 		},
 		{
-			// `1: []` is a mapping with a column in it and no groups anywhere:
-			// a legal instruction to delete the page, which is never what
-			// picking a file meant.
+			// `1: []` is a mapping with a column in it and no groups anywhere.
+			// That is a legal instruction to delete the page, which is never
+			// what picking a file meant.
 			name:   "a column that holds no groups",
 			source: "1: []\n",
 			want:   emptyFile,
@@ -333,8 +334,8 @@ func TestImportRefusals(t *testing.T) {
 	}
 }
 
-// The counts are a check on a file that offers them, not a requirement — and
-// the check has to survive everything that can sit above them.
+// The counts are a check on a file that offers them, not a requirement. The
+// check has to survive everything that can sit above them.
 func TestImportHeaderCountWarning(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -342,7 +343,7 @@ func TestImportHeaderCountWarning(t *testing.T) {
 		want   string
 	}{
 		{
-			// The tile really is gone; noticing is the whole point.
+			// The tile really is gone. Noticing is the whole point.
 			name: "a collapsed duplicate title",
 			source: "# 1 column, 1 group, 2 tiles\n---\n1:\n- name: Group\n  items:\n" +
 				"    Same: https://a.example\n    Same: https://b.example\n",
@@ -350,7 +351,7 @@ func TestImportHeaderCountWarning(t *testing.T) {
 				"and 1 tile came in — expected if you edited the file, worth a look if you didn't.",
 		},
 		{
-			// It cannot be a refusal: deleting a tile by hand lowers the count
+			// It cannot be a refusal. Deleting a tile by hand lowers the count
 			// in exactly the way a collapsed key does, and the file cannot say
 			// which happened.
 			name: "a hand edit that removed a tile",
@@ -373,7 +374,7 @@ func TestImportHeaderCountWarning(t *testing.T) {
 		},
 		{
 			// A byte order mark ends the leading run of comments on its first
-			// line, and this check is the only thing that sees a collapsed key.
+			// line. This check is the only thing that sees a collapsed key.
 			name: "a byte order mark above the header",
 			source: "\ufeff# 1 column, 1 group, 2 tiles\n---\n1:\n- name: Group\n  items:\n" +
 				"    Same: https://a.example\n    Same: https://b.example\n",

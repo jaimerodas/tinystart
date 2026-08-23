@@ -3,14 +3,14 @@
 // The browser suite: the four Capybara system tests, ported to chromedp.
 //
 // Everything else in this package drives the app with an http.Client, which
-// proves what the server answers and nothing about what the page does with the
-// answer. That gap shipped a real bug — the editor's moves are sent by
-// lib/start_page_moves.js as a JSON body, and the handlers only read form
-// values — so these tests drive the page the way the page drives itself: real
-// Chrome, real keystrokes, real fetches, and the database read afterwards.
+// proves what the server answers, not what the page does with it. That gap
+// shipped a real bug. lib/start_page_moves.js sends the
+// editor's moves as a JSON body, and the handlers only read form values. So
+// these tests drive the page the way the page drives itself: real Chrome,
+// real keystrokes, real fetches, and the database read afterwards.
 //
 // They are behind a build tag because they need Chrome on the machine. `go
-// test ./...` never sees them; script/test runs them when it finds Chrome.
+// test ./...` never sees them. script/test runs them when it finds Chrome.
 //
 // This file is the harness. The helpers are named after the Capybara ones they
 // replace — visit, fillIn, clickOn, sendKeys, assertSelector — so a reader with
@@ -37,11 +37,11 @@ import (
 )
 
 // One Chrome for the whole test binary, and a tab per test. Starting a browser
-// costs the better part of a second; starting a tab costs milliseconds.
+// costs the better part of a second. Starting a tab costs milliseconds.
 //
-// The allocator is torn down by TestMain through the closeBrowser hook, which
-// is the only cleanup that runs after the last test — t.Cleanup would take the
-// browser down with whichever test happened to open it first.
+// TestMain tears down the allocator through the closeBrowser hook, which is
+// the only cleanup that runs after the last test. t.Cleanup ties the browser
+// to whichever test happens to open it first, not to the last one.
 var (
 	browserOnce sync.Once
 	browserCtx  context.Context
@@ -54,17 +54,17 @@ func sharedBrowser(t *testing.T) context.Context {
 		options := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 		options = append(options,
 			// The viewport the Rails system tests ran at. The editor is a
-			// desktop grid and the arrow keys cross columns geometrically, so
-			// a narrow window would change what "the row beside this one" is.
+			// desktop grid, and the arrow keys cross columns geometrically. A
+			// narrow window changes what "the row beside this one" is.
 			chromedp.WindowSize(1400, 1400),
 			// Nothing outside this machine has any business being fetched:
 			// the layout links Google Fonts, and a tile can point anywhere.
-			// Failing to resolve is instant; waiting for a timeout is not.
+			// Failing to resolve is instant. Waiting for a timeout is not.
 			chromedp.Flag("host-resolver-rules", "MAP * ~NOTFOUND, EXCLUDE 127.0.0.1"),
 			// Chrome's sandbox needs unprivileged user namespaces, which
 			// Ubuntu 24.04 — the GitHub Actions runner — turns off, and Chrome
 			// then refuses to start at all ("No usable sandbox!"). This is a
-			// throwaway headless browser pointed at localhost; the sandbox
+			// throwaway headless browser pointed at localhost. The sandbox
 			// protects nothing here.
 			chromedp.NoSandbox,
 		)
@@ -73,11 +73,11 @@ func sharedBrowser(t *testing.T) context.Context {
 		}
 
 		allocator, cancelAllocator := chromedp.NewExecAllocator(context.Background(), options...)
-		// The error log is dropped: chromedp reports every CDP event it has no
-		// handler for as an error, and opening the ? dialog emits a stream of
-		// dom.EventTopLayerElementsUpdated. Nothing an action returns comes
-		// through here — Run answers with its own error — so the only thing
-		// lost is that noise.
+		// WithErrorf drops the error log. chromedp reports every CDP event it
+		// has no handler for as an error, and opening the ? dialog emits a
+		// stream of dom.EventTopLayerElementsUpdated. Nothing an action
+		// returns comes through here — Run answers with its own error — so
+		// the only thing lost is that noise.
 		ctx, cancelBrowser := chromedp.NewContext(allocator, chromedp.WithErrorf(func(string, ...any) {}))
 		// Run with no actions starts the browser, so a machine without Chrome
 		// fails here with a plain message rather than inside the first test.
@@ -109,9 +109,9 @@ func chromePath() string {
 	return ""
 }
 
-// browserTimeout bounds every test. Generous, because a first paint includes
-// compiling the app's JavaScript; bounded, because a wait that hangs should
-// fail the run rather than stall it.
+// browserTimeout bounds every test. It is generous, because a first paint
+// includes compiling the app's JavaScript. It is bounded, because a wait
+// that hangs must fail the run rather than stall it.
 const browserTimeout = 30 * time.Second
 
 // waitTimeout is what an assertion waits for a page to catch up — Capybara's
@@ -150,7 +150,7 @@ func newBrowserPage(t *testing.T) *browserPage {
 
 	// Opening the tab here rather than lazily means the first navigation of a
 	// test is not also paying for the target to be created. Bringing it to the
-	// front is not cosmetic in a headless browser: a background tab is not the
+	// front is not cosmetic in a headless browser. A background tab is not the
 	// focused document, and autofocus — which is how the command bar gets the
 	// caret — is skipped for one.
 	if err := chromedp.Run(ctx, page.BringToFront()); err != nil {
@@ -170,8 +170,8 @@ func startPageBrowser(t *testing.T) (*browserPage, *store.User) {
 	return p, user
 }
 
-// listen watches for the two things a browser says that a test would otherwise
-// have to guess at from a timeout: a confirm dialog waiting for an answer, and
+// listen watches for two things a browser says. Otherwise a test has to
+// guess at them from a timeout: a confirm dialog waiting for an answer, and
 // an exception nobody caught.
 func (p *browserPage) listen() {
 	chromedp.ListenTarget(p.ctx, func(event any) {
@@ -184,7 +184,7 @@ func (p *browserPage) listen() {
 			// In a goroutine: answering is itself a CDP call, and making one
 			// from inside the event handler deadlocks the connection.
 			go func() {
-				//nolint:errcheck // the tab may be closing; nothing to do here
+				//nolint:errcheck // the tab can already be closed. Nothing to do here
 				chromedp.Run(p.ctx, page.HandleJavaScriptDialog(accept))
 			}()
 		case *runtime.EventExceptionThrown:
@@ -194,9 +194,9 @@ func (p *browserPage) listen() {
 		}
 	})
 
-	// Reported at the end rather than as they happen: a test that has already
-	// failed is easier to read with the cause underneath it, and a test that
-	// passed with an exception on the page has not really passed.
+	// Reported at the end rather than as they happen: a test that already
+	// failed is easier to read with the cause underneath it. A test that
+	// passed with an exception on the page did not really pass.
 	p.t.Cleanup(func() {
 		p.mu.Lock()
 		defer p.mu.Unlock()
@@ -229,7 +229,7 @@ func (p *browserPage) currentPath() string {
 }
 
 // signIn goes through the form, which is the only way a browser gets a session
-// cookie — and is itself one of the things worth proving works.
+// cookie — and is one of the things worth proving works.
 func (p *browserPage) signIn(email string) {
 	p.t.Helper()
 	p.visit("/session/new")
@@ -237,12 +237,12 @@ func (p *browserPage) signIn(email string) {
 	p.fillIn("#password", testPassword)
 	p.click(`input[value="Sign in"]`)
 	// Wait on the page it lands on rather than on the absence of the one it
-	// left: the start page is what everything after this assumes.
+	// left. The start page is what everything after this assumes.
 	p.assertSelector("main.start-page")
 }
 
 // click is a real mouse click at the element's own coordinates, not
-// element.click(): a pointer click is what decides :focus-visible, and one of
+// element.click(). A pointer click is what decides :focus-visible, and one of
 // the ported tests turns on exactly that difference.
 func (p *browserPage) click(selector string) {
 	p.t.Helper()
@@ -274,10 +274,10 @@ func (p *browserPage) clickOn(scope, label string) {
 	p.eval(`document.querySelectorAll("[data-test-click]").forEach(n => delete n.dataset.testClick)`, nil)
 }
 
-// fillIn is Capybara's fill_in. The field is selected before it is typed into,
-// so typing replaces what was there — and the typing is real key events, which
-// is what the command bar's input listener and the inline forms' Esc handler
-// need.
+// fillIn is Capybara's fill_in. It selects the field before typing into it,
+// so the typing replaces what was there. The typing is real key events,
+// which is what the command bar's input listener and the inline forms' Esc
+// handler need.
 func (p *browserPage) fillIn(selector, value string) {
 	p.t.Helper()
 	p.assertSelector(selector)
@@ -300,9 +300,9 @@ func (p *browserPage) fillIn(selector, value string) {
 }
 
 // selectOption is Capybara's select … from: — the value, and the change event
-// a person picking one produces. Not a click: clicking a <select> opens a menu
-// the page cannot see into, and the toolbar's picker submits on change, which
-// is the whole of the interaction.
+// that a person produces by picking one. Not a click: clicking a <select>
+// opens a menu the page cannot see into. The toolbar's picker submits on
+// change, which is the whole of the interaction.
 func (p *browserPage) selectOption(selector, value string) {
 	p.t.Helper()
 	p.assertSelector(selector)
@@ -319,15 +319,15 @@ func (p *browserPage) selectOption(selector, value string) {
 }
 
 // fillInLabelled is fill_in by accessible name, which is how the editor's
-// forms are addressed: every field in them carries an aria-label rather than a
-// visible <label>.
+// forms are addressed. Every field in them carries an aria-label rather than
+// a visible <label>.
 func (p *browserPage) fillInLabelled(scope, label, value string) {
 	p.t.Helper()
 	p.fillIn(fmt.Sprintf(`%s [aria-label="%s"]`, scope, label), value)
 }
 
 // sendKeys types at whatever holds focus, which is what the grid's keyboard
-// model is entirely about. kb has a constant for the named keys; a plain
+// model is entirely about. kb has a constant for the named keys. A plain
 // string is typed as characters.
 func (p *browserPage) sendKeys(keys ...string) {
 	p.t.Helper()
@@ -336,14 +336,14 @@ func (p *browserPage) sendKeys(keys ...string) {
 	}
 }
 
-// chord is ⌥ held over a physical key. event.code, not event.key: on a Mac ⌥E
-// is a dead key and ⌥S is ß, so the character a chord produces says nothing
-// about the key that was pressed — and start_shortcuts_controller matches on
-// the code for that reason.
+// chord is ⌥ held over a physical key: event.code, not event.key. On a Mac,
+// ⌥E is a dead key and ⌥S is ß, so the character a chord produces says
+// nothing about the pressed key. start_shortcuts_controller matches on the
+// code for that reason.
 //
-// The character the chord would type is sent with it, so that "swallowed on
-// the page it cannot act on" is a real question: Chrome inserts the text of a
-// keyDown unless something calls preventDefault, exactly as it would for
+// The character the chord types is sent with it, so that "swallowed on the
+// page it cannot act on" is a real question. Chrome inserts the text of a
+// keyDown unless something calls preventDefault, exactly as it does for
 // somebody's actual fingers.
 func (p *browserPage) chord(code string, keyCode int64, text string) {
 	p.t.Helper()
@@ -368,7 +368,7 @@ func (p *browserPage) chord(code string, keyCode int64, text string) {
 }
 
 // The two chords the page answers to, with what a Mac keyboard puts under
-// them: ⌥E is a dead accent that types nothing on its own, ⌥S is ß.
+// them. ⌥E is a dead accent that types nothing on its own, ⌥S is ß.
 func (p *browserPage) altE() { p.chord("KeyE", 69, "") }
 func (p *browserPage) altS() { p.chord("KeyS", 83, "ß") }
 
@@ -387,7 +387,7 @@ func (p *browserPage) confirmed() []string {
 	return append([]string(nil), p.confirmSeen...)
 }
 
-// waitForConfirm waits until the browser has asked, and answers with the
+// waitForConfirm waits until the browser asks, and answers with the
 // message it asked. Declining is the case that needs it: nothing happens
 // afterwards, so there is no render to wait on instead.
 func (p *browserPage) waitForConfirm(count int) []string {
@@ -478,8 +478,8 @@ func (p *browserPage) count(selector string) int {
 //
 // Capybara retries an assertion until it holds or the wait runs out, which is
 // what makes a test against an asynchronous page readable. These do the same,
-// by asking the page rather than by sleeping: every one of them is a
-// predicate, polled, with the failure naming what it was waiting for.
+// by asking the page rather than by sleeping. Every one of them is a
+// predicate, polled, with the failure that names what it waited for.
 
 func (p *browserPage) waitFor(condition, describe string) {
 	p.t.Helper()
@@ -514,8 +514,9 @@ func (p *browserPage) assertPresent(selector string) {
 	p.waitFor(fmt.Sprintf(`document.querySelector(%q)`, selector), "a "+selector)
 }
 
-// assertText is assert_selector text: — any match saying it, since a group has
-// several .item-title rows and the one being waited for is rarely the first.
+// assertText is assert_selector text: — a match saying it. Because a group
+// has several .item-title rows, the one the test waits for is rarely the
+// first.
 func (p *browserPage) assertText(selector, want string) {
 	p.t.Helper()
 	p.waitFor(textExpression(selector, want), fmt.Sprintf("%s to say %q", selector, want))
@@ -551,8 +552,8 @@ func (p *browserPage) assertCountNow(selector string, want int) {
 
 // waitForDB polls the database rather than the DOM. Every write on the editor
 // is a fetch the page does not wait for, so "the page shows it" and "the
-// server stored it" are two different moments — and the second is the one
-// these tests are for.
+// server stored it" are two different moments. The second is the one these
+// tests are for.
 func (p *browserPage) waitForDB(describe string, holds func() bool) {
 	p.t.Helper()
 	deadline := time.Now().Add(waitTimeout)
@@ -620,20 +621,20 @@ func (p *browserPage) assertFocusedRow(want string) {
 // === DRAG AND DROP ===
 
 // dragTo is the pointer's way to reorder, driven the only way it can be
-// driven: HTML5 drag and drop does not start from synthesised mouse events —
+// driven. HTML5 drag and drop does not start from synthesised mouse events.
 // Chrome begins a drag inside the browser process, out of reach of
-// Input.dispatchMouseEvent — which is why the Rails suite left dragging to be
+// Input.dispatchMouseEvent. That is why the Rails suite left dragging to be
 // checked by hand. Capybara's own drag_to has the same problem and solves it
-// the same way: dispatch the DragEvents the page listens for, with a real
-// DataTransfer, on the real handle and drop zone.
+// the same way. It dispatches the DragEvents the page listens for, with a
+// real DataTransfer, on the real handle and drop zone.
 //
 // What that leaves unproven is narrow and unchanged from Rails: the browser's
 // own decision to begin a drag from a mousedown on a draggable handle.
 // Everything after that — the parting list, the insertion point, the POST and
 // what it stores — is exactly what the page runs.
 //
-// atTop aims the cursor at the top edge of the zone rather than the bottom,
-// which is what drag_drop_controller reads to decide where in the list the
+// atTop aims the cursor at the top edge of the zone rather than the bottom.
+// That is what drag_drop_controller reads to decide where in the list the
 // node lands.
 func (p *browserPage) dragTo(handleSelector, zoneSelector string, atTop bool) {
 	p.t.Helper()
@@ -678,9 +679,10 @@ func dropY(atTop bool) string {
 // any match that is in the document and actually rendered.
 //
 // checkVisibility rather than offsetParent, because a modal <dialog> is
-// position: fixed and has no offsetParent while being very much on screen; and
-// checkVisibilityCSS because the drag handles withdraw with visibility: hidden,
-// which the default check counts as visible and a reader would not.
+// position: fixed and has no offsetParent while it is very much on screen.
+// And checkVisibilityCSS, because the drag handles withdraw with
+// visibility: hidden, which the default check counts as visible but a
+// reader does not.
 func visibleExpression(selector string) string {
 	return fmt.Sprintf(`[...document.querySelectorAll(%q)]
 		.some(node => node.checkVisibility({ checkVisibilityCSS: true }))`, selector)
@@ -704,8 +706,8 @@ func scopeDescription(scope string) string {
 }
 
 // The selectors for the nodes the editor names. The ids are the ones the
-// Turbo Streams target and the keyboard controller focuses by, so a test that
-// addresses a row this way is addressing exactly what the app addresses.
+// Turbo Streams target and the keyboard controller focuses by. A test that
+// addresses a row this way addresses exactly what the app addresses.
 func itemSel(item *store.Item) string    { return "#" + itemDOMID(item.ID) }
 func groupSel(group *store.Group) string { return "#" + groupDOMID(group.ID) }
 func newItemSel(groupID int64) string    { return "#" + newItemDOMID(groupID) }
@@ -750,8 +752,8 @@ func (p *browserPage) groupPositions(userID int64, column int) []int {
 	return found
 }
 
-// groupNamed and itemNamed find the row a form on the page just created,
-// which is the only way a test learns the id of something it did not make
+// groupNamed and itemNamed find the row a form on the page just created.
+// That is the only way a test learns the id of something it did not make
 // itself.
 func (p *browserPage) groupNamed(userID int64, column int, name string) *store.Group {
 	p.t.Helper()
@@ -783,8 +785,8 @@ func (p *browserPage) itemNamed(groupID int64, title string) *store.Item {
 	return nil
 }
 
-// assertFieldValue is Capybara's assert_field … with: — what a field is
-// holding, which after a rejected save is the whole question.
+// assertFieldValue is Capybara's assert_field … with: — what a field holds,
+// which after a rejected save is the whole question.
 func (p *browserPage) assertFieldValue(scope, label, want string) {
 	p.t.Helper()
 	selector := fmt.Sprintf(`%s [aria-label="%s"]`, scope, label)

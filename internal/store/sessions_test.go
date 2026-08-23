@@ -106,12 +106,12 @@ func TestDeleteSession(t *testing.T) {
 	assertNotFound(t, err)
 
 	// Signing out of a session that is already gone is not an error the page
-	// could do anything with, but it is not a silent success either.
+	// can do anything with. It is not a silent success either.
 	assertNotFound(t, db.DeleteSession(t.Context(), session.ID))
 }
 
-// Sessions are tidied when someone signs in, so the table cannot grow without
-// bound and there is no cron job to forget about.
+// The app tidies sessions when someone signs in, so the table cannot grow
+// without bound and there is no cron job to forget about.
 func TestDeleteExpiredSessions(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")

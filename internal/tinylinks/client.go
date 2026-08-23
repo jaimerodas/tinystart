@@ -18,9 +18,9 @@ import (
 const MaxResults = 10
 
 // Link is one result, trimmed to what the command bar renders. The other app
-// sends a description, tags and a visit count with each one; none of them are
-// shown, and dropping them here is what keeps /search.json the shape the
-// browser already expects.
+// sends a description, tags, and a visit count with each one. This package
+// does not show them, and dropping them here keeps /search.json the shape
+// the browser already expects.
 //
 // The tags are the JSON the browser receives, not the JSON the other app
 // sends, because this struct is handed straight to the search endpoint's
@@ -53,9 +53,9 @@ func NewClient(baseURL, token string, httpClient *http.Client) *Client {
 
 	base, err := url.Parse(baseURL)
 	if err != nil {
-		// A base URL that will not parse cannot be reached either, and the
+		// A base URL that does not parse cannot be reached either. The
 		// request built from the empty one below fails with a message that
-		// names "the connected app" — which is what Rails said when
+		// names "the connected app". Rails said the same thing when
 		// Connection#hostname came back nil.
 		base = &url.URL{}
 	}
@@ -63,14 +63,14 @@ func NewClient(baseURL, token string, httpClient *http.Client) *Client {
 	return &Client{base: base, token: token, host: hostLabel(base), http: httpClient}
 }
 
-// Search asks the other app for links matching query, capped at MaxResults and
-// in the order it returned them.
+// Search asks the other app for links that match query, capped at MaxResults
+// and in the order it returned them.
 //
-// The error is the whole outcome: a *StatusError when the app answered and
-// said no, a wrapped transport error when it did not answer, ErrEmptyQuery
-// when there was nothing to ask. A nil error means the credential works, which
-// is what clears a recorded failure. Any error at all means show no federated
-// results — never a broken command bar.
+// The error is the whole outcome. It is a *StatusError when the app answered
+// and said no. It is a wrapped transport error when it did not answer. It is
+// ErrEmptyQuery when there was nothing to ask. A nil error means the
+// credential works, which is what clears a recorded failure. Any error at all
+// means show no federated results — never a broken command bar.
 func (c *Client) Search(ctx context.Context, query string) ([]Link, error) {
 	if strings.TrimSpace(query) == "" {
 		return nil, ErrEmptyQuery
@@ -94,13 +94,13 @@ func (c *Client) Search(ctx context.Context, query string) ([]Link, error) {
 		return nil, fmt.Errorf("%s returned something that isn't JSON: %w", c.host, err)
 	}
 
-	// per_page above already asks for ten. This is the other app keeping its
-	// side of that bargain, checked rather than trusted.
+	// per_page above already asks for ten. This is the other app that keeps
+	// its side of that bargain, checked rather than trusted.
 	return envelope.Links[:min(len(envelope.Links), MaxResults)], nil
 }
 
 // RecordVisit forwards a click on a federated result to the app the link
-// belongs to. Fire and forget: the browser has already navigated away, and
+// belongs to. Fire and forget: the browser already navigated away, and
 // nothing on either side waits for this.
 //
 // linkID is a string because it arrives as one, from the query string the
@@ -117,7 +117,7 @@ func (c *Client) RecordVisit(ctx context.Context, linkID string) error {
 }
 
 // do makes the request and returns the body of a successful reply. Every
-// failure it can see becomes an error; the callers turn those into empty
+// failure it can see becomes an error. The callers turn those into empty
 // results.
 func (c *Client) do(ctx context.Context, method, path string, params url.Values) ([]byte, error) {
 	// ResolveReference against an absolute path is Ruby's URI.join: a base URL
@@ -153,8 +153,8 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values)
 }
 
 // unreachable wraps a transport failure in the sentence Rails logged for it.
-// The distinction between the two is worth keeping: a timeout is the other app
-// being slow, everything else is it not being there.
+// The distinction between the two is worth keeping: a timeout means the other
+// app is slow. Anything else means the app is not there at all.
 func (c *Client) unreachable(err error) error {
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
@@ -163,8 +163,8 @@ func (c *Client) unreachable(err error) error {
 	return fmt.Errorf("could not reach %s: %w", c.host, err)
 }
 
-// hostLabel is Connection#hostname: what the messages call the other end. They
-// are read by a person — on the start page for a rejected token, in the log
+// hostLabel is Connection#hostname: what the messages call the other end. A
+// person reads them — on the start page for a rejected token, in the log
 // otherwise — so they name the host rather than a product.
 func hostLabel(base *url.URL) string {
 	if host := base.Hostname(); host != "" {

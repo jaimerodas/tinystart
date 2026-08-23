@@ -10,7 +10,7 @@ import (
 )
 
 // TestMain turns the hashing cost down for the whole package. Rails does the
-// same thing in its test environment, for the same reason: at the real cost a
+// same thing in its test environment, for the same reason. At the real cost a
 // single sign-up takes a quarter of a second, and these tests create dozens of
 // accounts. TestCreateUserHashesAtRailsCost puts it back for the one test that
 // cares what the cost actually is.
@@ -19,9 +19,9 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// newTestDB is a migrated, empty database in a temporary directory. A file
-// rather than :memory:, because the file is what production has and because
-// WAL, busy_timeout and the rest only mean anything on one.
+// newTestDB is a migrated, empty database in a temporary directory. It uses a
+// file rather than :memory:, because the file is what production has. WAL,
+// busy_timeout and the rest only mean anything on one.
 func newTestDB(t *testing.T) *DB {
 	t.Helper()
 
@@ -38,7 +38,7 @@ func newTestDB(t *testing.T) *DB {
 }
 
 // newUser signs someone up with a three-column grid, which is what the Rails
-// fixtures gave users(:one) and users(:two): the group and tile tests need
+// fixtures gave users(:one) and users(:two). The group and tile tests need
 // somewhere to move things to.
 func newUser(t *testing.T, db *DB, email string) *User {
 	t.Helper()
@@ -74,7 +74,7 @@ func newItem(t *testing.T, db *DB, userID, groupID int64, title, url string) *It
 	return item
 }
 
-// groupNames is the column as the page would draw it.
+// groupNames is the column in the order the page draws it.
 func groupNames(t *testing.T, db *DB, userID int64, column int) []string {
 	t.Helper()
 
@@ -133,9 +133,9 @@ func itemPositions(t *testing.T, db *DB, groupID int64) []int {
 	return positions
 }
 
-// assertInvalid is the shape almost every refusal is checked in: the error has
-// to be a ValidationError, and its full messages have to be exactly the ones
-// the page used to print. Comparing the whole list rather than "contains" is
+// assertInvalid is the shape almost every refusal test uses. The error has to
+// be a ValidationError, and its full messages have to be exactly the ones the
+// page used to print. Comparing the whole list rather than "contains" is
 // deliberate — the editor joins them with ", ", so an extra message is a
 // changed page.
 func assertInvalid(t *testing.T, err error, want ...string) {
@@ -191,9 +191,9 @@ func assertEqualInts(t *testing.T, got, want []int) {
 }
 
 // totalChanges is SQLite's count of rows inserted, updated or deleted on this
-// connection. The store keeps one connection, so the number is stable, which
-// is what makes "this operation writes nothing" a testable claim rather than
-// an assertion about the implementation.
+// connection. The store keeps one connection, so the number is stable. That is
+// what makes "this operation writes nothing" a testable claim rather than an
+// assertion about the implementation.
 func totalChanges(t *testing.T, db *DB) int {
 	t.Helper()
 

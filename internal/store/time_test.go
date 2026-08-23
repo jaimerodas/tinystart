@@ -6,8 +6,8 @@ import (
 )
 
 // ActiveRecord appends ".%06d" only when the microseconds are non-zero. Both
-// shapes are on disk in production, and anything written here has to make the
-// same choice or the two images disagree about the same row.
+// shapes are on disk in production. Anything written here has to make the
+// same choice, or the two images disagree about the same row.
 func TestRailsTimeValue(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -98,9 +98,9 @@ func TestRailsTimeScanRejectsWhatItCannotRead(t *testing.T) {
 	}
 }
 
-// The round trip is what matters in the end: a timestamp written by the store
-// and read back has to be the same instant, and the text in between has to be
-// the text Rails would have written.
+// The round trip is what matters in the end. A timestamp written by the store
+// and read back has to be the same instant. The text in between has to match
+// the text Rails writes for it.
 func TestRailsTimeRoundTripsThroughTheDatabase(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -143,7 +143,7 @@ func TestRailsTimeRoundTripsThroughTheDatabase(t *testing.T) {
 	}
 }
 
-// SQLite has no boolean type, and a driver left to itself might store the text
+// SQLite has no boolean type, and a driver left to itself can store the text
 // "true". Rails stores 1 and 0, and so does this.
 func TestBooleansAreStoredAsRailsStoresThem(t *testing.T) {
 	db := newTestDB(t)

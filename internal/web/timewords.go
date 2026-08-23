@@ -11,10 +11,10 @@ import (
 // Connections says how long a token has left.
 //
 // It lives here rather than in a package of its own because it is a view
-// concern and nothing else needs it. The thresholds and the wording are Rails'
-// own, down to the odd ones — "about 1 hour" covers forty-five minutes to an
-// hour and a half, and a month is always thirty days — because the point is to
-// say what the deployed app says, not to say it better.
+// concern and nothing else needs it. The thresholds and the wording are
+// Rails' own, down to the odd ones. "About 1 hour" covers forty-five
+// minutes to an hour and a half, and a month is always thirty days. The
+// point is to say what the deployed app says, not to say it better.
 
 // The boundaries, in minutes, exactly as date_helper.rb writes them.
 const (
@@ -61,7 +61,7 @@ func distanceOfTimeInWords(from, to time.Time) string {
 		return count(divRound(minutes, 43200), "month")
 	}
 
-	// A year is 525600 minutes here, so a span full of leap days would creep:
+	// A year is 525600 minutes here, so a span full of leap days creeps:
 	// eighty years of them is nearly three months. Rails discounts the leap
 	// days inside the span before dividing, which is why this branch is the
 	// only one that has to look at the calendar.

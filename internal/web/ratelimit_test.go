@@ -50,7 +50,7 @@ func TestLimiterStartsAFreshWindow(t *testing.T) {
 	}
 }
 
-// The map must not grow forever. Nothing prunes it on a timer; the next
+// The map must not grow forever. Nothing prunes it on a timer. The next
 // request past a stale entry drops it.
 func TestLimiterForgetsOldWindows(t *testing.T) {
 	clock := &testClock{now: time.Unix(0, 0)}
@@ -67,8 +67,8 @@ func TestLimiterForgetsOldWindows(t *testing.T) {
 	}
 }
 
-// The limiter is shared by every request goroutine, so it has to be safe for
-// them. -race is what makes this test worth anything.
+// Every request goroutine shares the limiter, so it has to be safe for them.
+// -race is what makes this test worth anything.
 func TestLimiterIsSafeForConcurrentUse(t *testing.T) {
 	l := newLimiter(100, time.Minute, time.Now)
 

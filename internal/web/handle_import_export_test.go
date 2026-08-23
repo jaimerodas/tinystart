@@ -126,9 +126,9 @@ func TestExportSendsThePageAsAYamlAttachment(t *testing.T) {
 }
 
 // The date is the application's, not the machine's. Rails dated the file with
-// Date.current in UTC; an export made at eight in the evening in Mexico City
-// is dated the next day, and a file whose name and header disagreed with the
-// one Rails wrote would break the format's one promise.
+// Date.current in UTC. An export made at eight in the evening in Mexico City
+// is dated the next day. A file whose name and header disagreed with the one
+// Rails wrote breaks the format's one promise.
 func TestExportDatesTheFileInUTC(t *testing.T) {
 	ts, _ := settingsServer(t)
 	ts.clock.set(time.Date(2026, 8, 15, 20, 0, 0, 0, time.FixedZone("CST", -6*60*60)))
@@ -208,7 +208,7 @@ func TestImportRefusals(t *testing.T) {
 			"That file isn&#39;t valid UTF-8 text."},
 		{"a file whose tile has no URL", []byte("1:\n- name: Broken\n  items:\n    Bare: example.com\n"),
 			// html/template writes a double quote as &#34; where ERB wrote
-			// &quot;; the same character, and the same DOM.
+			// &quot; — the same character, and the same DOM.
 			"Nothing was imported: the link &#34;Bare&#34; (example.com) in &#34;Broken&#34; was rejected: Url must be a valid URL"},
 		{"a file with no groups in it", []byte("1: []\n"),
 			"Nothing was imported: that file has no groups in it"},
@@ -241,8 +241,8 @@ func TestImportWithNoFileAtAll(t *testing.T) {
 
 // The warning rides along with the success: the import happened, and the
 // counts in the file's header did not describe what arrived. It cannot be a
-// refusal — a tile deleted by hand lowers the count exactly as a collapsed
-// duplicate key does, and refusing would block the workflow the format is for.
+// refusal. A tile deleted by hand lowers the count exactly as a collapsed
+// duplicate key does, and refusing blocks the workflow the format is for.
 func TestImportReportsAHeaderThatNoLongerMatches(t *testing.T) {
 	ts, _ := settingsServer(t)
 	body := bytes.Replace(fixtureFile(t),
@@ -269,7 +269,7 @@ func TestAFileItExportedImportsAgainUnchanged(t *testing.T) {
 }
 
 // The real data is in Spanish, so an upload that arrives mangled is worth
-// catching at the door — and one that arrives intact has to stay intact.
+// catching at the door. And one that arrives intact has to stay intact.
 func TestImportKeepsAccents(t *testing.T) {
 	ts, user := settingsServer(t)
 
@@ -278,8 +278,9 @@ func TestImportKeepsAccents(t *testing.T) {
 	assertPageIs(t, ts.page(user.ID), []string{"1/Diseño/Tipografía"})
 }
 
-// A body larger than the cap never reaches memory: the reader is capped as
-// well as the field, so the refusal happens while it is still arriving.
+// A body larger than the cap never reaches memory. The reader is capped as
+// well as the field, so the refusal happens before the upload finishes
+// arriving.
 func TestImportDoesNotReadAnEnormousBody(t *testing.T) {
 	ts, _ := settingsServer(t)
 

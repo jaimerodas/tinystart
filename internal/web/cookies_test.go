@@ -11,8 +11,8 @@ func TestSignedValuesRoundTrip(t *testing.T) {
 	s := newBareServer(t)
 
 	// The last two are the reason the value is encoded before it goes into
-	// the cookie: net/http silently drops a byte a cookie may not carry, so
-	// either of them would come back changed and fail to verify.
+	// the cookie. net/http silently drops a byte a cookie cannot carry, so
+	// either of them comes back changed and fails the check.
 	for _, value := range []string{
 		"", "42", "alert:Try another email address or password.", "/start/edit?x=1",
 		`alert:Nothing was imported: the link "Bare" (example.com) was rejected`,
@@ -55,7 +55,7 @@ func TestATamperedValueIsRefused(t *testing.T) {
 }
 
 // The cookie's name is mixed into the signature, so a value lifted out of one
-// cookie and dropped into another does not verify — a flash message presented
+// cookie and dropped into another fails the check. A flash message presented
 // as a session id, say.
 func TestASignatureIsOnlyValidForItsOwnCookie(t *testing.T) {
 	s := newBareServer(t)
@@ -127,9 +127,9 @@ func TestTheFlashIsShownOnceAndThenGone(t *testing.T) {
 	ts.get("/session/new").assertNotContains("Try another email address or password.")
 }
 
-// A notice carries the tick, an alert does not. The class on the card is what
-// carries the difference in colour, and the icon is what carries it in a
-// screenshot with no colour at all.
+// A notice carries the tick, an alert does not. The class on the card carries
+// the difference in color, and the icon carries it in a screenshot without
+// color.
 func TestNoticeAndAlertRenderDifferently(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
@@ -145,11 +145,11 @@ func TestNoticeAndAlertRenderDifferently(t *testing.T) {
 		assertNotContains(`<svg aria-hidden="true" focusable="false"`)
 }
 
-// The same thing end to end, because the round trip above verifies the
-// signature and this verifies that the browser gets to keep it: the flash
-// after a refused import is the longest, punctuated, non-ASCII message the app
-// produces, and it disappeared entirely when the value went into the cookie
-// raw.
+// The same thing end to end. The round trip above makes sure that the
+// signature is correct. This test makes sure that the browser gets to keep
+// the value. The flash after a refused import is the longest, punctuated,
+// non-ASCII message the app produces. It disappeared entirely when the value
+// went into the cookie raw.
 func TestAFlashWithQuotesAndAnEmDashSurvivesTheCookie(t *testing.T) {
 	ts := newTestServer(t)
 	user := ts.createUser("one@example.com")

@@ -65,7 +65,7 @@ func TestReplaceConnectionValidations(t *testing.T) {
 }
 
 // A new grant is a different token with different scopes and no history worth
-// keeping — and the unique index means there is only ever one to replace.
+// keeping. The unique index means there is only ever one to replace.
 func TestReplaceConnectionKeepsOnlyTheLatest(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")
@@ -166,7 +166,7 @@ func TestRecordAndClearConnectionFailure(t *testing.T) {
 }
 
 // A search runs on every keystroke in the command bar, and each one clears the
-// failure. Without the guard every keystroke would be a write.
+// failure. Without the guard, every keystroke is a write.
 func TestClearConnectionFailureWritesNothingWhenThereIsNothingToClear(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")
@@ -213,7 +213,7 @@ func TestConnectionFailureOnAConnectionThatIsGone(t *testing.T) {
 }
 
 // Hostname is what the pages call the other app. A URL that will not parse has
-// no host to show, and the page says nothing rather than raising — which is
+// no host to show, and the page says nothing rather than raising. That is
 // what Connection#hostname's rescue did.
 func TestConnectionHostname(t *testing.T) {
 	cases := []struct {

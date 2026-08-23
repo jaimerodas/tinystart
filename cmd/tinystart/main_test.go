@@ -16,11 +16,11 @@ import (
 )
 
 // The whole program under test is run(), so these tests start a real server on
-// a real port and talk to it over TCP. It is the only way to check the things
-// that only exist at this level: that the configuration comes from the
-// environment, that a missing secret key stops the process, that the database
-// is opened and migrated, and that a cancelled context stops the server
-// without an error.
+// a real port and talk to it over TCP. That is the only way to make sure of
+// things that only exist at this level. It makes sure the configuration
+// comes from the environment and a missing secret key stops the process. It
+// also makes sure the process opens and migrates the database, and a
+// canceled context stops the server without an error.
 
 func TestRunServesUpUntilTheContextIsCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
@@ -66,15 +66,15 @@ func TestRunServesUpUntilTheContextIsCancelled(t *testing.T) {
 
 func TestRunReturnsAnErrorWhenTheAddressCannotBeBound(t *testing.T) {
 	// 99999 is past the top of the port range, so listening fails before the
-	// server ever starts — the one failure that has to reach main's exit code
-	// rather than being logged and forgotten.
+	// server ever starts. It is the one failure that has to reach main's exit
+	// code rather than being logged and forgotten.
 	err := run(t.Context(), []string{"tinystart"}, testEnv(t, "TINYSTART_ADDR", "127.0.0.1:99999"), strings.NewReader(""), io.Discard)
 	if err == nil {
 		t.Fatal("run returned nil for an unbindable address, want an error")
 	}
 }
 
-// A server that cannot sign a cookie cannot tell a session from a forgery, so
+// A server that cannot sign a cookie cannot tell a session from a forgery. So
 // there is no default to fall back to and no starting without one.
 func TestRunRefusesToStartWithoutASecretKey(t *testing.T) {
 	env := testEnv(t, "TINYSTART_ADDR", "127.0.0.1:0")
@@ -111,9 +111,9 @@ func TestConfigFromEnvDefaults(t *testing.T) {
 	}
 }
 
-// The mailer's address is configurable so that running the binary from a
-// checkout can point at a fake and mail nobody, which is what Rails did in
-// development with letter_opener. Unset is the real API.
+// The mailer's address is configurable, so running the binary from a checkout
+// can point at a fake and mail nobody. That is what Rails did in development
+// with letter_opener. Unset is the real API.
 func TestConfigFromEnvPostmarkURL(t *testing.T) {
 	if url := configFromEnv(func(string) string { return "" }).postmarkURL; url != "" {
 		t.Errorf("postmarkURL = %q with nothing set, want empty", url)
@@ -145,9 +145,9 @@ func TestConfigFromEnv(t *testing.T) {
 	}
 }
 
-// testEnv is the smallest environment run will start in: a secret key, a
-// database of its own in a directory the test framework cleans up, and
-// whatever else the caller wants to add.
+// testEnv is the smallest environment run will start in: a secret key and its
+// own database in a directory the test framework cleans up. It also adds
+// whatever else the caller wants.
 func testEnv(t *testing.T, extra ...string) func(string) string {
 	t.Helper()
 	if len(extra)%2 != 0 {
@@ -164,7 +164,7 @@ func testEnv(t *testing.T, extra ...string) func(string) string {
 	return mapEnv(env)
 }
 
-// withoutKey is an environment with the secret key taken back out of it.
+// withoutKey takes the secret key back out of an environment.
 func withoutKey(getenv func(string) string) func(string) string {
 	return func(key string) string {
 		if key == "TINYSTART_SECRET_KEY" {
@@ -174,7 +174,7 @@ func withoutKey(getenv func(string) string) func(string) string {
 	}
 }
 
-// mapEnv is a getenv backed by a map: anything not in it is unset, which is
+// mapEnv turns a map into a getenv: anything not in it is unset, which is
 // what run sees in a container with nothing configured.
 func mapEnv(env map[string]string) func(string) string {
 	return func(key string) string { return env[key] }
@@ -182,7 +182,7 @@ func mapEnv(env map[string]string) func(string) string {
 
 // waitForAddr reads the address the server actually bound out of its own log.
 // run logs it precisely so that a caller who asked for port 0 can find out
-// where the server ended up; the test is that caller.
+// where the server ended up. The test is that caller.
 func waitForAddr(t *testing.T, out *syncBuffer) string {
 	t.Helper()
 
@@ -199,8 +199,8 @@ func waitForAddr(t *testing.T, out *syncBuffer) string {
 	return ""
 }
 
-// syncBuffer is a bytes.Buffer the test can read while the server goroutine is
-// still writing to it. bytes.Buffer alone is not safe for that, and the race
+// syncBuffer is a bytes.Buffer the test can read while the server goroutine
+// still writes to it. bytes.Buffer alone is not safe for that, and the race
 // detector says so.
 type syncBuffer struct {
 	mu  sync.Mutex
@@ -219,10 +219,10 @@ func (b *syncBuffer) String() string {
 	return b.buf.String()
 }
 
-// set-password is the replacement for `bin/rails console`: the way to get back
-// into an account when there is no working mail, on a laptop or through
-// `kamal app exec`. The password comes in on stdin so it never sits in a shell
-// history or a process list.
+// set-password is the replacement for `bin/rails console`: the way to get
+// back into an account when there is no working mail. That covers a laptop,
+// or `kamal app exec`. The password comes in on stdin so it never sits in a
+// shell history or a process list.
 func TestSetPasswordChangesThePassword(t *testing.T) {
 	restore := store.UseCheapPasswordHashing()
 	defer restore()

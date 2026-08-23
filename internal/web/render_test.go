@@ -9,14 +9,14 @@ import (
 )
 
 // The application and start layouts have no pages of their own until the next
-// phase, so they are exercised here directly: what they have to get right now
-// is the chrome, which is where the theme attributes and the log-out button
-// live.
+// phase, so this file exercises them here directly. What they have to get
+// right now is the chrome, which is where the theme attributes and the
+// log-out button live.
 
 func layoutHTML(t *testing.T, layout string, v view) string {
 	t.Helper()
 	s := newBareServer(t)
-	// The layout needs some page to render inside it; the sign-in form is the
+	// The layout needs some page to render inside it. The sign-in form is the
 	// smallest one there is, and none of these assertions is about it.
 	if v.Data == nil {
 		v.Data = sessionsNewData{}
@@ -28,7 +28,7 @@ func layoutHTML(t *testing.T, layout string, v view) string {
 	return out.String()
 }
 
-// Logging out has to reload the document, so the theme and colour attributes
+// Logging out has to reload the document, so the theme and color attributes
 // on <html> fall back to the logged-out defaults — hence data-turbo="false".
 // The DELETE arrives as a POST carrying _method, which is what button_to wrote.
 func TestTheApplicationLayoutsMenu(t *testing.T) {
@@ -48,8 +48,8 @@ func TestTheApplicationLayoutsMenu(t *testing.T) {
 	}
 }
 
-// Signed out there is no menu: the only thing it offers is the way back to the
-// start page, and there is nothing to go back to.
+// Signed out there is no menu. The only thing it offers is the way back to
+// the start page, and there is nothing to go back to.
 func TestTheApplicationLayoutHasNoMenuWhenSignedOut(t *testing.T) {
 	html := layoutHTML(t, layoutApplication, view{Theme: "system", Color: "teal"})
 
@@ -61,8 +61,8 @@ func TestTheApplicationLayoutHasNoMenuWhenSignedOut(t *testing.T) {
 	}
 }
 
-// The start page's layout is chrome-free: the header it has is drawn by the
-// page, not the layout.
+// The start page's layout is chrome-free: the page draws the header it has,
+// not the layout.
 func TestTheStartLayoutIsChromeFree(t *testing.T) {
 	html := layoutHTML(t, layoutStart, view{Theme: "light", Color: "red"})
 
@@ -74,7 +74,7 @@ func TestTheStartLayoutIsChromeFree(t *testing.T) {
 	}
 }
 
-// The sign-in layout has no theme attributes at all: nobody has said who they
+// The sign-in layout has no theme attributes at all: nobody said who they
 // are yet.
 func TestTheSessionLayoutHasNoThemeAttributes(t *testing.T) {
 	html := layoutHTML(t, layoutSession, view{})
@@ -97,7 +97,7 @@ func TestTitleComposition(t *testing.T) {
 }
 
 // Every layout links the same stylesheets and the same import map, and no page
-// may be served without them.
+// can be served without them.
 func TestEveryLayoutLoadsTheAssets(t *testing.T) {
 	for _, layout := range []string{layoutApplication, layoutSession, layoutStart} {
 		html := layoutHTML(t, layout, view{})

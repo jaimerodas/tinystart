@@ -10,7 +10,7 @@ import (
 // These are test/controllers/sessions_controller_test.rb, ported. The names
 // say the same things the Ruby ones said, because they are the same rules.
 
-// A brand new install has nobody to sign in as, so the form would be a dead
+// A brand new install has nobody to sign in as, so the form is a dead
 // end. The first sign-up bootstraps itself as an approved admin.
 
 func TestSessionNewRedirectsToSignUpWhenThereAreNoUsers(t *testing.T) {
@@ -37,7 +37,7 @@ func TestSessionNewShowsTheFormOnceAUserExists(t *testing.T) {
 		assertContains(`<form data-turbo="false" action="/session"`)
 }
 
-// Anything behind the sign-in wall funnels to sign-up too, since that path
+// Anything behind the sign-in wall funnels to sign-up too, because that path
 // goes through the session page.
 func TestAProtectedPageSendsABrandNewInstallToSignUp(t *testing.T) {
 	ts := newTestServer(t)
@@ -50,7 +50,7 @@ func TestAProtectedPageSendsABrandNewInstallToSignUp(t *testing.T) {
 	ts.get("/session/new").assertRedirect("/sign_up")
 }
 
-// The login form opts out of Turbo so that the theme and colour attributes on
+// The login form opts out of Turbo so that the theme and color attributes on
 // <html> are rendered fresh after signing in.
 func TestSessionNewFormOptsOutOfTurbo(t *testing.T) {
 	ts := newTestServer(t)
@@ -169,9 +169,9 @@ func TestSigningInCleansUpExpiredSessions(t *testing.T) {
 	}
 }
 
-// A session that is nearly over is extended by the request that arrives, so
-// that someone who visits every week is never signed out — and someone who
-// disappears for a month is.
+// The request that arrives extends a session that is nearly over, so that
+// someone who visits every week is never signed out. Someone who disappears
+// for a month is signed out.
 func TestASessionCloseToExpiryIsExtended(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
@@ -219,7 +219,7 @@ func TestASessionWithPlentyOfTimeLeftIsNotExtended(t *testing.T) {
 	}
 }
 
-// Signing out is behind the wall: an anonymous DELETE has no session to end
+// Signing out is behind the wall. An anonymous DELETE has no session to end
 // and is sent to the sign-in page like any other protected request.
 func TestSigningOutRequiresASession(t *testing.T) {
 	ts := newTestServer(t)

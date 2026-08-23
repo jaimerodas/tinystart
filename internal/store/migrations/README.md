@@ -10,10 +10,9 @@ When something does, add a file here named `<version>_<name>.sql`, where
 
 `Migrate` applies every file whose version is not already in
 `schema_migrations`, in filename order, each one in its own transaction, and
-records the version in that same table. That is the table Rails uses, which is
-the point: `kamal rollback` to a Rails image has to find a schema and a version
-list it recognises, and a future `bin/rails db:migrate` would pick up where Go
-left off.
+records the version in that same table. That is the table Rails used, on
+purpose: the production database already carries the eleven Rails versions,
+and one ledger is better than two.
 
 One statement per file is not required — the file is executed whole — but keep
 each file to a single change, and never edit one that has already run anywhere.

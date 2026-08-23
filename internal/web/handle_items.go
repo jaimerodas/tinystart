@@ -174,7 +174,7 @@ func (s *Server) handleItemUpdate() http.Handler {
 }
 
 // handleItemDestroy is DELETE /start/items/{id}. The store removes the tile
-// and closes the gap it leaves as one unit; the group is what gets redrawn,
+// and closes the gap it leaves as one unit. The group is what gets redrawn,
 // because a group owns its tile rows and their positions.
 func (s *Server) handleItemDestroy() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -238,10 +238,10 @@ func (s *Server) handleItemVisit() http.Handler {
 
 // handleItemMove is POST /start/items/{id}/move.
 //
-// A group_id means "into that group"; its absence means "somewhere else in the
-// one it is already in". The two are different calls with different ideas of a
-// position — see the store's comments — and the distinction is the parameter's
-// presence, not its value.
+// A group_id means "into that group". Its absence means "somewhere else in
+// the one it is already in". The two are different calls with different
+// ideas of a position — see the store's comments — and the distinction is
+// the parameter's presence, not its value.
 func (s *Server) handleItemMove() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -325,12 +325,12 @@ func (s *Server) handleItemMove() http.Handler {
 			s.serverError(w, r, err)
 			return
 		}
-		// The client moved the tile before it asked. A refusal that only says
-		// so leaves the page showing an order the database never accepted, and
-		// the next move takes its index from that page — so both groups come
-		// back as they are stored. Both exist here, unlike a refused group
-		// move: the only way a tile move fails is the destination already
-		// holding the link.
+		// The client moved the tile before it asked. A refusal that only
+		// says so leaves the page showing an order the database never
+		// accepted. The next move then takes its index from that page.
+		// So both groups come back as they are stored. Both exist here,
+		// unlike a refused group move: the only way a tile move fails is
+		// the destination already holding the link.
 		streams, err := s.groupStreams(ctx, user.ID, destination, source)
 		if err != nil {
 			s.serverError(w, r, err)

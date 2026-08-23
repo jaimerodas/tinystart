@@ -40,9 +40,10 @@ func (s *Server) handlePasswordNew() http.Handler {
 // same redirect, same time to a rough approximation. Anything else turns this
 // form into a way of asking who has an account here.
 //
-// A failure to send is logged and swallowed, which is a deliberate difference
-// from Rails: deliver_now would have raised and shown a 500, and a 500 here
-// answers the question the notice is carefully not answering.
+// This handler logs a failure to send and swallows it, which is a deliberate
+// difference from Rails. There, deliver_now raises on a failure and shows a
+// 500, but a 500 here answers the question the notice is carefully not
+// answering.
 func (s *Server) handlePasswordCreate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := s.db.UserByEmail(r.Context(), r.PostFormValue("email"))
@@ -106,9 +107,9 @@ func (s *Server) handlePasswordUpdate() http.Handler {
 }
 
 // sendPasswordReset renders both bodies of the mail and hands it to the
-// mailer. Both are sent, as ActionMailer did: the text part is what a client
-// that will not render HTML shows, and a mail with only an HTML part scores
-// badly with every spam filter there is.
+// mailer. This sends both, as ActionMailer did: the text part is what a
+// client that will not render HTML shows, and a mail with only an HTML part
+// scores badly with every spam filter there is.
 func (s *Server) sendPasswordReset(r *http.Request, user *store.User) error {
 	url := s.baseURL(r) + "/passwords/" + s.passwordResetToken(user) + "/edit"
 
@@ -139,12 +140,13 @@ func (s *Server) renderMail(name, url string) (string, error) {
 }
 
 // baseURL is the scheme and host to build absolute links with — which mail
-// needs and nothing else does, since every link inside the app is relative.
+// needs and nothing else does, because every link inside the app is
+// relative.
 //
 // The configured host wins, because a request's Host header is whatever the
-// client wrote in it and a forged one would put a forged link in somebody's
-// password reset mail. Falling back to the request is what makes `go run` work
-// on localhost without any configuration.
+// client wrote in it. A forged one puts a forged link in somebody's password
+// reset mail. Falling back to the request is what makes `go run` work on
+// localhost without any configuration.
 func (s *Server) baseURL(r *http.Request) string {
 	if s.cfg.Host != "" {
 		return s.cfg.Host

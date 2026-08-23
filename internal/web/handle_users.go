@@ -37,7 +37,7 @@ func (s *Server) handleUserNew() http.Handler {
 // handleUserCreate is POST /sign_up.
 //
 // A new account is not signed in: everyone after the first arrives unapproved
-// and waits for an admin, so there would be nothing to sign in to. The notice
+// and waits for an admin, so there is nothing to sign in to. The notice
 // is the same either way, which is why the redirect goes to the start page and
 // the start page sends them back to the sign-in form.
 func (s *Server) handleUserCreate() http.Handler {

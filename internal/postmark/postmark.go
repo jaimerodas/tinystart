@@ -1,8 +1,8 @@
 // Package postmark sends mail through Postmark's HTTPS API.
 //
 // It is the whole of what postmark-rails did for this app, which is one
-// message: the password reset. The mail itself — subject, both bodies, the
-// link with the token in it — is rendered by the web layer; this package only
+// message: the password reset. The web layer renders the mail itself —
+// subject, both bodies, the link with the token in it. This package only
 // puts it on the wire.
 //
 // There is no SMTP, no queue and no retry. A reset that fails to send is a
@@ -25,21 +25,21 @@ const (
 	// than a constant in the code so tests can point at an httptest server.
 	DefaultBaseURL = "https://api.postmarkapp.com"
 
-	// DefaultFrom is the sender the app has always used — ApplicationMailer's
+	// DefaultFrom is the sender the app always used — ApplicationMailer's
 	// `default from:`. Postmark refuses anything that is not a verified
-	// signature on the account, so this is not a free choice.
+	// signature on the account. As a result, this is not a free choice.
 	DefaultFrom = "noreply@rodas.mx"
 
 	// TestToken is Postmark's own sandbox token: their API accepts a message
 	// sent with it, validates it, and delivers nothing. Useful for a smoke
-	// test by hand against the real API; the test suite uses a fake server
+	// test by hand against the real API. The test suite uses a fake server
 	// instead, so nothing in it ever leaves the machine.
 	TestToken = "POSTMARK_API_TEST"
 )
 
-// maxResponseBytes caps what is read back. Postmark answers with a small JSON
-// object; anything larger is a proxy or an error page, and the only thing
-// wanted from it is the status.
+// maxResponseBytes caps how much this package reads back. Postmark answers
+// with a small JSON object. Anything larger is a proxy or an error page, and
+// this package wants only the status from it.
 const maxResponseBytes = 1 << 16
 
 // Client is an account's server token and the way to reach Postmark. The zero
@@ -71,12 +71,13 @@ type Message struct {
 	HTMLBody string `json:"HtmlBody,omitempty"`
 }
 
-// Error is Postmark declining to send. Status is the HTTP status; ErrorCode
-// and Message are Postmark's own, from the JSON body, and are what the log
-// needs to say what to fix — code 300 is a malformed address, 406 an inactive
-// recipient, 401 a token that is not this server's.
+// Error means that Postmark declined to send the message. Status is the HTTP
+// status. ErrorCode and Message are Postmark's own, from the JSON body, and
+// are what the log needs to say what to fix. Code 300 is a malformed
+// address, 406 an inactive recipient, and 401 a token that is not this
+// server's.
 //
-// Both may be empty: a failure from something in front of the API answers
+// Both can be empty: a failure from something in front of the API answers
 // however it likes, and the status is then all there is.
 type Error struct {
 	Status    int    `json:"-"`
@@ -92,8 +93,8 @@ func (e *Error) Error() string {
 }
 
 // Send delivers one message. A non-2xx reply comes back as an *Error carrying
-// whatever Postmark said about it; anything that stopped the request from
-// being answered at all comes back wrapped.
+// whatever Postmark said about it. Any failure that keeps the request from
+// getting an answer at all comes back wrapped.
 func (c *Client) Send(ctx context.Context, message Message) error {
 	body, err := json.Marshal(message)
 	if err != nil {
@@ -138,8 +139,8 @@ func (c *Client) baseURL() string {
 }
 
 // httpClient is the caller's, or one that gives up after thirty seconds —
-// the read timeout postmark-rails used, and long enough that a slow API is
-// never the reason a reset mail does not arrive.
+// the read timeout postmark-rails used. That is long enough that a slow API
+// is never the reason a reset mail does not arrive.
 func (c *Client) httpClient() *http.Client {
 	if c.HTTP != nil {
 		return c.HTTP

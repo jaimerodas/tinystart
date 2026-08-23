@@ -1,7 +1,7 @@
 //go:build browser
 
 // The rest of test/system/start_page_integration_test.rb — the command bar and
-// the visit counter — plus test/system/import_export_test.rb, plus the two
+// the visit counter — plus test/system/import_export_test.rb. Plus the two
 // journeys nothing else in this package drives with a browser: signing in
 // through the form, and the theme picker writing on <html>.
 package web
@@ -18,7 +18,7 @@ import (
 // === SIGNING IN ===
 
 // Everything else here starts signed in. This is the one that says the form
-// itself works in a browser: the cookie is set, the redirect is followed, and
+// itself works in a browser. The cookie is set, the redirect is followed, and
 // the page that comes back is the start page.
 func TestBrowserSignInThroughTheForm(t *testing.T) {
 	p := newBrowserPage(t)
@@ -34,7 +34,7 @@ func TestBrowserSignInThroughTheForm(t *testing.T) {
 		t.Errorf("path = %q, want to still be on the form", got)
 	}
 	// The flash is a full-screen overlay while it is up, so a second attempt
-	// starts by getting it out of the way — which is the whole of what the
+	// starts by getting it out of the way. That is the whole of what the
 	// flash controller does.
 	p.dismissFlash()
 
@@ -49,9 +49,9 @@ func TestBrowserSignInThroughTheForm(t *testing.T) {
 }
 
 // Every page, opened in a browser, with nothing thrown. The harness fails a
-// test on any uncaught exception, so this is a real assertion and not a tour:
-// the importmap eager-loads every Stimulus controller by name, and a module
-// that 404s or a controller that throws on connect only says so here.
+// test on any uncaught exception, so this is a real assertion and not a tour.
+// The importmap eager-loads every Stimulus controller by name. A module that
+// 404s, or a controller that throws on connect, only says so here.
 func TestBrowserEveryPageLoadsWithoutAScriptError(t *testing.T) {
 	p, user := startPageBrowser(t)
 	p.tiles(user)
@@ -140,14 +140,14 @@ func TestBrowserCommandBarOffersNoAllLinksWithoutAConnection(t *testing.T) {
 	p.fillIn(".command-bar input", "a")
 
 	// The local results and the All Links header used to render in the same
-	// tick, so these are checked without waiting — a patient assertion would
-	// pass either way once /search.json answers with an empty list.
+	// tick, so these are checked without waiting. A patient assertion passes
+	// either way once /search.json answers with an empty list.
 	p.assertText(".command-bar-suggestions", "Amazon Shopping")
 	p.assertCountNow(".command-bar-section-header", 1)
 	p.assertNoSelectorNow(".command-bar-searching")
 }
 
-// A rejected token is worth saying out loud, but retrying it isn't.
+// A rejected token is worth saying out loud, but retrying it is not.
 func TestBrowserCommandBarSaysSoOnceTheTokenWasRejected(t *testing.T) {
 	p, user := startPageBrowser(t)
 	p.tilesForFiltering(user)
@@ -210,9 +210,9 @@ func (p *browserPage) assertVisitRecorded(userID, itemID int64) {
 
 // === THEME ===
 
-// The preferences are stored by a form like any other, but what they change is
-// two attributes on <html> — and the controller writes them from the submit
-// event rather than waiting for a reload, so this is only true in a browser.
+// A form like any other stores the preferences, but what they change is two
+// attributes on <html>. The controller writes them from the submit event
+// rather than waiting for a reload, so this is only true in a browser.
 func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 	p, user := startPageBrowser(t)
 
@@ -222,7 +222,7 @@ func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 	}
 
 	p.click("#theme_dark")
-	// The colour radios are opacity: 0 behind their swatches, so the swatch —
+	// The color radios are opacity: 0 behind their swatches. So the swatch —
 	// the label — is what there is to click, for a test as much as for anyone
 	// else.
 	p.click(`label[for="color_purple"]`)
@@ -242,8 +242,8 @@ func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 // === IMPORT AND EXPORT ===
 
 // The controller test already drives a real multipart POST, so what is left
-// here is the half that only exists on the client: the confirm that stands
-// between a click and a page being replaced.
+// here is the half that only exists on the client. That is the confirm that
+// stands between a click and the page replacement.
 func TestBrowserImportAsksBeforeItReplacesThePage(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group := p.ts.newGroup(user.ID, "Lo de siempre", 1)

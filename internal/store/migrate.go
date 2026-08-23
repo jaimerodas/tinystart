@@ -18,10 +18,9 @@ var schemaSQL string
 var migrationFiles embed.FS
 
 // railsMigrations is every migration the Rails app ever ran, oldest first.
-// Rails recorded these in schema_migrations and refused to run one twice; a
-// database that Go created has to carry the same list, or a Rails image booted
-// against it would find an empty schema_migrations, believe no migration had
-// run, and try to create the tables again.
+// Rails recorded these in schema_migrations, and a database that Go creates
+// carries the same list, so it is indistinguishable from the database Rails
+// left behind.
 //
 // They are the timestamps of the old db/migrate filenames. That directory is
 // gone with the rest of Rails, which is why the list lives here.
@@ -41,11 +40,11 @@ var railsMigrations = []string{
 
 // Migrate brings the database up to date, and is safe to call on every boot.
 //
-// On a database that already has the tables — which is every real one, since
-// production has been running Rails — it applies nothing but the pending files
-// in migrations/, of which there are none today. On an empty file it lays down
-// schema.sql, writes the eleven Rails versions into schema_migrations and the
-// environment row into ar_internal_metadata, so that the result is
+// Every real database already has the tables, because Rails already ran in
+// production. On such a database, Migrate applies nothing but the pending
+// files in migrations/. There are none today. On an empty file, it lays down
+// schema.sql. It writes the eleven Rails versions into schema_migrations and
+// the environment row into ar_internal_metadata. The result is
 // indistinguishable from a database Rails set up itself.
 func (db *DB) Migrate(ctx context.Context) error {
 	installed, err := db.schemaInstalled(ctx)
@@ -66,14 +65,14 @@ func (db *DB) Migrate(ctx context.Context) error {
 }
 
 // schemaInstalled asks whether this is a database or an empty file. users is
-// the anchor: it is the table every other one points at, and it has existed
-// since the first migration.
+// the anchor: it is the table every other one points at, and the first
+// migration created it.
 //
-// The check cannot be skipped by making schema.sql re-runnable. Rails wrote
-// its CREATE TABLE statements with IF NOT EXISTS and its CREATE INDEX
-// statements without, and SQLite stores the statement text verbatim in
-// sqlite_master — so adding IF NOT EXISTS to the indexes would leave a
-// database that no longer matches the one Rails produces.
+// You cannot skip the check by making schema.sql re-runnable. Rails wrote its
+// CREATE TABLE statements with IF NOT EXISTS and its CREATE INDEX statements
+// without. SQLite stores the statement text verbatim in sqlite_master. So
+// adding IF NOT EXISTS to the indexes leaves a database that no longer
+// matches the one Rails produces.
 func (db *DB) schemaInstalled(ctx context.Context) (bool, error) {
 	var name string
 	err := db.sql.QueryRowContext(ctx,
@@ -113,7 +112,7 @@ func (db *DB) installSchema(ctx context.Context) error {
 }
 
 // applyPendingMigrations runs every file in migrations/ whose version is not
-// already recorded, in filename order. There are none yet; migrations/README.md
+// already recorded, in filename order. There are none yet. migrations/README.md
 // describes the convention for adding one.
 func (db *DB) applyPendingMigrations(ctx context.Context) error {
 	names, err := fs.Glob(migrationFiles, "migrations/*.sql")
@@ -141,9 +140,9 @@ func (db *DB) applyPendingMigrations(ctx context.Context) error {
 			return err
 		}
 
-		// One transaction per file, and the version is recorded inside it: a
-		// migration that fails half way leaves nothing behind, so the next
-		// boot runs it again from the start.
+		// One transaction per file, and this code records the version inside
+		// it. A migration that fails half way leaves nothing behind, so the
+		// next boot runs it again from the start.
 		err = db.tx(ctx, func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, string(statements)); err != nil {
 				return err

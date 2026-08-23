@@ -7,7 +7,7 @@ import (
 
 // The expectations are ActionView's own answers, taken from
 // `distance_of_time_in_words` in a Rails console rather than derived from the
-// port — a table copied from the implementation would only prove the
+// port. A table copied from the implementation only proves the
 // implementation is itself.
 
 func TestDistanceOfTimeInWords(t *testing.T) {
@@ -48,7 +48,7 @@ func TestDistanceOfTimeInWords(t *testing.T) {
 	}
 }
 
-// The years branch discounts the leap days inside the span, which is the only
+// The years branch discounts the leap days inside the span. That is the only
 // place the helper looks at the calendar rather than at a number of minutes.
 func TestDistanceOfTimeInWordsDiscountsLeapDays(t *testing.T) {
 	tests := []struct {
@@ -69,7 +69,7 @@ func TestDistanceOfTimeInWordsDiscountsLeapDays(t *testing.T) {
 	}
 }
 
-// Connections asks how long a token has left, and a token can have expired.
+// Connections asks how long a token has left, and a token can expire.
 // Rails swaps the arguments rather than reporting a negative distance, so both
 // directions read the same.
 func TestDistanceOfTimeInWordsIgnoresDirection(t *testing.T) {

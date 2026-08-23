@@ -26,8 +26,8 @@ type flashMessage struct {
 //
 // The encoding is "type:message". A message can contain a colon and a type
 // cannot, so cutting at the first one is unambiguous, and the signature makes
-// the whole thing unforgeable — worth having, since the message is rendered
-// into the page.
+// the whole thing unforgeable — worth having, because the message is
+// rendered into the page.
 func (s *Server) setFlash(w http.ResponseWriter, kind, message string) {
 	s.setSignedCookie(w, flashCookie, kind+":"+message, noExpiry)
 }
@@ -54,8 +54,8 @@ func (s *Server) takeFlash(w http.ResponseWriter, r *http.Request) []flashMessag
 //
 // 303 rather than 302 because the redirect after a POST has to become a GET,
 // and 302 only does that by convention. Rails sends 302 for a redirect_to
-// after a form post and browsers have always treated it as a 303; saying 303
-// is saying the same thing without relying on the habit.
+// after a form post, and browsers have always treated it as a 303. Saying
+// 303 says the same thing without relying on the habit.
 func (s *Server) redirect(w http.ResponseWriter, r *http.Request, url, kind, message string) {
 	if message != "" {
 		s.setFlash(w, kind, message)

@@ -54,7 +54,7 @@ type Token struct {
 }
 
 // ScopeList is the scopes a token carries. It decodes either shape the other
-// app might send — the list it does send, or a bare "search,visit" string —
+// app can send — the list it does send, or a bare "search,visit" string —
 // because Rails' Array(token["scopes"]) accepted both and a token is too
 // expensive to lose over punctuation.
 type ScopeList []string
@@ -106,7 +106,7 @@ func NewDeviceFlow(baseURL, clientHost string, httpClient *http.Client) *DeviceF
 }
 
 // Start opens a grant. The error is for the log and for the "could not reach"
-// message on the connections page; the caller needs nothing from it but the
+// message on the connections page. The caller needs nothing from it but the
 // fact that there is no grant.
 func (f *DeviceFlow) Start(ctx context.Context) (*Grant, error) {
 	var reply struct {
@@ -137,8 +137,8 @@ func (f *DeviceFlow) Start(ctx context.Context) (*Grant, error) {
 }
 
 // Check asks where a grant got to. The token comes back only with
-// StatusApproved; the error only with StatusUnreachable, where it says what
-// went wrong for the log.
+// StatusApproved. The error comes back only with StatusUnreachable, where it
+// says what went wrong for the log.
 func (f *DeviceFlow) Check(ctx context.Context, deviceCode string) (Status, *Token, error) {
 	var reply struct {
 		Token     string     `json:"token"`
@@ -168,7 +168,7 @@ func (f *DeviceFlow) Check(ctx context.Context, deviceCode string) (Status, *Tok
 	default:
 		// expired_token, and anything else the other app invents: a status
 		// this app cannot act on is the end of the grant, whatever it is
-		// called, and the page says so and stops polling.
+		// called. The page says so and stops polling.
 		return StatusExpired, nil, nil
 	}
 }
@@ -178,7 +178,7 @@ func (f *DeviceFlow) Check(ctx context.Context, deviceCode string) (Status, *Tok
 // One person can easily have two tinystarts pointed at the same app — a laptop
 // and the real thing. Without the host, both tokens read "tinystart" and
 // revoking the right one is guesswork. Falls back to the bare name when the
-// host isn't known, which is no worse than it used to be.
+// host is not known, which is no worse than it used to be.
 func (f *DeviceFlow) clientName() string {
 	if f.clientHost == "" {
 		return appName
@@ -189,10 +189,10 @@ func (f *DeviceFlow) clientName() string {
 // post sends the form the other app expects and decodes the JSON it answers
 // with into reply.
 //
-// The HTTP status is deliberately not looked at. RFC 8628 has the token
-// endpoint answer 400 for every state that is not approval — pending included
-// — so the "error" field in the body is the only thing that decides, exactly
-// as it was in Ruby, which never read the code either.
+// This code deliberately does not look at the HTTP status. RFC 8628 has the
+// token endpoint answer 400 for every state that is not approval — pending
+// included. As a result, the "error" field in the body is the only thing
+// that decides. Ruby did the same: it never read the status code either.
 func (f *DeviceFlow) post(ctx context.Context, path string, params url.Values, reply any) error {
 	base, err := url.Parse(f.baseURL)
 	if err != nil {

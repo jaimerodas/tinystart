@@ -12,8 +12,8 @@ import (
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// fakeApp stands in for the connected app: a real server on a real port, so
-// that the client under test does real HTTP and nothing is mocked. Its fields
+// fakeApp stands in for the connected app: a real server on a real port. The
+// client under test does real HTTP, and nothing is mocked. Its fields
 // are what a test wants to vary — what the other app answers, and what it was
 // asked.
 type fakeApp struct {
@@ -95,7 +95,7 @@ func (ts *testServer) connect(user *store.User, baseURL string) *store.Connectio
 	return connection
 }
 
-// lastError is what the connection has recorded, which is what the start page
+// lastError is what the connection recorded, which is what the start page
 // reads to decide whether to offer a reconnect.
 func (ts *testServer) lastError(userID int64) string {
 	ts.t.Helper()
@@ -132,9 +132,9 @@ func TestSearchReturnsTheResultsAsABareArray(t *testing.T) {
 	}
 }
 
-// The command bar treats an empty list as "no federated results" and carries
-// on showing local tiles, so every downstream failure has to land here as [] —
-// and as [], not as null, which is what a nil slice would have encoded to.
+// The command bar treats an empty list as "no federated results" and
+// continues to show local tiles. So every downstream failure has to land
+// here as []. Not as null, which is what a nil slice encodes to.
 func TestSearchDegradesToAnEmptyArray(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -215,7 +215,7 @@ func TestSearchUsesYourOwnConnection(t *testing.T) {
 	}
 }
 
-// The recording contract from the tinylinks package doc: a rejected token is
+// The recording contract from the tinylinks package doc. A rejected token is
 // worth telling the user about, because a lapsed credential and an empty
 // archive look identical from the command bar.
 func TestSearchRecordsARejectedToken(t *testing.T) {
@@ -321,7 +321,7 @@ func TestVisitForwardsToTheConnectedApp(t *testing.T) {
 	}
 }
 
-// Tracking is fire and forget: the browser has already navigated away, so a
+// Tracking is fire and forget: the browser already navigated away, so a
 // failure upstream must not surface as an error on a click already made.
 func TestVisitAnswers204Whatever(t *testing.T) {
 	tests := []struct {

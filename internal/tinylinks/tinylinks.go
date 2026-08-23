@@ -4,19 +4,19 @@
 //
 // Two rules shape everything here.
 //
-// The first is that federated search is a bonus on top of the local tiles, so
-// a slow or absent app must never break the start page or hold up a keystroke.
-// Every call therefore ends in either a result or an error — never a panic,
-// never a wait longer than the timeouts below — and every caller is expected
-// to carry on with an empty list.
+// The first is that federated search is a bonus on top of the local tiles. As
+// a result, a slow or absent app must never break the start page or hold up a
+// keystroke. Every call ends in either a result or an error — never a panic,
+// never a wait longer than the timeouts below. Every caller must carry on
+// with an empty list.
 //
 // The second is that this package does not know the database exists. Rails'
-// ConnectionClient wrote to the connection itself: it recorded a rejected
-// token so the page could say "reconnect", and cleared that note on the next
+// ConnectionClient wrote to the connection itself. It recorded a rejected
+// token so the page can say "reconnect". It cleared that note on the next
 // success. Here those are outcomes rather than side effects — a *StatusError
-// that NeedsReconnect reports on, and a nil error for the success — and the
-// web layer does the writing. That keeps the one package that speaks HTTP to
-// the outside world testable with nothing but an httptest server, and keeps
+// that NeedsReconnect reports on, and a nil error for the success. The web
+// layer does the writing. That keeps the one package that speaks HTTP to the
+// outside world testable with nothing but an httptest server. It also keeps
 // the decision about what a failure means where the rest of the policy is.
 //
 // The web layer's half of the bargain, which is what Rails did:
@@ -48,10 +48,10 @@ const (
 	readTimeout = 4 * time.Second
 )
 
-// maxResponseBytes caps what is read from the other app. Rails read whatever
-// arrived; a cap is cheap insurance against an app that answers a search with
-// something enormous, and a truncated body degrades to "isn't JSON", which is
-// already a path with a test.
+// maxResponseBytes caps how much this package reads from the other app. Rails
+// read whatever arrived. A cap is cheap insurance against an app that answers
+// a search with something enormous. A truncated body degrades to "isn't
+// JSON", which is already a path with a test.
 const maxResponseBytes = 1 << 20
 
 // DefaultHTTPClient is the client both DeviceFlow and Client use when they are
@@ -62,7 +62,7 @@ const maxResponseBytes = 1 << 20
 // the transport: open_timeout is the time to get a connection (dial, and the
 // TLS handshake that follows it), read_timeout the time to wait for the other
 // app to start answering. Nothing here streams, so there is no third case
-// where a slow body would run past both and never be cut off.
+// where a slow body can run past both timeouts without being cut off.
 func DefaultHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{

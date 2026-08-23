@@ -1,10 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Waits for a connected app's device authorization to be approved in another tab.
+// Waits for the user to approve a connected app's device authorization in
+// another tab.
 //
-// The server holds the pending grant in the session; this just asks where it
-// got to. On success the page reloads so the whole section re-renders from the
-// server rather than being patched together here.
+// The server holds the pending grant in the session. This controller only
+// asks where it got to. On success the page reloads, so the server re-renders
+// the whole section instead of this controller patching it together.
 export default class extends Controller {
   static targets = ["status"]
   static values = { url: String, interval: { type: Number, default: 5000 } }
@@ -35,7 +36,7 @@ export default class extends Controller {
         this.stopAnd("The request expired. Reloading…")
       }
     } catch {
-      // A blip while waiting is fine; the next tick tries again.
+      // A blip while waiting is fine. The next tick tries again.
     }
   }
 

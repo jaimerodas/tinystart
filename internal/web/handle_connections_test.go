@@ -12,9 +12,9 @@ import (
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// fakeFlow is the other app's half of the device flow: a real server, so that
-// everything under test — the form post, the poller, the token that comes back
-// — is real HTTP.
+// fakeFlow is the other app's half of the device flow: a real server.
+// Everything under test — the form post, the poller, the token that comes
+// back — is real HTTP.
 //
 // answer is what the token endpoint says next, which is how a test walks a
 // grant from pending to approved without waiting for anything.
@@ -175,8 +175,8 @@ func TestConnectionsShowsTheErrorAndTheFormWhenTheTokenWasRejected(t *testing.T)
 }
 
 // One user's connection is invisible to another, and disconnecting leaves it
-// alone. The token is one account on the other app; nothing about it may leak
-// sideways.
+// alone. The token is one account on the other app. Nothing about it can
+// leak sideways.
 func TestConnectionsAreScopedToTheUser(t *testing.T) {
 	ts := newTestServer(t)
 	first := ts.createUser("one@example.com")
@@ -228,8 +228,8 @@ func TestConnectionCreateOpensAGrantAndWaits(t *testing.T) {
 		assertContains(`href="` + flow.URL + `/device/new?code=abc"`)
 }
 
-// So the other app's list of tokens says which tinystart asked for each one: a
-// laptop and the real thing are two grants under one name otherwise.
+// So the other app's list of tokens says which tinystart asked for each one.
+// A laptop and the real thing are two grants under one name otherwise.
 func TestConnectionCreateTellsTheOtherAppWhichHostIsAsking(t *testing.T) {
 	ts, _ := settingsServer(t)
 	flow := newFakeFlow(t)
@@ -275,8 +275,8 @@ func TestPollWaitsWhileTheGrantIsPending(t *testing.T) {
 	}
 }
 
-// A blip mid-flow must not look like a denial — the grant is still good, and
-// the page keeps waiting until it runs out on its own.
+// A blip mid-flow must not look like a denial. The grant is still good, and
+// the page continues to wait until it runs out on its own.
 func TestPollKeepsWaitingWhenTheAppIsBrieflyUnreachable(t *testing.T) {
 	ts, _ := settingsServer(t)
 	flow := newFakeFlow(t)
@@ -319,8 +319,9 @@ func TestPollStoresTheConnectionAgainstTheUserWhoApprovedIt(t *testing.T) {
 	}
 }
 
-// Reconnecting replaces the row rather than piling up: there is one connection
-// per user, and a new grant is a different token with no history worth keeping.
+// Reconnecting replaces the row rather than piling up. There is one
+// connection per user, and a new grant is a different token with no history
+// worth keeping.
 func TestPollReplacesAnExistingConnection(t *testing.T) {
 	ts, user := settingsServer(t)
 	ts.connect(user, "https://old.example.com")
@@ -337,8 +338,8 @@ func TestPollReplacesAnExistingConnection(t *testing.T) {
 	}
 }
 
-// Denial and expiry end the flow: the status is reported once and the grant is
-// forgotten, so the poller stops having anything to ask about.
+// Denial and expiry end the flow: the status is reported once and the grant
+// is forgotten, so the poller has nothing left to ask about.
 func TestPollReportsTheEndOfAGrantAndForgetsIt(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -367,8 +368,8 @@ func TestPollReportsTheEndOfAGrantAndForgetsIt(t *testing.T) {
 	}
 }
 
-// A grant that ran out while the tab sat open is dropped by the page that
-// notices, and the other app is never asked about it.
+// The page that notices drops a grant that ran out while the tab sat open,
+// and never asks the other app about it.
 func TestAnExpiredGrantIsForgotten(t *testing.T) {
 	ts, _ := settingsServer(t)
 	flow := newFakeFlow(t)
@@ -385,8 +386,8 @@ func TestAnExpiredGrantIsForgotten(t *testing.T) {
 		assertContains(`<form class="connect-form"`)
 }
 
-// Disconnecting drops a grant in flight as well as the row: leaving one would
-// mean a page that says "not connected" and then connects itself.
+// Disconnecting drops a grant in flight as well as the row. Leaving one
+// means a page that says "not connected" and then connects itself.
 func TestDisconnectingDropsAGrantInFlight(t *testing.T) {
 	ts, _ := settingsServer(t)
 	flow := newFakeFlow(t)
@@ -400,7 +401,8 @@ func TestDisconnectingDropsAGrantInFlight(t *testing.T) {
 }
 
 // With no address in the form, the page reconnects to what it was connected
-// to; with nothing connected either, to the app this one is usually pointed at.
+// to. With nothing connected either, it reconnects to the app this one is
+// usually pointed at.
 func TestConnectionCreateFallsBackToTheStoredAddress(t *testing.T) {
 	ts, user := settingsServer(t)
 	flow := newFakeFlow(t)

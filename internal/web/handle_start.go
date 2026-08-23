@@ -25,8 +25,8 @@ type startShowData struct {
 	// HasTiles decides the "nothing here yet" line. It is about tiles and not
 	// about groups: a page of empty groups still looks broken.
 	HasTiles bool
-	// Federation is what the bar should do about its "All Links" section, and
-	// Source names the host it would ask. Reconnect and Hostname are the
+	// Federation is what the bar does about its "All Links" section, and
+	// Source names the host it asks. Reconnect and Hostname are the
 	// notice above the bar, which exists because a lapsed token and an empty
 	// archive look identical from the results alone.
 	Federation string
@@ -117,8 +117,8 @@ func (s *Server) handleStartPage() http.Handler {
 // ErrNotFound is not an error here — it is the answer.
 //
 // It is per user and never app-wide: the token grants access to exactly one
-// account over there, and an app-wide lookup would leak one person's results
-// into another's command bar.
+// account over there, and an app-wide lookup leaks one person's results into
+// another's command bar.
 func (s *Server) connectionFor(ctx context.Context, userID int64) (*store.Connection, error) {
 	connection, err := s.db.ConnectionForUser(ctx, userID)
 	if errors.Is(err, store.ErrNotFound) {

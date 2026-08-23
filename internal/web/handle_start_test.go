@@ -97,11 +97,11 @@ func (ts *testServer) itemTitles(groupID int64) []string {
 }
 
 // flash is the message waiting for the next page, read out of the cookie
-// rather than by following the redirect — which is what flash[:notice] was in
+// rather than by following the redirect. That is what flash[:notice] was in
 // the controller tests this suite is ported from.
 //
-// It does not clear the cookie the client is holding, so a test that writes
-// twice and reads once could read the older message. Every test here makes one
+// It does not clear the cookie the client holds, so a test that writes twice
+// and reads once can read the older message. Every test here makes one
 // write.
 func (ts *testServer) flash() flashMessage {
 	ts.t.Helper()
@@ -120,9 +120,9 @@ func (ts *testServer) flash() flashMessage {
 	return messages[0]
 }
 
-// discardHeader is a ResponseWriter for a response nobody will send: takeFlash
-// wants somewhere to put the cookie that clears the flash, and here there is
-// nowhere for it to go.
+// discardHeader is a ResponseWriter for a response nobody will send.
+// takeFlash wants somewhere to put the cookie that clears the flash, and
+// here there is nowhere for it to go.
 type discardHeader struct{}
 
 func (discardHeader) Header() http.Header         { return http.Header{} }
@@ -213,8 +213,8 @@ func TestStartPageEmbedsTheCommandBarsLinks(t *testing.T) {
 	}
 }
 
-// commandBarLinks reads the JSON back out of the attribute, which is the only
-// way to check that what the bar receives is what the database holds.
+// commandBarLinks reads the JSON back out of the attribute. That is the only
+// way to make sure that what the bar receives is what the database holds.
 func (ts *testServer) commandBarLinks(resp *response) []store.Link {
 	ts.t.Helper()
 	const attribute = `data-command-bar-links-value="`
@@ -313,8 +313,8 @@ func TestEditorRenders(t *testing.T) {
 		assertContains(`id="column_count"`)
 }
 
-// The default is one column. If 1 were not on offer the browser would
-// preselect the first option, and a user could never get back to one.
+// The default is one column. If 1 is not on offer, the browser preselects
+// the first option, and a user can never get back to one.
 func TestEditorOffersEveryColumnCountWithTheCurrentOneSelected(t *testing.T) {
 	ts := newTestServer(t)
 	user := ts.createApprovedUser("fresh@example.com")
@@ -335,7 +335,7 @@ func TestEditorOffersEveryColumnCountWithTheCurrentOneSelected(t *testing.T) {
 // --- the column count ---
 //
 // It used to be a field on the Preferences form. It lives in the editor's
-// toolbar now, so a refused shrink can answer on the page that is showing the
+// toolbar now, so a refused shrink can answer on the page that shows the
 // group it names.
 
 func TestColumnCountUpdateSendsTheEditorBackForARedraw(t *testing.T) {
@@ -349,7 +349,7 @@ func TestColumnCountUpdateSendsTheEditorBackForARedraw(t *testing.T) {
 	}
 }
 
-// A refusal has to redraw, not just report: the select is already showing the
+// A refusal has to redraw, not just report: the select already shows the
 // value the database rejected, so it has to be sent back too.
 func TestColumnCountRefusesACountOutsideTheRangeAndResetsTheSelect(t *testing.T) {
 	ts, user := startPageServer(t)
@@ -362,8 +362,8 @@ func TestColumnCountRefusesACountOutsideTheRangeAndResetsTheSelect(t *testing.T)
 	resp.assertContains("Columns must be less than or equal to 6")
 	resp.assertContains(`<option selected="selected" value="3">3</option>`)
 	// Rails wrapped the fields of a model carrying errors in a
-	// .field_with_errors div, which is a block element and would break the
-	// one-line toolbar apart. The refusal is spoken by the notice.
+	// .field_with_errors div, which is a block element and breaks the
+	// one-line toolbar apart. The notice speaks the refusal instead.
 	resp.assertNotContains("field_with_errors")
 
 	if got := ts.reloadUser(user).Columns; got != 3 {
@@ -372,7 +372,7 @@ func TestColumnCountRefusesACountOutsideTheRangeAndResetsTheSelect(t *testing.T)
 }
 
 // There is no stream to apply without Turbo, so the refusal has to reach the
-// user some other way rather than as raw <turbo-stream> markup on screen.
+// user some other way, not as raw <turbo-stream> markup on screen.
 func TestColumnCountRefusesInAFlashWithoutTurbo(t *testing.T) {
 	ts, user := startPageServer(t)
 
@@ -385,7 +385,7 @@ func TestColumnCountRefusesInAFlashWithoutTurbo(t *testing.T) {
 	}
 }
 
-// Saying only "failed" would leave you re-picking the same value forever.
+// Saying only "failed" leaves you to pick the same value again and again.
 func TestColumnCountSaysWhichGroupBlocksAShrink(t *testing.T) {
 	ts, user := startPageServer(t)
 	ts.newGroup(user.ID, "Reading", 3)

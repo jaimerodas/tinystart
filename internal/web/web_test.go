@@ -26,7 +26,7 @@ import (
 
 // TestMain turns the password hashing cost down for the whole package. At the
 // real cost a single sign-up takes a quarter of a second, and seconds under
-// -race; this suite creates users in almost every test.
+// -race. This suite creates users in almost every test.
 func TestMain(m *testing.M) {
 	restore := store.UseCheapPasswordHashing()
 	code := m.Run()
@@ -39,9 +39,9 @@ func TestMain(m *testing.M) {
 
 // closeBrowser shuts down the Chrome the browser suite shares, and is nil
 // unless that suite is compiled in (-tags browser) and something opened one.
-// It lives here because after the last test is the only moment it can run, and
-// that moment belongs to TestMain: a t.Cleanup would take the browser down
-// with whichever test happened to start it.
+// It lives here because after the last test is the only moment it can run,
+// and that moment belongs to TestMain. t.Cleanup ties the browser to
+// whichever test happened to start it, not to the last one.
 var closeBrowser func()
 
 // testPassword is the one password every test user has. Long enough to pass
@@ -58,14 +58,14 @@ const (
 // testServer is one app, on a real port, with a database of its own.
 //
 // The requests go over TCP through a client with a cookie jar rather than
-// straight into the handler, because half of what this package does is set
-// cookies and redirect: a test that called ServeHTTP directly would have to
-// copy cookies from one response to the next by hand, and would then be
-// testing that copying rather than the app.
+// straight into the handler. Half of what this package does is set cookies
+// and redirect. A test that calls ServeHTTP directly has to copy cookies
+// from one response to the next by hand. It then tests that copying rather
+// than the app.
 type testServer struct {
 	t *testing.T
 	// app is the Server itself, for the handful of tests that need to mint
-	// something the app would normally only put in a mail.
+	// something the app normally only puts in a mail.
 	app    *Server
 	db     *store.DB
 	mail   *recordingMailer
@@ -129,8 +129,8 @@ func newTestServer(t *testing.T) *testServer {
 		client: &http.Client{
 			Jar: jar,
 			// Redirects are the answer half these handlers give, so they are
-			// what the tests assert on. Following them automatically would
-			// hide the Location header behind whatever it led to.
+			// what the tests assert on. Following them automatically hides
+			// the Location header behind whatever it led to.
 			CheckRedirect: func(*http.Request, []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -138,9 +138,9 @@ func newTestServer(t *testing.T) *testServer {
 	}
 }
 
-// get and post are the two verbs the tests need. Both return a response whose
-// body has already been read and closed, because every assertion here is on
-// the status, a header or the whole body, and none of them wants a defer.
+// get and post are the two verbs the tests need. Both return a response
+// with its body already read and closed. Every assertion here is on the
+// status, a header or the whole body, and none of them wants a defer.
 func (ts *testServer) get(path string) *response {
 	ts.t.Helper()
 	return ts.do(ts.request(http.MethodGet, path, nil))
@@ -152,16 +152,16 @@ func (ts *testServer) post(path string, form url.Values) *response {
 }
 
 // send is get and post generalised to the other verbs. The editor's forms
-// reach PATCH and DELETE through the hidden _method field, but the Stimulus
+// reach PATCH and DELETE through the hidden _method field. But the Stimulus
 // controllers use the real verb, so the tests use the real verb too.
 func (ts *testServer) send(method, path string, form url.Values) *response {
 	ts.t.Helper()
 	return ts.do(ts.request(method, path, form))
 }
 
-// turbo is send with the header that decides everything on the editor: with
-// it a write answers with the pieces of the page that changed, without it the
-// same write redirects.
+// turbo is send with the header that decides everything on the editor. With
+// it a write answers with the pieces of the page that changed. Without it
+// the same write redirects.
 func (ts *testServer) turbo(method, path string, form url.Values) *response {
 	ts.t.Helper()
 	req := ts.request(method, path, form)
@@ -201,8 +201,8 @@ func (ts *testServer) do(req *http.Request) *response {
 }
 
 // createUser signs someone up straight through the store, which is what a
-// fixture was: the point of most of these tests is what happens after there is
-// an account, not the signing up.
+// fixture was. The point of most of these tests is what happens after there
+// is an account, not the signing up.
 func (ts *testServer) createUser(email string) *store.User {
 	ts.t.Helper()
 	user, err := ts.db.CreateUser(context.Background(), email, testPassword)
@@ -213,8 +213,8 @@ func (ts *testServer) createUser(email string) *store.User {
 }
 
 // createApprovedUser is createUser plus the admin's approval, for everyone
-// after the first — who is approved on the way in, there being nobody to
-// approve them.
+// after the first. They are approved on the way in, because there is
+// nobody to approve them.
 func (ts *testServer) createApprovedUser(email string) *store.User {
 	ts.t.Helper()
 	user := ts.createUser(email)
@@ -233,8 +233,8 @@ func (ts *testServer) createApprovedUser(email string) *store.User {
 func (ts *testServer) protectedPath() string { return testProtectedPath }
 func (ts *testServer) adminPath() string     { return testAdminPath }
 
-// signIn goes through the real form, so that everything the tests do
-// afterwards is done by a client holding a real session cookie.
+// signIn goes through the real form, so a client holding a real session
+// cookie does everything the tests do afterwards.
 func (ts *testServer) signIn(email string) {
 	ts.t.Helper()
 	resp := ts.post("/session", url.Values{"email": {email}, "password": {testPassword}})
@@ -243,7 +243,7 @@ func (ts *testServer) signIn(email string) {
 	}
 }
 
-// sessionCookie is the raw value of the session cookie the client is holding,
+// sessionCookie is the raw value of the session cookie the client holds,
 // or "" when it holds none.
 func (ts *testServer) sessionCookie() string {
 	ts.t.Helper()
@@ -283,10 +283,10 @@ func (ts *testServer) currentSessionID() int64 {
 	return id
 }
 
-// sessionRowGone reports whether the sessions table has forgotten a row.
+// sessionRowGone reports whether the sessions table forgot a row.
 //
 // The store has no "count the sessions" call — nothing in the app lists them —
-// so the question is asked the only way the public API allows: deleting a row
+// so the question is asked the only way the public API allows. Deleting a row
 // that is not there answers ErrNotFound. It is destructive, which is fine for
 // a row a test is about to stop caring about.
 func (ts *testServer) sessionRowGone(id int64) bool {
@@ -329,9 +329,9 @@ func (r *response) assertRedirect(want string) *response {
 	return r
 }
 
-// streams is every <turbo-stream> in the body, as "action:target" — which is
-// what the ported controller tests assert on, because the rule they encode is
-// about which node a write replaces and not about its contents.
+// streams is every <turbo-stream> in the body, as "action:target". That is
+// what the ported controller tests assert on, because the rule they encode
+// names which node a write replaces, not its contents.
 func (r *response) streams() []string {
 	r.t.Helper()
 	var found []string
@@ -429,7 +429,7 @@ func form(pairs ...string) url.Values {
 
 // turboJSON is what lib/start_page_moves.js actually sends: a JSON body with
 // the stream Accept header. The forms in the other tests are what Rails' own
-// tests sent, and the editor's moves never went through a form — which is how
+// tests sent, and the editor's moves never went through a form. That is how
 // a handler that only read form values passed every test and failed the page.
 func (ts *testServer) turboJSON(method, path, body string) *response {
 	ts.t.Helper()

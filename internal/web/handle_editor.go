@@ -17,17 +17,17 @@ type startEditData struct {
 	Grid      gridView
 }
 
-// gridView is #start_page_grid. No stream ever targets it — it carries the
-// drag and keyboard controllers, and replacing it would drop the keyboard
-// highlight on every move — so it is only ever drawn as part of a whole page.
+// gridView is #start_page_grid. No stream ever targets it. It carries the
+// drag and keyboard controllers, and replacing it drops the keyboard
+// highlight on every move. So it is only ever drawn as part of a whole page.
 type gridView struct {
 	ColumnCount int
 	Columns     []columnView
 }
 
 // columnCountView is the toolbar's column picker: every count on offer, and
-// the one that is stored. 1 has to be on offer or the browser would preselect
-// the first option and nobody could get back to a single column.
+// the one that is stored. 1 has to be on offer, or the browser preselects the
+// first option and nobody can get back to a single column.
 type columnCountView struct {
 	Selected int
 	Options  []int
@@ -86,9 +86,8 @@ func (s *Server) handleStartUpdate() http.Handler {
 		err := s.db.UpdateColumns(ctx, user.ID, columns)
 		if err == nil {
 			// A full visit rather than a stream: every column moves, and
-			// redrawing them one by one would mean replacing
-			// #start_page_grid, the node that carries the drag and keyboard
-			// controllers.
+			// redrawing them one by one means replacing #start_page_grid,
+			// the node that carries the drag and keyboard controllers.
 			s.redirect(w, r, "/start/edit", "", "")
 			return
 		}
@@ -99,9 +98,10 @@ func (s *Server) handleStartUpdate() http.Handler {
 			return
 		}
 
-		// Only ever one message: the store checks the bounds first and the
-		// stranded groups only when the bounds are fine, so joining is a
-		// formality here rather than a difference from Rails' to_sentence.
+		// Only ever one message: the store makes sure that the bounds are
+		// fine first, and only then makes sure that no groups are stranded.
+		// So joining is a formality here rather than a difference from
+		// Rails' to_sentence.
 		message := invalid.Error()
 
 		if !wantsTurboStream(r) {
@@ -118,8 +118,8 @@ func (s *Server) handleStartUpdate() http.Handler {
 			return
 		}
 		// The select is already showing the value the database refused, so
-		// reporting is not enough — it has to be sent back as well, showing
-		// the count that is actually stored.
+		// reporting is not enough — this handler has to send it back as
+		// well, showing the count that is actually stored.
 		picker, err := s.renderPartial(pageStartEdit, "column_count", newColumnCountView(user.Columns))
 		if err != nil {
 			s.serverError(w, r, err)
@@ -136,8 +136,8 @@ func (s *Server) handleStartUpdate() http.Handler {
 //
 // update, not replace: the region is a live one, and it is only announced for
 // changes made inside it while it is already in the accessibility tree.
-// Replacing it would hand the reader a region that already had its text, which
-// is the shape screen readers stay quiet about.
+// Replacing it hands the reader a region that already had its text, which is
+// the shape screen readers stay quiet about.
 func (s *Server) noticeStream(message string) (streamAction, error) {
 	html, err := s.renderPartial(pageStartEdit, "error_message", message)
 	if err != nil {
@@ -195,8 +195,8 @@ func (s *Server) newItemStream(view newItemView) (streamAction, error) {
 }
 
 // groupStreamFor is groupStream for a group that has to be read back first —
-// what every write that adds, removes or reorders tiles answers with, since a
-// group owns its tile rows and their positions.
+// what every write that adds, removes or reorders tiles answers with, because
+// a group owns its tile rows and their positions.
 func (s *Server) groupStreamFor(ctx context.Context, userID, groupID int64) (streamAction, error) {
 	group, err := s.db.GroupByID(ctx, userID, groupID)
 	if err != nil {

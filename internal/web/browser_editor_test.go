@@ -3,11 +3,11 @@
 // test/system/start_page_integration_test.rb, ported — the editor half: the
 // column count, the inline forms, and what a refusal leaves on screen.
 //
-// Plus the two things the Ruby suite could not do. Dragging was left to be
-// checked by hand there; here it is driven by dispatching the DragEvents the
-// page listens for, and checked against the database like every other move.
-// And a Turbo Stream is watched being applied, rather than assumed from the
-// fact that the node changed.
+// Plus the two things the Ruby suite could not do. The Ruby suite left
+// dragging to be checked by hand there. Here it is driven by dispatching the
+// DragEvents the page listens for, and checked against the database like
+// every other move. And this test watches a Turbo Stream apply, rather than
+// assuming from the fact that the node changed.
 package web
 
 import (
@@ -53,10 +53,10 @@ func TestBrowserAShrinkThatWouldStrandAGroupIsRefused(t *testing.T) {
 	}
 }
 
-// The whole editing loop in one pass, each step done where the thing lives: a
-// group from the foot of its column, tiles from the foot of the group. Every
-// write swaps a node in place, so these wait on rendered state and the
-// database rather than on a flash.
+// The whole editing loop in one pass, each step done where the thing lives.
+// A group starts from the foot of its column, tiles from the foot of the
+// group. Every write swaps a node in place, so these wait on rendered state
+// and the database rather than on a flash.
 func TestBrowserAddAGroupAddTilesEditThemAndDelete(t *testing.T) {
 	p, user := startPageBrowser(t)
 
@@ -121,8 +121,8 @@ func TestBrowserAddAGroupAddTilesEditThemAndDelete(t *testing.T) {
 	}
 }
 
-// A rejected save has to leave the form where it was, still holding what was
-// typed, or the message has nothing to point at.
+// A rejected save leaves the form where it was, and it must still hold what
+// was typed, or the message has nothing to point at.
 func TestBrowserARejectedTileKeepsItsFormOpenWithTheTypedValues(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group := p.ts.newGroup(user.ID, "Tools", 1)
@@ -144,9 +144,9 @@ func TestBrowserARejectedTileKeepsItsFormOpenWithTheTypedValues(t *testing.T) {
 	}
 }
 
-// The form keeps what was typed so the error has something to point at, but
-// the row behind it describes what is actually saved — and Cancel has to
-// discard the refused values, not adopt them.
+// The form keeps what was typed so the error has something to point at. The
+// row behind it describes what is actually saved. And Cancel has to discard
+// the refused values, not adopt them.
 func TestBrowserARejectedEditKeepsTheSavedValuesBehindIt(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group := p.ts.newGroup(user.ID, "Tools", 1)
@@ -201,11 +201,11 @@ func TestBrowserCancellingAnEditLeavesTheTileAlone(t *testing.T) {
 	}
 }
 
-// Every write on this page answers with a <turbo-stream> that swaps one node,
-// and the whole editor depends on that being a swap rather than a reload: the
-// grid carries the drag and keyboard controllers, and a full navigation would
-// take their state with it. A value left on window is the plainest possible
-// proof the document survived.
+// Every write on this page answers with a <turbo-stream> that swaps one node.
+// The whole editor depends on that swap instead of a reload. The grid carries
+// the drag and keyboard controllers, and a full navigation removes their
+// state. A value left on window is the plainest possible proof the document
+// survived.
 func TestBrowserAWriteSwapsANodeWithoutReloadingThePage(t *testing.T) {
 	p, user := startPageBrowser(t)
 
@@ -229,8 +229,8 @@ func TestBrowserAWriteSwapsANodeWithoutReloadingThePage(t *testing.T) {
 // === DRAGGING ===
 //
 // The pointer's way to reorder. See dragTo for what is synthesised and what
-// isn't; everything from the parting list to the stored position is the page's
-// own code.
+// is not. Everything from the parting list to the stored position is the
+// page's own code.
 
 func TestBrowserDraggingAGroupIntoAnotherColumn(t *testing.T) {
 	p, user := startPageBrowser(t)

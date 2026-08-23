@@ -8,12 +8,12 @@ import (
 )
 
 // Connection is one user's credential for another app, obtained through that
-// app's device flow. It is scoped to a user on purpose: the token grants
+// app's device flow. It is scoped to a user on purpose. The token grants
 // access to exactly one account over there, so it must only ever serve the
 // person who approved it.
 //
 // LastFailedAt and LastError are here so the start page can say "reconnect"
-// instead of quietly showing no federated results — a lapsed token and an
+// instead of quietly showing no federated results. A lapsed token and an
 // empty archive look identical otherwise.
 type Connection struct {
 	ID             int64
@@ -34,8 +34,8 @@ func (c *Connection) NeedsReconnect() bool { return c.LastError != "" }
 
 // Hostname is the host out of BaseURL, which is what the pages call the other
 // app: "links.pati.to", not "https://links.pati.to". A URL that will not parse
-// has no host to show, and the pages that use this simply say nothing — the
-// same empty string Connection#hostname's rescue produced.
+// has no host to show, and the pages that use this simply say nothing. That
+// is the same empty string Connection#hostname's rescue produced.
 func (c *Connection) Hostname() string {
 	parsed, err := url.Parse(c.BaseURL)
 	if err != nil {
@@ -54,9 +54,9 @@ func (db *DB) ConnectionForUser(ctx context.Context, userID int64) (*Connection,
 		`SELECT `+connectionColumns+` FROM connections WHERE user_id = ?`, userID))
 }
 
-// ReplaceConnection stores a freshly approved grant, throwing away whatever was
-// there. Replace rather than update because a new grant is a different token
-// with different scopes and no history worth keeping — and because the unique
+// ReplaceConnection stores a freshly approved grant and throws away whatever
+// was there. Replace rather than update because a new grant is a different
+// token with different scopes and no history worth keeping. Also, the unique
 // index on user_id means there is only ever one to replace.
 func (db *DB) ReplaceConnection(ctx context.Context, userID int64, baseURL, token, scopes string, tokenExpiresAt time.Time) (*Connection, error) {
 	var fields []FieldError
@@ -120,8 +120,8 @@ func (db *DB) RecordConnectionFailure(ctx context.Context, connectionID int64, m
 
 // ClearConnectionFailure forgets a recorded failure, and writes nothing when
 // there is nothing recorded. That guard is not an optimisation: a search runs
-// on every keystroke in the command bar, and without it every one of them
-// would be a write to the database.
+// on every keystroke in the command bar. Without it, every one of them is a
+// write to the database.
 func (db *DB) ClearConnectionFailure(ctx context.Context, connectionID int64) error {
 	return db.tx(ctx, func(tx *sql.Tx) error {
 		var lastError, lastFailedAt sql.NullString

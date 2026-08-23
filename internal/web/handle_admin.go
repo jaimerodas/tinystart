@@ -20,7 +20,7 @@ type adminUsersData struct {
 
 // adminUserView is one row, with the two helpers in UsersHelper already
 // applied: whether each button is drawn at all is a decision about this row,
-// and the template should not have to make it.
+// and the template does not have to make it.
 type adminUserView struct {
 	ID    int64
 	Email string
@@ -29,11 +29,11 @@ type adminUserView struct {
 	Status      string
 	StatusLabel string
 	// CanReset is false for your own row. Sending yourself reset instructions
-	// from the admin list is not a thing anybody meant to do; the password
+	// from the admin list is not a thing anybody meant to do. The password
 	// page is one click away.
 	CanReset bool
-	// CanToggle is false for an approved admin, who would otherwise be able to
-	// block themselves out of the only account that can unblock anyone.
+	// CanToggle is false for an approved admin, so they cannot block
+	// themselves out of the only account that can unblock anyone.
 	CanToggle   bool
 	ToggleLabel string
 }
@@ -79,9 +79,9 @@ func (s *Server) handleAdminUsers() http.Handler {
 
 // handleAdminUserApprove is POST /settings/admin/users/{id}/approve.
 //
-// A toggle rather than two actions, because it is one button: the label says
-// which way it will go, and the store reads and writes the flag in one
-// transaction so two admins clicking at once cannot cancel each other out.
+// A toggle rather than two actions, because it is one button. The label says
+// which way it will go. The store reads and writes the flag in one
+// transaction, so two admins clicking at once cannot cancel each other out.
 func (s *Server) handleAdminUserApprove() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := pathID(r)
@@ -124,8 +124,8 @@ func (s *Server) handleAdminUserPasswordReset() http.Handler {
 		}
 
 		// A failure to send is a 500, unlike the public form, which swallows
-		// it: there is nothing here to give away, and an admin who clicked the
-		// button should be told it did not work.
+		// it. There is nothing here to give away, and an admin who clicked the
+		// button must know that it did not work.
 		if err := s.sendPasswordReset(r, user); err != nil {
 			s.serverError(w, r, err)
 			return

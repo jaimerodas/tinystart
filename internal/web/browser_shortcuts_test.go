@@ -7,8 +7,8 @@
 //
 // Both chords are matched on event.code rather than event.key, because on a Mac
 // ⌥E is a dead key and ⌥S is ß. The harness sends Alt held over the physical
-// key, with the character that key would type, which is exactly what the
-// controller reads and what "swallowed" has to defeat.
+// key, with the character that key types. That is exactly what the
+// controller reads, and what "swallowed" has to defeat.
 package web
 
 import (
@@ -27,7 +27,7 @@ func (p *browserPage) commandBarValue() string {
 
 // === THE CHORDS ===
 
-// The command bar has autofocus, so this is also the case that matters: the
+// The command bar has autofocus, so this is also the case that matters. The
 // chord has to work from inside a text field rather than in spite of it.
 func TestBrowserAltEOpensTheEditor(t *testing.T) {
 	p, user := startPageBrowser(t)
@@ -59,8 +59,8 @@ func TestBrowserAltSGoesBackToTheStartPage(t *testing.T) {
 	}
 }
 
-// Each chord is a no-op on the page it would take you to. It is still
-// swallowed there — otherwise ⌥S would type ß into the search box.
+// Each chord is a no-op on the page it goes to. It is still swallowed
+// there — if nothing swallowed it, ⌥S types ß into the search box.
 func TestBrowserAltSOnTheStartPageGoesNowhereAndTypesNothing(t *testing.T) {
 	p, user := startPageBrowser(t)
 	p.tiles(user)
@@ -85,8 +85,8 @@ func TestBrowserAltEInTheEditorGoesNowhere(t *testing.T) {
 }
 
 // Letting go commits, whichever way you let go. Leaving by chord with a tile
-// still in hand has to save it, exactly as Tab and clicking away already do —
-// otherwise the move is lost on the way out.
+// still in hand has to save it, exactly as Tab and clicking away already do.
+// Otherwise the move is lost on the way out.
 func TestBrowserAltSWhileCarryingSavesTheMove(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group, _, _ := p.tiles(user)
@@ -101,8 +101,8 @@ func TestBrowserAltSWhileCarryingSavesTheMove(t *testing.T) {
 	p.altS()
 
 	p.assertSelector(".command-bar")
-	// Dropped before the visit is asked for, so the page you land on is
-	// already showing the new order rather than the one the move left behind.
+	// Dropped before the visit is asked for, so the page you land on already
+	// shows the new order, not the one the move left behind.
 	if got := p.texts(".start-page-grid li"); !slices.Equal(got, []string{"Calendar", "Gmail"}) {
 		t.Errorf("the page shows %v, want [Calendar Gmail]", got)
 	}
@@ -111,10 +111,10 @@ func TestBrowserAltSWhileCarryingSavesTheMove(t *testing.T) {
 	}
 }
 
-// Reading the shortcuts is not letting go of what you are carrying — half of
-// the list is how to move it, and Esc is in there as the way to change your
-// mind. Opening it takes focus the way a click outside the grid does, which is
-// what commits a move, so this is the case that has to be exempt.
+// Reading the shortcuts is not letting go of what you carry. Half of the
+// list is how to move it, and Esc is in there as the way to change your
+// mind. Opening it takes focus the way a click outside the grid does. That
+// is what commits a move, so this is the case that has to be exempt.
 func TestBrowserAskingForTheShortcutsMidCarryDoesNotCommit(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group, _, _ := p.tiles(user)
@@ -141,9 +141,9 @@ func TestBrowserAskingForTheShortcutsMidCarryDoesNotCommit(t *testing.T) {
 // === THE DIALOG ===
 
 // showModal() sets the open attribute, and Turbo photographs the page with it
-// still set. Restoring that snapshot brings the panel back rendered inline —
-// no backdrop, no top layer — where Esc cannot reach it and ? will not reopen
-// something it already believes is open.
+// still set. Restoring that snapshot brings the panel back rendered inline,
+// with no backdrop and no top layer. Esc cannot reach it there, and ? will
+// not reopen something it already believes is open.
 func TestBrowserTheShortcutsListDoesNotComeBackOpen(t *testing.T) {
 	p, user := startPageBrowser(t)
 	p.tiles(user)
@@ -190,8 +190,8 @@ func TestBrowserTheStartPageListNamesTheEditorChord(t *testing.T) {
 	p.assertText(".shortcuts-dialog", "edit the start page")
 }
 
-// ? is a shortcut only when nothing is being typed into. The command bar is
-// autofocused, so without this guard it could never be searched for.
+// ? is a shortcut only when focus is not on a text field. The command bar is
+// autofocused, so without this guard, a user can never search for it.
 func TestBrowserQuestionMarkInTheCommandBarIsACharacter(t *testing.T) {
 	p, user := startPageBrowser(t)
 	p.tiles(user)
@@ -205,7 +205,7 @@ func TestBrowserQuestionMarkInTheCommandBarIsACharacter(t *testing.T) {
 	}
 }
 
-// And the guard is only survivable because escape gets you off the bar: it is
+// And the guard is only survivable because escape gets you off the bar. It is
 // the only way to reach anything else on this page by keyboard.
 func TestBrowserEscapeOnAnEmptyCommandBarStepsOutOfIt(t *testing.T) {
 	p, user := startPageBrowser(t)

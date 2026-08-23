@@ -1,15 +1,15 @@
 -- The database as Rails left it, byte for byte.
 --
--- This is `sqlite3 storage/development.sqlite3 .schema` with two edits: the
--- statements are ordered so a table exists before anything references it, and
--- sqlite_sequence is dropped (SQLite creates that one itself the first time an
--- AUTOINCREMENT row is inserted, and CREATE TABLE on it is an error).
+-- This is `sqlite3 storage/development.sqlite3 .schema` with two edits. It
+-- orders the statements so a table exists before anything references it. It
+-- also drops sqlite_sequence: SQLite creates that table itself the first time
+-- something inserts an AUTOINCREMENT row, and CREATE TABLE on it is an error.
 --
--- Nothing here may be "tidied". The production database was created by
--- ActiveRecord and is still readable by it: `kamal rollback` to the Rails image
--- has to find the schema it expects, down to the /*application='Tinystart'*/
--- comments Rails appends to its index statements. Only a fresh database ever
--- runs this file; see migrate.go.
+-- Do not tidy anything here. ActiveRecord created the production database,
+-- and its sqlite_master still holds these statements verbatim, down to the
+-- /*application='Tinystart'*/ comments Rails appended to its index
+-- statements. A fresh database has to be indistinguishable from it. Only a
+-- fresh database ever runs this file. See migrate.go.
 
 CREATE TABLE IF NOT EXISTS "users" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "admin" boolean DEFAULT FALSE NOT NULL, "approved" boolean DEFAULT FALSE NOT NULL, "color_preference" varchar DEFAULT 'teal' NOT NULL, "created_at" datetime(6) NOT NULL, "email" varchar NOT NULL, "password_digest" varchar NOT NULL, "theme_preference" varchar DEFAULT 'system' NOT NULL, "updated_at" datetime(6) NOT NULL, "columns" integer DEFAULT 1 NOT NULL);
 CREATE UNIQUE INDEX "index_users_on_email" ON "users" ("email") /*application='Tinystart'*/;

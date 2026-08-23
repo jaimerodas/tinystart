@@ -4,9 +4,9 @@
 //
 // The keyboard is the one reorder path a test can drive without synthesising
 // anything: send_keys is send_keys. Everything the grid answers to is here,
-// checked against both the DOM and the database — the database because a page
-// that shows a move the server refused is exactly the bug this suite exists
-// for.
+// checked against both the DOM and the database. It checks the database too,
+// because a page that shows a move the server refused is exactly the bug
+// this suite exists for.
 package web
 
 import (
@@ -103,7 +103,7 @@ func TestBrowserTheLegendOffersTheWayInThenTheKeys(t *testing.T) {
 	p.assertNoSelector(".keyboard-legend-enter")
 }
 
-// Two ways to move the same tile at the same time is one too many — and a
+// Two ways to move the same tile at the same time is one too many. And a
 // handle is unreachable by keyboard anyway, so in keyboard mode it is clutter.
 func TestBrowserDragHandlesWithdrawInKeyboardMode(t *testing.T) {
 	p, user := startPageBrowser(t)
@@ -122,7 +122,7 @@ func TestBrowserDragHandlesWithdrawInKeyboardMode(t *testing.T) {
 	p.assertSelector("#column_1 .drag-handle")
 }
 
-// Clicking a row focuses it, but a pointer user has not asked for keyboard
+// Clicking a row focuses it, but a pointer user did not ask for keyboard
 // mode and must not lose the handles for reaching one.
 func TestBrowserClickingARowKeepsTheDragHandles(t *testing.T) {
 	p, user := startPageBrowser(t)
@@ -413,8 +413,8 @@ func TestBrowserARejectedMoveReportsItselfInTheNotice(t *testing.T) {
 		t.Errorf("the tile moved to group %d and should not have", got)
 	}
 
-	// The client moved it before it asked, so the refusal has to put it back —
-	// otherwise the page shows an order the database refused, and the next
+	// The client moved it before it asked, so the refusal has to put it back.
+	// Otherwise the page shows an order the database refused, and the next
 	// move computes its position from that page.
 	p.assertSelector(groupSel(group) + " " + itemSel(gmail))
 	p.assertNoSelector(groupSel(other) + " " + itemSel(gmail))
@@ -449,8 +449,8 @@ func TestBrowserALaterSuccessfulMoveClearsTheNotice(t *testing.T) {
 }
 
 // Declining the confirm submits nothing, so nothing will ever redeem a
-// highlight promised for "after the delete" — and the next unrelated render
-// would redeem it by yanking focus out of whatever was open by then.
+// highlight promised for "after the delete". The next unrelated render
+// redeems it instead, by yanking focus out of whatever was open by then.
 func TestBrowserDecliningADeleteDoesNotLeaveTheHighlightOwing(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group, _, _ := p.tiles(user)
@@ -461,8 +461,8 @@ func TestBrowserDecliningADeleteDoesNotLeaveTheHighlightOwing(t *testing.T) {
 
 	p.onConfirm(false)
 	p.sendKeys(kb.Delete)
-	// Nothing is submitted, so there is no render to wait on: the dialog
-	// having been asked and answered is the whole of the event.
+	// Nothing is submitted, so there is no render to wait on. The dialog was
+	// asked and answered, and that is the whole of the event.
 	p.waitForConfirm(1)
 	if got := p.ts.itemTitles(group.ID); !slices.Equal(got, []string{"Gmail", "Calendar"}) {
 		t.Errorf("stored order = %v, want it untouched", got)

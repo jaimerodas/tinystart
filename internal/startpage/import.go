@@ -13,17 +13,18 @@ import (
 	yaml "go.yaml.in/yaml/v3"
 )
 
-// maxColumns is the widest page there is — the same six as store.MaxColumns,
-// checked here so that a file naming column 7 is refused while it is still
-// bytes, rather than halfway through rebuilding somebody's page.
+// maxColumns is the widest page there is — the same six as store.MaxColumns.
+// This code makes sure that a column number stays within it here, so it
+// refuses a file naming column 7 while the file is still bytes, not halfway
+// through rebuilding somebody's page.
 const maxColumns = 6
 
 // Result is what a file turned out to say.
 //
 // Layout is for the caller to persist — see store.ReplaceStartPage, which
-// replaces rather than merges, so that the workflow this format exists for
-// (export, look at it, hand-edit the YAML, import again) is idempotent.
-// Layout.Counts() is the summary the flash reports back.
+// replaces rather than merges. That is what makes the workflow this format
+// exists for (export, look at it, hand-edit the YAML, import again)
+// idempotent. Layout.Counts() is the summary the flash reports back.
 type Result struct {
 	Layout Layout
 
@@ -34,13 +35,13 @@ type Result struct {
 }
 
 // Import reads the interchange format. Every error it returns is a sentence
-// meant for the person who picked the file — the caller prints it verbatim —
-// and every one of them means nothing should be written at all.
+// meant for the person who picked the file — the caller prints it verbatim.
+// Every one of them means Import writes nothing at all.
 //
 // Nothing here talks to the database, so the checks are the file's shape only.
 // The rules about the records themselves — a url that parses, a group name
-// nobody else has, one url per group — belong to the models and are enforced
-// where they live, inside the transaction that does the writing.
+// nobody else has, one url per group — belong to the models. The models
+// enforce them where they live, inside the transaction that does the writing.
 func Import(source []byte) (Result, error) {
 	// A byte order mark is a legal way to start a UTF-8 file and not a legal
 	// way to start a YAML document.
@@ -64,9 +65,10 @@ func Import(source []byte) (Result, error) {
 		return Result{}, err
 	}
 
-	// Checked on the groups rather than on the mapping, because `1: []` is a
-	// mapping with a column in it and no groups anywhere — a legal instruction
-	// to delete the page, which is never what picking a file meant.
+	// This code makes sure that the file is not empty by counting groups, not
+	// by inspecting the raw mapping. `1: []` is a mapping with a column in it
+	// and no groups anywhere. That is a legal instruction to delete the page,
+	// which is never what picking a file meant.
 	counts := layout.Counts()
 	if counts.Groups == 0 {
 		return Result{}, errEmptyFile
@@ -76,7 +78,7 @@ func Import(source []byte) (Result, error) {
 }
 
 // errEmptyFile covers both an empty document and a file whose columns hold no
-// groups: the two are the same instruction, and refusing it is the point.
+// groups. The two are the same instruction, and refusing it is the point.
 var errEmptyFile = errors.New(
 	"that file has no groups in it — importing it would only empty your start page, " +
 		"so nothing was changed")
@@ -90,10 +92,10 @@ func documentNode(root *yaml.Node) *yaml.Node {
 	return root.Content[0]
 }
 
-// readLayout walks the document in the order it was written, because the first
-// thing wrong with a file is the thing worth reporting, and hands back the
-// columns in ascending order, because that is the order they have to be
-// created in.
+// readLayout walks the document in the order it was written, because the
+// first thing wrong with a file is the thing worth reporting. It hands back
+// the columns in ascending order, because that is the order the importer has
+// to create them in.
 func readLayout(document *yaml.Node) (Layout, error) {
 	if document.Kind != yaml.MappingNode {
 		return Layout{}, refuse("that file isn't a mapping of column numbers to groups — " +
@@ -101,9 +103,10 @@ func readLayout(document *yaml.Node) (Layout, error) {
 	}
 
 	// Every top-level key in this format is an Integer, so a String key is a
-	// later format with an envelope rather than a broken file. Checked across
-	// the whole mapping before any column is read, so that a version envelope
-	// is named as one however far down the odd key is.
+	// later format with an envelope rather than a broken file. This code makes
+	// sure that every key is an Integer across the whole mapping before it
+	// reads any column. That way, it names a version envelope correctly
+	// however far down the odd key sits.
 	for key := range pairs(document) {
 		if key.Tag != "!!int" {
 			return Layout{}, refuse("that file looks like a newer format than this app can read: " +
@@ -163,21 +166,21 @@ func readGroup(node *yaml.Node, column, index int) (Group, error) {
 
 	group := Group{Name: name}
 	for title, url := range pairs(items) {
-		// The title is coerced rather than required to be a String: in a
-		// hand-edited file an unquoted `123:` does not arrive as one, and a
-		// tile can legitimately be called 123.
+		// The code coerces the title rather than requiring it to be a String.
+		// In a hand-edited file, an unquoted `123:` does not arrive as one,
+		// and a tile can legitimately be called 123.
 		group.Items = append(group.Items, Item{Title: text(title), URL: text(url)})
 	}
 	return group, nil
 }
 
 // pairs iterates a mapping's keys and values in document order, keeping the
-// last of two identical keys at the position of the first — which is what a
+// last of two identical keys at the position of the first. That is what a
 // Ruby Hash does, and so what every file in existence was written against.
 //
 // Losing a repeated key is not a detail: it is the one kind of damage a hand
-// edit can do silently, and the header counts below are the only thing that
-// sees it happen.
+// edit can do silently. The header counts below are the only thing that sees
+// it happen.
 func pairs(mapping *yaml.Node) iter.Seq2[*yaml.Node, *yaml.Node] {
 	return func(yield func(*yaml.Node, *yaml.Node) bool) {
 		seen := make(map[string]int, len(mapping.Content)/2)
@@ -213,9 +216,10 @@ func lookup(mapping *yaml.Node, name string) *yaml.Node {
 	return nil
 }
 
-// text is Ruby's #to_s on a loaded scalar: the characters as they were
-// written, and the empty string for a missing value or an explicit null, which
-// is what nil.to_s gives and what the presence validations then refuse.
+// text is Ruby's #to_s on a loaded scalar. It gives the characters as they
+// were written, and the empty string for a missing value or an explicit
+// null. That is what nil.to_s gives, and what the presence validations then
+// refuse.
 func text(node *yaml.Node) string {
 	if node == nil || node.Tag == "!!null" {
 		return ""
@@ -233,7 +237,7 @@ var permittedTags = []string{"!!str", "!!int", "!!bool", "!!float", "!!null", "!
 // tags, no dates.
 //
 // The wording is not Psych's, because Psych's says which Ruby class it refused
-// to build. Ruby is what this app is written in until the day it isn't.
+// to build. Ruby is what this app is written in until the day it is not.
 func checkPermittedTypes(node *yaml.Node) error {
 	if node.Kind == yaml.AliasNode {
 		return refuse("that file could not be read as YAML — " +
@@ -258,21 +262,21 @@ var headerCounts = regexp.MustCompile(`^\s*#\s*(\d+) columns?, (\d+) groups?, (\
 // countMismatch compares the header's counts with what actually loaded, and
 // says so when they disagree.
 //
-// The emitter keeps the last of two identical keys and says nothing, so a hand
-// edit that repeats a title inside one `items` block loses a tile with no error
-// from anywhere. The header's counts are the only cheap way to see that
-// happened.
+// The emitter keeps the last of two identical keys and says nothing. As a
+// result, a hand edit that repeats a title inside one `items` block loses a
+// tile with no error from anywhere. The header's counts are the only cheap
+// way to see that happened.
 //
-// It cannot be a refusal, though, and that is the whole subtlety: deleting a
+// It cannot be a refusal, though, and that is the whole subtlety. Deleting a
 // tile by hand lowers the count in exactly the way a collapsed key does, and
-// nothing in the file says which happened. Refusing would block the one
-// workflow this format exists for — export, edit, import again — so the import
-// goes through and reports what it noticed. A file with no counts line says
+// nothing in the file says which happened. Refusing blocks the one workflow
+// this format exists for — export, edit, import again — so the import goes
+// through and reports what it noticed. A file with no counts line says
 // nothing at all.
 //
 // Note what it cannot see: a repeated *group* name. Groups are list items, not
-// mapping keys, so duplicating one changes no count. That is caught later, by
-// the uniqueness validation on the group, which names it properly.
+// mapping keys, so duplicating one changes no count. The uniqueness validation
+// on the group catches that later and names it properly.
 func countMismatch(source []byte, actual Counts) string {
 	stated, ok := statedCounts(source)
 	if !ok || stated == actual {
@@ -284,9 +288,9 @@ func countMismatch(source []byte, actual Counts) string {
 }
 
 // statedCounts reads every line above the document marker rather than the
-// leading run of comments: a byte order mark or a blank line above the header
-// ends that run on its first line and would skip the check entirely — and this
-// check is the only thing that ever sees a collapsed duplicate key.
+// leading run of comments. A byte order mark or a blank line above the header
+// ends that run on its first line, which skips the check entirely. This check
+// is the only thing that ever sees a collapsed duplicate key.
 func statedCounts(source []byte) (Counts, bool) {
 	for line := range strings.Lines(string(source)) {
 		line = strings.TrimRight(line, "\r\n")

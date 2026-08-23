@@ -31,8 +31,8 @@ export default class extends Controller {
     this.startPageLinks = this.filterLocalLinks(query)
     this.renderSuggestions()
 
-    // Nothing to ask the connected app, or nothing it would answer: the local tiles are
-    // the whole result.
+    // There is nothing to ask the connected app, or nothing it can answer: the
+    // local tiles are the whole result.
     if (this.federationValue !== "active") return
 
     // Clear existing timeout and set new one for server search
@@ -49,7 +49,7 @@ export default class extends Controller {
   }
 
   async fetchServerResults(query) {
-    // Don't fetch if query changed while waiting
+    // If the query changed while waiting, do not fetch.
     if (query !== this.currentQuery) return
 
     try {
@@ -60,7 +60,7 @@ export default class extends Controller {
 
       const results = await response.json()
 
-      // Don't update if query changed during fetch
+      // If the query changed during the fetch, do not update.
       if (query !== this.currentQuery) return
 
       // Exclude links that are already in start page results
@@ -104,7 +104,8 @@ export default class extends Controller {
       case 'Escape':
         // The bar is autofocused, so nothing else on this page is reachable by
         // keyboard while it holds focus — ? included. Clearing is the first
-        // press; stepping out is the second, or the first on an empty bar.
+        // press. Stepping out is the second press, or the first press on an
+        // empty bar.
         if (this.inputTarget.value === "") this.inputTarget.blur()
         this.clearAndHide()
         break
@@ -148,7 +149,7 @@ export default class extends Controller {
       this.selectedIndex = 0
     }
 
-    // Ensure selectedIndex is within bounds (but allow -1 for no selection)
+    // Make sure that selectedIndex stays within bounds (but allow -1 for no selection)
     if (this.selectedIndex >= this.allResults.length) {
       this.selectedIndex = this.allResults.length > 0 ? this.allResults.length - 1 : -1
     }
@@ -248,7 +249,7 @@ export default class extends Controller {
 
   selectSuggestion(index, openInNewTab) {
     const link = this.allResults[index];
-    // Tiles are ours; everything under "All Links" belongs to the connected app.
+    // Tiles are ours. Everything under "All Links" belongs to the connected app.
     if (link.section === "startPage") {
       trackTileVisit(link.id);
     } else {
@@ -260,7 +261,7 @@ export default class extends Controller {
   navigateToUrlOrSearch(input, openInNewTab) {
     const validatedUrl = this.isValidUrl(input);
 
-    // If it's a valid URL, navigate to it
+    // If it is a valid URL, navigate to it
     const finalUrl = validatedUrl
       ? validatedUrl.href
       : this.buildDuckDuckGoSearchUrl(input);

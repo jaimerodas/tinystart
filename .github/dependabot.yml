@@ -1,7 +1,7 @@
 version: 2
 updates:
   # The three runtime dependencies and the two linters pinned as tool
-  # directives in go.mod. Weekly is plenty; govulncheck in CI covers the gap.
+  # directives in go.mod. Weekly is plenty. govulncheck in CI covers the gap.
   - package-ecosystem: gomod
     directory: "/"
     schedule:

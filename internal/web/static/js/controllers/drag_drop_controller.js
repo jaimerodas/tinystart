@@ -57,8 +57,8 @@ export default class extends Controller {
     }
   }
 
-  // Every zone is a target, including the one being dragged from — that is what
-  // reordering in place means.
+  // Every zone is a target, including the zone the drag started from. That is
+  // what reordering in place means.
   highlightPotentialTargets(dragType) {
     const config = this.getDragConfig(dragType)
     config.targets.forEach(target => target.classList.add("potential-drop-target"))
@@ -72,7 +72,7 @@ export default class extends Controller {
   }
 
   // What to insert before so the element lands under the cursor: the first
-  // sibling whose midpoint the cursor has passed, or the end of the list.
+  // sibling whose midpoint the cursor passed, or the end of the list.
   insertionReference(zone, clientY, dragType) {
     const config = this.getDragConfig(dragType)
 
@@ -88,8 +88,8 @@ export default class extends Controller {
       : null
   }
 
-  // Moving the element while the drag is still going is what makes the list
-  // part around it. The guard keeps a held cursor from re-inserting on every
+  // Moving the element while the drag continues is what makes the list part
+  // around it. The guard keeps a held cursor from re-inserting on every
   // dragover tick.
   previewInsertion(zone, clientY, dragType) {
     const dragged = this.getDragConfig(dragType).draggedElement
@@ -188,9 +188,9 @@ export default class extends Controller {
       event.dataTransfer.setData("text/html", element.outerHTML)
     }
 
-    // The list parts around the element as it is dragged, which means the DOM
-    // has already changed by the time a drag is abandoned. Remember where it
-    // came from so an abandoned one can be put back.
+    // The list parts around the element as the drag continues, so the DOM
+    // differs from its start by the time a drag is abandoned. Remember where
+    // the element came from, so an abandoned drag can put it back.
     this.dragOrigin = { parent: element.parentElement, nextSibling: element.nextElementSibling }
     this.dropped = false
 
@@ -213,7 +213,7 @@ export default class extends Controller {
 
   // Both kinds of drop zone are nested — .group-items sits inside
   // .start-page-column — so every drag event reaches both sets of handlers. A
-  // reference left over from a finished drag makes the wrong one act on it, and
+  // reference left over from a finished drag makes the wrong one act on it.
   // isValidDropZone no longer filters by source container to catch that.
   forgetDragged(dragType) {
     if (dragType === 'group') {
@@ -224,8 +224,8 @@ export default class extends Controller {
     this.draggedData = null
   }
 
-  // Dropped on nothing, or cancelled with Esc: the server was never told, so
-  // the page must not keep the rearrangement either.
+  // Dropped on nothing, or canceled with Esc: nobody told the server, so the
+  // page must not keep the rearrangement either.
   restoreDragOrigin(element) {
     if (!this.dragOrigin) return
     this.dragOrigin.parent.insertBefore(element, this.dragOrigin.nextSibling)
@@ -327,9 +327,10 @@ export default class extends Controller {
     })
   }
 
-  // A touch drag carries the element under the finger, so asking what is at that
-  // point answers "the thing you are dragging" and every drop resolves to the
-  // zone it came from. Put it back and take it out of hit testing first.
+  // A touch drag carries the element under the finger. Hit-testing at that
+  // point normally finds the dragged element itself, so every drop resolves to
+  // the zone it came from. Take the element out of hit testing first, then put
+  // it back.
   zoneUnderPoint(x, y, dragType) {
     const config = this.getDragConfig(dragType)
     const dragged = config.draggedElement

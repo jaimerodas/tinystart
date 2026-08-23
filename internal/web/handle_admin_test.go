@@ -71,9 +71,9 @@ func TestAdminUsersListsEverybodyNewestFirst(t *testing.T) {
 		assertContains(`<span class="user-admin">Admin</span>`)
 }
 
-// The toggle is hidden for an approved admin, who would otherwise be able to
-// block themselves out of the only account that can unblock anyone; the reset
-// button is hidden for your own row.
+// The toggle is hidden for an approved admin. Otherwise, that admin can
+// block themselves out of the only account that can unblock anyone. The
+// reset button is hidden for your own row.
 func TestAdminUsersHidesTheActionsThatMakeNoSense(t *testing.T) {
 	ts, users := adminServer(t)
 

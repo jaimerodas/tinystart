@@ -3,25 +3,26 @@ import { moveGroup, moveItem, clearNotice } from "lib/start_page_moves"
 
 // Connects to data-controller="grid-keyboard" on #start_page_grid.
 //
-// Makes the whole editor one Tab stop with a highlight the arrow keys walk, and
-// lets a tile or a group be picked up with Space and carried a position at a
-// time. Dragging is the pointer's way to reorder; this is the keyboard's.
+// Makes the whole editor one Tab stop with a highlight the arrow keys walk.
+// You can pick up a tile or a group with Space and carry it a position at a
+// time. Dragging is the pointer's way to reorder. This is the keyboard's.
 // Neither knows about the other beyond sharing lib/start_page_moves.
 //
 // The rows are `.item-row`, `.group-header` and the "Add link" / "Add group"
 // triggers — every line of the editor you can act on. They render with
-// tabindex="-1" and exactly one is promoted to 0, so Tab enters the grid once
-// and leaves it once however many tiles are on the page.
+// tabindex="-1", and the controller promotes exactly one to 0. Tab then
+// enters the grid once and leaves it once, no matter how many tiles are on
+// the page.
 //
-// Nothing here reimplements adding, editing or deleting: Enter and Delete find
-// the button that already does the job and click it, which keeps the inline
-// forms, the confirm dialogs and their focus handling in one place.
+// Nothing here reimplements adding, editing or deleting. Enter and Delete
+// find the button that already does the job and click it. This keeps the
+// inline forms, the confirm dialogs and their focus handling in one place.
 export default class extends Controller {
   static targets = ["row"]
 
-  // In initialize rather than connect because Stimulus fires the target
-  // callbacks for the initial DOM around connect, and a row that arrives first
-  // must not have its adoption wiped by a later reset.
+  // This runs in initialize rather than connect because Stimulus fires the
+  // target callbacks for the initial DOM around connect. A later reset must
+  // not wipe the adoption of a row that arrives first.
   initialize() {
     this.grabbed = null
     this.grabOrigin = null
@@ -35,7 +36,7 @@ export default class extends Controller {
   //
   // Rows arrive and leave whenever a Turbo Stream replaces a column or a group,
   // which is every write on this page. Reacting to the targets themselves means
-  // the tab stop never has to be rebuilt on a timer or re-queried after a
+  // nobody has to rebuild the tab stop on a timer or query it again after a
   // render.
 
   rowTargetConnected(row) {
@@ -45,8 +46,8 @@ export default class extends Controller {
       this.pendingFocusKey = null
       this.focusRow(row)
     } else if (!this.currentRow?.isConnected) {
-      // Keep a way into the grid at all times, but don't pull focus — this runs
-      // on every render, including ones nobody is looking at.
+      // Keep a way into the grid at all times, but do not pull focus — this
+      // runs on every render, including ones nobody is looking at.
       this.currentRow = row
       row.tabIndex = 0
     }
@@ -56,7 +57,7 @@ export default class extends Controller {
     if (row !== this.currentRow) return
 
     this.currentRow = null
-    // The replacement rows have not arrived yet; let the render finish first.
+    // The replacement rows are not here yet. Let the render finish first.
     queueMicrotask(() => this.claimRowAfterDelete())
   }
 
@@ -74,10 +75,10 @@ export default class extends Controller {
 
   // === KEYBOARD MODE ===
   //
-  // None of the keys below do anything until focus is in the grid, so the page
-  // says which state it is in: the legend swaps for the key list, and the drag
-  // handles withdraw rather than offering a second way to move a row that may
-  // already be carried.
+  // None of the keys below do anything until focus is in the grid. The page
+  // shows which state it is in: the legend swaps for the key list, and the
+  // drag handles withdraw. This avoids offering a second way to move a row
+  // that is already picked up.
 
   enter(event) {
     this.syncKeyboardMode()
@@ -89,16 +90,17 @@ export default class extends Controller {
     // restoration happens in the same task. Decide on the next one.
     queueMicrotask(() => {
       // Opening the ? list is not letting go. It takes focus the way a click
-      // outside would, but reading the shortcuts is exactly when a carried row
-      // has to still be carried — half of what the list says is how to move it,
-      // and Esc is in there as the way to change your mind. Closing it hands
-      // focus straight back to the row, so this is a round trip like a move or
-      // a delete, and the mode must not flicker for it either.
+      // outside the grid does, but reading the shortcuts is exactly when a
+      // carried row must stay carried. Half of what the list says is how to
+      // move it, and Esc is listed there as the way to change your mind.
+      // Closing the dialog hands focus straight back to the row, so this is a
+      // round trip like a move or a delete. The mode must not flicker for it
+      // either.
       if (document.activeElement?.closest("dialog[open]")) return
 
-      // Focus left the grid entirely while something was still being carried —
-      // a click on the page outside it. Letting go commits, the same rule Tab
-      // follows, rather than leaving a move dangling to land later.
+      // Focus left the grid entirely while a row was still carried — a click
+      // on the page outside it. Letting go commits, the same rule Tab follows,
+      // rather than leaving a move dangling to land later.
       if (this.grabbed && !this.element.contains(document.activeElement)) {
         this.drop({ refocus: false })
       }
@@ -110,12 +112,12 @@ export default class extends Controller {
   // A shortcut that leaves the page is leaving. A carried row drops and saves,
   // the same rule Tab and clicking away already follow.
   //
-  // Not redundant with leave(): the body swap at the end of a Turbo visit does
-  // eventually take focus off the row, but by then the page being navigated to
-  // has already been fetched, so it renders the order the move was meant to
-  // replace. Handing the save back lets whoever is leaving wait for it — being
-  // dispatched first is not being processed first, and both requests read the
-  // same table.
+  // Not redundant with leave(): the body swap at the end of a Turbo visit
+  // does eventually take focus off the row. But by then, the browser already
+  // fetched the destination page, so that page renders the order the move
+  // intended to replace. Handing the save back lets the caller wait for it.
+  // Dispatching a request first does not mean the server processes it first,
+  // and both requests read the same table.
   dropIfGrabbed(event) {
     if (!this.grabbed) return
 
@@ -135,7 +137,7 @@ export default class extends Controller {
     }
 
     // :focus-visible is the browser's own answer to "did they mean to do this
-    // with the keyboard" — a click on a row focuses it but does not match, so a
+    // with the keyboard". A click on a row focuses it but does not match, so a
     // pointer user never loses the handles for reaching one.
     //
     // Entering is one-way until focus leaves: a programmatic focus() after a
@@ -145,15 +147,16 @@ export default class extends Controller {
     }
   }
 
-  // Focus can land on a row without us putting it there: closing an inline form
-  // returns focus to its trigger, and a pointer user can just click one. Adopt
-  // whatever got focused so the highlight never disagrees with the caret.
+  // Focus can land on a row without us putting it there. Closing an inline
+  // form returns focus to its trigger, and a pointer user can just click one.
+  // Adopt whatever received focus, so the highlight never disagrees with the
+  // caret.
   adopt(event) {
     const row = event.target.closest('[data-grid-keyboard-target="row"]')
     if (!row) return
 
-    // Focus left the row being carried — a click elsewhere in the grid. Letting
-    // go commits, the same as dragging.
+    // Focus left the carried row — a click elsewhere in the grid. Letting go
+    // commits, the same as dragging.
     if (this.grabbed && !this.grabbed.contains(row)) this.drop({ refocus: false })
 
     if (row !== this.currentRow) this.setCurrentRow(row)
@@ -162,8 +165,8 @@ export default class extends Controller {
   // Document order, which for this grid means column by column and within a
   // column top to bottom — the order the eye reads it in.
   //
-  // A row whose inline form is open is hidden, and navigating onto something
-  // invisible would strand the highlight, so those drop out of the list.
+  // A row whose inline form is open is hidden. Navigating onto a hidden row
+  // strands the highlight, so those rows drop out of the list.
   get rows() {
     return this.rowTargets.filter(row => row.offsetParent !== null)
   }
@@ -229,8 +232,8 @@ export default class extends Controller {
   }
 
   // Returning true at an end of the list is deliberate: the key was meant for
-  // the grid and swallowing it stops the page scrolling underneath a highlight
-  // that did not move.
+  // the grid. Swallowing it stops the page from scrolling underneath a
+  // highlight that did not move.
   step(row, delta) {
     const siblings = this.rowsInColumn(this.columnOf(row))
     const next = siblings[siblings.indexOf(row) + delta]
@@ -244,9 +247,9 @@ export default class extends Controller {
     return true
   }
 
-  // Sideways is answered geometrically rather than by index: the row you want in
-  // the next column is the one beside the one you are on, and two columns rarely
-  // hold the same number of rows.
+  // The code answers sideways movement geometrically, not by index. The row
+  // you want in the next column is the one beside the one you are on. Two
+  // columns rarely hold the same number of rows.
   stepColumn(row, delta) {
     const target = this.columnBeside(this.columnOf(row), delta)
     if (!target) return true
@@ -301,12 +304,12 @@ export default class extends Controller {
     return true
   }
 
-  // The confirm can be declined, and then nothing is submitted and there is no
-  // render to take the highlight back afterwards. Arming on the click would
-  // leave that promise outstanding, for the next unrelated render to redeem by
-  // pulling focus out of whatever the user had opened by then — so arm only
-  // once the request is actually on its way. Aborting first drops the arming
-  // left by any confirm that was declined earlier.
+  // The user can decline the confirm. Then nothing is submitted, and there is
+  // no render to take the highlight back afterward. Arming on the click
+  // leaves that promise outstanding: the next unrelated render can redeem it
+  // by pulling focus out of whatever the user opened. So the code arms only
+  // once the request is actually on its way. Aborting first clears any
+  // arming left by an earlier declined confirm.
   remove(row) {
     const button = row.querySelector(".remove-button")
     if (!button) return true
@@ -326,13 +329,13 @@ export default class extends Controller {
 
   // === GRAB, MOVE, DROP ===
   //
-  // A grabbed node is rearranged in the DOM and nowhere else until it is
-  // dropped. That is what makes Esc a real cancel, and what makes walking a tile
-  // five positions one save instead of five.
+  // A grabbed node moves in the DOM and nowhere else until it is dropped. That
+  // is what makes Esc a real cancel, and what makes walking a tile five
+  // positions one save instead of five.
 
   // A tile row carries its whole .start-page-item, a group header its whole
-  // .start-page-group. An add trigger carries nothing — it sits inside a group,
-  // so closest() would otherwise hand it that group to move.
+  // .start-page-group. An add trigger carries nothing — it sits inside a
+  // group, and without this check, closest() hands it that group to move.
   movableFor(row) {
     if (row.matches(".add-trigger")) return null
 
@@ -360,8 +363,8 @@ export default class extends Controller {
       case " ": return this.drop()
       case "Escape": return this.cancel()
       // Letting go commits, the same rule dragging has. Handled but not
-      // swallowed, so the Tab still moves on out of the grid — trapping focus
-      // inside a carried row would be a keyboard trap.
+      // swallowed, so Tab still moves on out of the grid. Trapping focus
+      // inside a carried row is a keyboard trap.
       case "Tab": this.drop({ refocus: false }); return false
       default: return false
     }
@@ -377,7 +380,7 @@ export default class extends Controller {
   }
 
   // Derived from the zone rather than from what is grabbed, so this stays
-  // truthful after the grab has been released.
+  // truthful after the grab is released.
   siblingsIn(zone) {
     const selector = zone.matches(".start-page-column") ? ".start-page-group" : ".start-page-item"
     return [ ...zone.querySelectorAll(`:scope > ${selector}`) ]
@@ -407,9 +410,9 @@ export default class extends Controller {
     return true
   }
 
-  // Running off the end of a group carries the tile into the next one, which is
-  // what makes a column feel like one list to walk down. At the first or last
-  // group of the column there is nowhere left to go.
+  // Running off the end of a group carries the tile into the next one. This
+  // is what makes a column feel like one list to walk down. At the first or
+  // last group of the column there is nowhere left to go.
   spillIntoAdjacentGroup(delta) {
     const groups = this.groupsIn(this.columnOf(this.grabbed))
     const current = this.grabbed.closest(".start-page-group")
@@ -417,7 +420,8 @@ export default class extends Controller {
     if (!target) return false
 
     const zone = target.querySelector(".group-items")
-    // Coming down from above, land at the top; coming up from below, the bottom.
+    // Coming down from above lands the tile at the top. Coming up from below
+    // lands it at the bottom.
     zone.insertBefore(this.grabbed, delta > 0 ? this.siblingsIn(zone)[0] ?? null : null)
     return true
   }
@@ -458,7 +462,7 @@ export default class extends Controller {
   }
 
   // The focused row travels inside the node that moved, but a browser drops
-  // focus when an element is reparented, so put it back.
+  // focus whenever this code reparents an element, so put it back.
   refocusGrabbed() {
     const row = this.rowIn(this.grabbed)
     if (row) this.focusRow(row)
@@ -471,9 +475,9 @@ export default class extends Controller {
 
     this.releaseGrab()
 
-    // The stream answering this replaces the column or the group, so the row
-    // holding focus is about to be destroyed. Name the one to focus when it
-    // comes back rather than racing the render.
+    // The stream answering this replaces the column or the group, so it is
+    // about to destroy the row holding focus. Name the row to focus when it
+    // comes back, rather than racing the render.
     if (refocus) this.pendingFocusKey = this.keyFor(this.rowIn(node))
 
     let answered
@@ -488,18 +492,19 @@ export default class extends Controller {
 
     // Any answer redraws the row somewhere — a refusal puts it back where it
     // really is — so the key gets spent. Only a request that never landed
-    // redraws nothing, and an unspent key would lie in wait to claim the next
-    // row that happened to match it.
+    // redraws nothing, and an unspent key lies in wait to claim the next row
+    // that happens to match it.
     answered.then(gotAnswer => { if (!gotAnswer) this.pendingFocusKey = null })
 
-    // Kept for anything that has to leave the page behind this move rather than
+    // Kept for anything that must leave the page behind this move rather than
     // alongside it. Nothing here waits on it.
     this.moveInFlight = answered
 
     return true
   }
 
-  // Nothing was ever sent, so putting the node back is the whole of the undo.
+  // The code never sent anything, so putting the node back is the whole of
+  // the undo.
   cancel() {
     const node = this.grabbed
     const { parent, nextSibling } = this.grabOrigin

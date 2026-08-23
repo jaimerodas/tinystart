@@ -11,19 +11,19 @@ import (
 // Psych's quoting rules, ported, so that a file written here is byte for byte
 // the file Rails wrote for the same page.
 //
-// That matters for one release and then forever after: during the rewrite the
-// two exports are diffed against each other, and after it the files people
-// already have on disk have to keep looking like the files this app produces.
-// Every start page export in existence came out of Ruby, and Ruby quotes a
-// scalar on rules of its own that no YAML library reproduces.
+// That matters for one release and then forever after. During the rewrite,
+// we diff the two exports against each other. After that, the files people
+// already have on disk have to keep looking like the files this app
+// produces. Every start page export in existence came out of Ruby, and Ruby
+// quotes a scalar on rules of its own that no YAML library reproduces.
 //
 // The emitter underneath (go.yaml.in/yaml/v3) is a port of the same libyaml
-// that Psych drives, so the *analysis* — is this plain-safe, where does an
-// escape go, how is a line broken — already agrees. What does not agree is the
-// style Psych asks for before the analysis runs, which is
+// that Psych drives. As a result, the *analysis* — is this plain-safe, where
+// does an escape go, how is a line broken — already agrees. What does not
+// agree is the style Psych asks for before the analysis runs, which is
 // Psych::Visitors::YAMLTree#visit_String, below.
 //
-// Everything here is about how a string is written, never about what it means.
+// Everything here is about writing a string, never about what it means.
 // A wrong answer is an uglier file, not a broken one.
 
 var (
@@ -34,15 +34,15 @@ var (
 	psychProse = regexp.MustCompile(`^[^\d.:\-]?[\pL_ \t\r\n\f\v!@#$%^&*(){}<>|/\\~;=]+`)
 
 	// The five-character shortcut's exception list: a short string starting
-	// with one of these letters might be a boolean or a null.
+	// with one of these letters can be a boolean or a null.
 	psychShortNotWord = regexp.MustCompile(`(?i)^[^ytonf~]`)
 	psychNull         = regexp.MustCompile(`(?i)^null$`)
 	psychTrue         = regexp.MustCompile(`(?i)^(yes|true|on)$`)
 	psychFalse        = regexp.MustCompile(`(?i)^(no|false|off)$`)
 
 	// Psych::ScalarScanner's own constants, verbatim. A string matching any
-	// of them loads back as something that is not a String, so it has to be
-	// quoted or the file does not round trip.
+	// of them loads back as something that is not a String. So it has to be
+	// quoted, or the file does not round trip.
 	psychTime        = regexp.MustCompile(`^-?\d{4}-\d{1,2}-\d{1,2}(?:[Tt]|\s+)\d{1,2}:\d\d:\d\d(?:\.\d*)?(?:\s*(?:Z|[-+]\d{1,2}:?(?:\d\d)?))?$`)
 	psychDate        = regexp.MustCompile(`^\d{4}-(?:1[012]|0\d|\d)-(?:[12]\d|3[01]|0\d|\d)$`)
 	psychInfinity    = regexp.MustCompile(`(?i)^[-+]?\.inf$`)
@@ -55,28 +55,29 @@ var (
 		`|[-+]?(?:0|[1-9](?:[0-9]|,[0-9]|_[0-9])*)` +
 		`|[-+]?0x[_,]*[0-9a-fA-F][0-9a-fA-F_,]*)$`)
 
-	// visit_String's own extra rule, for a number that looks octal and isn't:
-	// "089" scans as a String and would still confuse a reader.
+	// visit_String's own extra rule, for a number that looks octal and is not:
+	// "089" scans as a String and still confuses a reader.
 	psychFalseOctal = regexp.MustCompile(`^0[0-7]*[89]`)
 
 	// The other half of visit_String: a string whose first character is not a
-	// word character is double-quoted rather than single-quoted, as long as
-	// there is no double quote inside it to escape. "# hash", "- dash",
+	// word character is double-quoted rather than single-quoted. That holds as
+	// long as there is no double quote inside it to escape. "# hash", "- dash",
 	// "¿Qué?" — and, in the real data, nothing at all, until somebody names a
 	// tile in the way people actually name things.
 	psychNonWordStart = regexp.MustCompile(`^[^\pL\pM\pN_][^"]*$`)
 )
 
-// psychStyle is the style Psych would ask the emitter for. The zero Style is
-// "plain if the emitter can manage it", which is Psych's default too — libyaml
+// psychStyle is the style Psych asks the emitter for. The zero Style is
+// "plain if the emitter can manage it", which is Psych's default too. libyaml
 // falls back to single quotes and then to double quotes on its own, and both
 // libraries fall back the same way.
 func psychStyle(s string) yaml.Style {
 	switch {
 	// A newline anywhere but the very end makes it a literal block. A string
 	// that only *ends* in a newline is not one, and drops through to the
-	// quoted styles — where go-yaml would have chosen a literal block, so the
-	// answer has to be spelled out rather than left to the emitter.
+	// quoted styles. If left to its own analysis, go-yaml chooses a literal
+	// block, so the answer has to be spelled out rather than left to the
+	// emitter.
 	case hasInteriorNewline(s):
 		return yaml.LiteralStyle
 	case strings.Contains(s, "\n"):
@@ -110,7 +111,7 @@ func hasInteriorNewline(s string) bool {
 }
 
 // psychScansAsString is Psych::ScalarScanner#tokenize reduced to the only
-// question this file asks it: would loading this back give a String? Every
+// question this file asks it: does loading this back give a String? Every
 // branch that produces a Date, a Time, a Symbol, a number, a boolean or nil is
 // a reason to quote.
 func psychScansAsString(s string) bool {
@@ -143,8 +144,8 @@ func psychScansAsString(s string) bool {
 		psychInteger.MatchString(s):
 		return false
 	case psychFloat.MatchString(s):
-		// Ruby hands back a lone "." or "+." as a String; Float() would raise
-		// on it.
+		// Ruby hands back a lone "." or "+." as a String. If called on it,
+		// Float() raises.
 		return s == "." || s == "+." || s == "-."
 	}
 	return true

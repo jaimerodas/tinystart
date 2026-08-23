@@ -3,9 +3,9 @@
 // Everything the program does lives in run, and main does nothing but call it
 // and turn an error into an exit code. That split is the whole point: run
 // takes its context, its arguments, its environment and its output as
-// parameters, so a test can hand it a cancellable context, a fake environment
-// and a buffer, and exercise the real startup path rather than a rehearsal of
-// it.
+// parameters. As a result, a test can hand it a cancellable context, a fake
+// environment and a buffer. Then it can exercise the real startup path rather
+// than a rehearsal of it.
 package main
 
 import (
@@ -59,15 +59,15 @@ const (
 	envPostmarkToken = "POSTMARK_API_TOKEN"
 
 	// envPostmarkURL points the mailer somewhere other than Postmark. It is
-	// what makes running the binary from a checkout safe: Rails in development
-	// used letter_opener and mailed nobody, and without this a password reset
-	// on a laptop would go to a real inbox. Empty means the real API, which is
-	// what production leaves it as.
+	// what makes running the binary from a checkout safe. Rails in development
+	// used letter_opener and mailed nobody. Without it, a password reset on a
+	// laptop goes to a real inbox. Empty means the real API, which is what
+	// production leaves it as.
 	envPostmarkURL = "POSTMARK_API_URL"
 )
 
 // configFromEnv reads the environment through the getenv it is given rather
-// than os.Getenv, which is what lets the tests configure a run without
+// than os.Getenv. That is what lets the tests configure a run without
 // touching the process's real environment.
 func configFromEnv(getenv func(string) string) config {
 	cfg := config{
@@ -94,12 +94,12 @@ func configFromEnv(getenv func(string) string) config {
 }
 
 // run is the program. With no arguments it serves the start page and blocks
-// until the context is cancelled or the server fails, then shuts down and
+// until the context is canceled or the server fails, then shuts down and
 // returns. With a subcommand — there is one, set-password — it does that
-// instead and returns when it is done. stdin is only read by a subcommand.
+// instead and returns when it is done. Only a subcommand reads stdin.
 func run(ctx context.Context, args []string, getenv func(string) string, stdin io.Reader, stdout io.Writer) error {
 	// SIGTERM is how Kamal stops a container, and SIGINT is Ctrl-C in
-	// development: both cancel ctx, and the shutdown below is the one path
+	// development. Both cancel ctx, and the shutdown below is the one path
 	// that runs on every deploy.
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -117,8 +117,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 	}
 
 	// The secret key signs every cookie and every password reset link. There
-	// is no sensible default — a hardcoded one would mean anyone could forge a
-	// session — so a missing key stops the process here rather than producing
+	// is no sensible default — a hardcoded one means anyone can forge a
+	// session. So a missing key stops the process here rather than producing
 	// a server that looks fine and is not. Generate one with
 	// `openssl rand -hex 32`.
 	if len(cfg.secretKey) == 0 {
@@ -132,14 +132,14 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 	defer db.Close()
 
 	// Migrating at boot is what replaces the Rails image's docker-entrypoint:
-	// an empty file becomes the full schema, and a database Rails has been
-	// writing is left exactly as it is.
+	// an empty file becomes the full schema, and a database that Rails
+	// already writes to is left exactly as it is.
 	if err := db.Migrate(ctx); err != nil {
 		return fmt.Errorf("migrating %s: %w", cfg.dbPath, err)
 	}
 
 	// No token, no Postmark: mail goes to the log. On a laptop that is the
-	// point; on the server it would mean the secret went missing, and the
+	// point. On the server it means the secret went missing, and the
 	// warning is how that gets noticed before someone waits for a reset link.
 	var mailer web.Mailer = &postmark.Client{Token: cfg.postmarkToken, BaseURL: cfg.postmarkURL}
 	if cfg.postmarkToken == "" {
@@ -158,22 +158,23 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 
 	srv := &http.Server{
 		Handler: handler,
-		// A server on the public internet needs every one of these: without
-		// them a client that opens a connection and then says nothing holds a
+		// A server on the public internet needs every one of these. Without
+		// them, a client that opens a connection and then says nothing holds a
 		// goroutine and a file descriptor forever.
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		// net/http writes its own occasional errors to a log.Logger; route
+		// net/http writes its own occasional errors to a log.Logger. Route
 		// them through slog so there is one log format, not two.
 		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	// Listening here instead of letting srv.ListenAndServe do it means a port
-	// that is already taken is an error run can return, and the address
-	// actually bound can be logged — which matters when the requested port was
-	// 0 and the kernel chose the real one. The tests rely on that log line.
+	// that is already taken is an error run can return. It also means the
+	// code can log the address actually bound. That matters when the
+	// requested port was 0 and the kernel chose the real one. The tests rely
+	// on that log line.
 	listener, err := net.Listen("tcp", cfg.addr)
 	if err != nil {
 		return fmt.Errorf("listening on %s: %w", cfg.addr, err)
@@ -183,9 +184,9 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 
 	serveErr := make(chan error, 1)
 	go func() {
-		// Shutdown makes Serve return ErrServerClosed; that is the ordinary
-		// ending, not a failure, so it is normalised away here and anything
-		// else is reported.
+		// Shutdown makes Serve return ErrServerClosed. That is the ordinary
+		// ending, not a failure, so this code normalizes it away here and
+		// reports anything else.
 		err := srv.Serve(listener)
 		if errors.Is(err, http.ErrServerClosed) {
 			err = nil
@@ -201,9 +202,9 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 
 	logger.Info("shutting down")
 
-	// ctx is already cancelled by the time we get here, so the shutdown
-	// deadline has to be derived from a context that isn't — otherwise it
-	// expires immediately and in-flight requests get cut off.
+	// ctx is already canceled by the time we get here, so we derive the
+	// shutdown deadline from a context that is not. Otherwise it expires
+	// immediately and in-flight requests get cut off.
 	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 
@@ -214,20 +215,20 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdin i
 }
 
 // setPassword is `tinystart set-password <email>`: the way back into an
-// account when the reset mail cannot reach anyone — a laptop with no Postmark
-// token, or an admin locked out in production, where it runs through
-// `kamal app exec`. It is what `bin/rails console` was for.
+// account when the reset mail cannot reach anyone. That covers a laptop with
+// no Postmark token, or an admin locked out in production, where it runs
+// through `kamal app exec`. It is what `bin/rails console` was for.
 //
-// The password is read from stdin, one line, so it never appears in a shell
-// history or a process list:
+// setPassword reads the password from stdin, one line, so it never appears
+// in a shell history or a process list:
 //
 //	tinystart set-password jaime@example.com   (then type it and press Enter)
 //	tinystart set-password jaime@example.com < password.txt
 //
 // It goes through the store's ResetPassword, so the same rules apply as to a
-// reset from the page, and existing sessions are left alone — the person at
-// the keyboard is the account's owner, and signing them out everywhere is not
-// what they asked for.
+// reset from the page, and it leaves existing sessions alone. The person at
+// the keyboard is the account's owner, and signing them out everywhere is
+// not what they asked for.
 func setPassword(ctx context.Context, cfg config, args []string, stdin io.Reader, stdout io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("usage: tinystart set-password <email>  (the password is read from stdin)")

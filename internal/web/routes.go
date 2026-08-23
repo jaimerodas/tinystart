@@ -14,7 +14,7 @@ import (
 // specificity rather than by declaration order — so "/passwords/new" wins over
 // "/passwords/{token}" without anything having to be arranged.
 func addRoutes(mux *http.ServeMux, s *Server) {
-	// Health check. kamal-proxy polls it; logRequests keeps it out of the log.
+	// Health check. kamal-proxy polls it. logRequests keeps it out of the log.
 	mux.HandleFunc("GET "+healthCheckPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte("ok\n")) //nolint:errcheck // nothing to do if the prober hangs up
@@ -30,7 +30,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	}
 
 	// Sign in and out. new and create are the two pages an anonymous visitor
-	// may reach; destroy is behind the wall, because signing out is something
+	// can reach. destroy is behind the wall, because signing out is something
 	// only a signed-in person can do.
 	mux.Handle("GET /session/new", s.handleSessionNew())
 	mux.Handle("POST /session", s.rateLimited(s.signIn, s.handleSessionCreate()))
@@ -43,8 +43,8 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 
 	// Password reset. Every action is open: the whole point is to be usable by
 	// someone who cannot sign in. PUT and PATCH are the same handler because
-	// the form says method="put" through _method and a Turbo submission would
-	// say PATCH.
+	// the form says method="put" through _method and a Turbo submission says
+	// PATCH.
 	mux.Handle("GET /passwords/new", s.handlePasswordNew())
 	mux.Handle("POST /passwords", s.handlePasswordCreate())
 	mux.Handle("GET /passwords/{token}/edit", s.handlePasswordEdit())
@@ -52,7 +52,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("PATCH /passwords/{token}", s.handlePasswordUpdate())
 
 	// The start page. "/{$}" is the root and only the root: without the {$}
-	// the pattern would be a prefix and would swallow every URL below it.
+	// the pattern is a prefix and swallows every URL below it.
 	mux.Handle("GET /{$}", s.requireAuthentication(s.handleStartPage()))
 
 	// The editor. There is deliberately no GET /start — the start page is
@@ -65,7 +65,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 
 	// Groups. PUT alongside PATCH because Rails' resource routes accepted
 	// both, and the form says method="patch" through _method while a Turbo
-	// submission would say PATCH outright.
+	// submission says PATCH outright.
 	mux.Handle("POST /start/groups", s.requireAuthentication(s.handleGroupCreate()))
 	mux.Handle("PATCH /start/groups/{id}", s.requireAuthentication(s.handleGroupUpdate()))
 	mux.Handle("PUT /start/groups/{id}", s.requireAuthentication(s.handleGroupUpdate()))
@@ -82,7 +82,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("POST /start/items/{id}/visit", s.requireAuthentication(s.handleItemVisit()))
 
 	// The command bar's federated half. Rails routed /search as a resource and
-	// the JS asks for /search.json; both spellings answer the same JSON,
+	// the JS asks for /search.json. Both spellings answer the same JSON,
 	// because the Rails controller rendered JSON whatever format was asked
 	// for.
 	mux.Handle("GET /search", s.requireAuthentication(s.handleSearch()))
@@ -106,8 +106,8 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("GET /settings/export", s.requireAuthentication(s.handleExport()))
 
 	// Connections. One per user — the plural is what the section is called and
-	// what the URL should read — and no admin gate: connecting your own
-	// account on the other app needs no privilege.
+	// what the URL reads — and no admin gate: connecting your own account on
+	// the other app needs no privilege.
 	mux.Handle("GET /settings/connections", s.requireAuthentication(s.handleConnections()))
 	mux.Handle("POST /settings/connections", s.requireAuthentication(s.handleConnectionCreate()))
 	mux.Handle("DELETE /settings/connections", s.requireAuthentication(s.handleConnectionDestroy()))
@@ -129,7 +129,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 //
 // They are not fingerprinted — /icon.png is named in the layouts and in other
 // people's bookmarks — so they get a short cache instead of a permanent one: a
-// changed favicon should reach people the same day.
+// changed favicon must reach people the same day.
 func (s *Server) handlePublicFile(path string) http.Handler {
 	body := s.assets.public[path]
 	contentType := contentTypeFor(path)

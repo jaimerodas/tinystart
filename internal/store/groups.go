@@ -8,7 +8,7 @@ import (
 )
 
 // Group is a named box of tiles at a column and a position on someone's start
-// page. Column is 1-based, because that is how the grid is talked about;
+// page. Column is 1-based, because that is how the grid is talked about.
 // Position is 0-based and always compacted, so a position is an index.
 type Group struct {
 	ID        int64
@@ -68,8 +68,8 @@ func (db *DB) CreateGroup(ctx context.Context, userID int64, name string, column
 }
 
 // UpdateGroup renames a group. Only the name: the edit form does not offer the
-// column, because a group is moved by dragging it or by walking it there with
-// the keyboard, and both of those go through MoveGroup.
+// column, because someone moves a group by dragging it or by walking it there
+// with the keyboard, and both of those go through MoveGroup.
 func (db *DB) UpdateGroup(ctx context.Context, userID, groupID int64, name string) (*Group, error) {
 	var group *Group
 	err := db.tx(ctx, func(tx *sql.Tx) error {
@@ -119,8 +119,8 @@ func (db *DB) GroupByID(ctx context.Context, userID, groupID int64) (*Group, err
 // them — the two numbers Settings puts above everything else, links first.
 //
 // Two subqueries rather than a join with two COUNT(DISTINCT …): a group with
-// no tiles has to count as a group, and the join that gets that right is
-// harder to read than the two questions asked separately.
+// no tiles has to count as a group. The join that gets that right is harder
+// to read than the two questions asked separately.
 func (db *DB) StartPageCounts(ctx context.Context, userID int64) (groups, items int, err error) {
 	err = db.sql.QueryRowContext(ctx,
 		`SELECT (SELECT COUNT(*) FROM start_page_groups WHERE user_id = ?),
@@ -132,7 +132,7 @@ func (db *DB) StartPageCounts(ctx context.Context, userID int64) (groups, items 
 }
 
 // GroupsByColumn is the whole grid in one query, bucketed the way the page
-// draws it. Columns with nothing in them are simply absent from the map, which
+// draws it. Columns with nothing in them are simply absent from the map. That
 // is what ranging over the user's column count and looking each one up
 // expects.
 func (db *DB) GroupsByColumn(ctx context.Context, userID int64) (map[int][]Group, error) {
@@ -161,12 +161,12 @@ func (db *DB) GroupsInColumn(ctx context.Context, userID int64, column int) ([]G
 // MoveGroup puts a group at a position in a column, renumbering the groups it
 // lands between and closing the gap it leaves behind.
 //
-// Writing an absolute position without shifting anyone would leave two groups
-// sharing it, and the order would then be decided by whatever SQLite felt like
-// — invisible while the only way to move something was to swap it with a
-// neighbour, obvious the moment a drag could drop it anywhere.
+// Writing an absolute position without shifting anyone leaves two groups
+// sharing it, and SQLite then decides the order however it likes. The problem
+// stayed invisible while the only way to move something was to swap it with a
+// neighbour. It becomes obvious the moment a drag can drop something anywhere.
 //
-// A position past the end of the column appends; a negative one goes to the
+// A position past the end of the column appends. A negative one goes to the
 // top. Clamping rather than refusing is deliberate: the client sends the index
 // the node already occupies in its own DOM, and it is allowed to be optimistic.
 func (db *DB) MoveGroup(ctx context.Context, userID, groupID int64, column, position int) error {
@@ -179,9 +179,9 @@ func (db *DB) MoveGroup(ctx context.Context, userID, groupID int64, column, posi
 		}
 
 		// The renumbering below writes positions straight out, skipping the
-		// validations an ordinary save would run — so the bounds are checked
-		// here or not at all. A group parked outside the grid renders nowhere
-		// and has no controls left to bring it back.
+		// validations an ordinary save runs. So this code makes sure that the
+		// bounds hold here, and nowhere else. A group parked outside the grid
+		// renders nowhere and has no controls left to bring it back.
 		if column < 1 {
 			return invalid(FieldError{"column", "must be greater than 0"})
 		}
@@ -257,7 +257,7 @@ func (db *DB) DeleteGroup(ctx context.Context, userID, groupID int64) error {
 
 // groupErrors runs the model's validations in the order they are declared, so
 // that the messages come out in the order the editor prints them. excludeID is
-// the group being renamed, or 0 when there isn't one yet.
+// the group being renamed, or 0 when there is not one yet.
 func groupErrors(ctx context.Context, tx *sql.Tx, userID, excludeID int64, name string, column int) ([]FieldError, error) {
 	var fields []FieldError
 
@@ -297,8 +297,8 @@ func columnLimitMessage(limit int) string {
 	return fmt.Sprintf("cannot exceed start page column limit of %d", limit)
 }
 
-// userColumnCount is how wide this user's grid is. It is read inside the
-// transaction that needs it, so a column count changing underneath a move
+// userColumnCount is how wide this user's grid is. The call happens inside
+// the transaction that needs it, so a column count changing underneath a move
 // cannot let a group past the edge.
 func userColumnCount(ctx context.Context, tx *sql.Tx, userID int64) (int, error) {
 	var columns int
@@ -306,9 +306,9 @@ func userColumnCount(ctx context.Context, tx *sql.Tx, userID int64) (int, error)
 	return columns, notFound(err)
 }
 
-// nextPositionInColumn asks where the last group is rather than counting them:
-// positions can carry a gap for as long as a request is in flight, and
-// counting would put the new group on top of an existing one.
+// nextPositionInColumn asks where the last group is rather than counting
+// them. Positions can carry a gap for as long as a request is in flight.
+// Counting puts the new group on top of an existing one.
 func nextPositionInColumn(ctx context.Context, tx *sql.Tx, userID int64, column int) (int, error) {
 	var highest sql.NullInt64
 	err := tx.QueryRowContext(ctx,
@@ -339,12 +339,12 @@ func reorderGroupsInColumn(ctx context.Context, tx *sql.Tx, userID int64, column
 }
 
 // writeGroupPosition writes a position, and only when it is not already the
-// one on disk — reordering a column that is already in order must cost no
+// one on disk. Reordering a column that is already in order must cost no
 // writes at all.
 //
-// updated_at is left alone on purpose. Rails renumbered with update_column,
+// updated_at stays untouched on purpose. Rails renumbered with update_column,
 // which skips callbacks, so a group's timestamp records when it was last
-// renamed and not when a neighbour was dragged past it.
+// renamed, not when someone dragged a neighbour past it.
 func writeGroupPosition(ctx context.Context, tx *sql.Tx, group Group, position int) error {
 	if group.Position == position {
 		return nil

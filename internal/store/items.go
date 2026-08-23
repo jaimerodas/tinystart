@@ -25,8 +25,8 @@ const itemColumns = `id, start_page_group_id, title, url, position, visit_count,
 
 // Link is one entry of the JSON the start page embeds so the command bar can
 // filter tiles without a round trip. The field order is the order Rails' hash
-// literal had, because encoding/json writes fields in declaration order and
-// the two documents are compared byte for byte during the rewrite.
+// literal had, because encoding/json writes fields in declaration order. The
+// rewrite compares the two documents byte for byte.
 type Link struct {
 	Title string `json:"title"`
 	URL   string `json:"url"`
@@ -137,15 +137,15 @@ func (db *DB) ItemsInGroup(ctx context.Context, groupID int64) ([]Item, error) {
 // LinksForCommandBar is every tile the user owns, flattened.
 //
 // Rails asked for these through a has_many :through with no order at all and
-// took whatever the join gave it: group by group in id order, and inside each
-// group rowid by rowid. This says so out loud instead of leaving it to a query
-// plan — but it says the same thing, id and id, because the order is what
-// somebody sees their suggestions in and a rewrite is not the place to change
-// it. It is creation order, not drawing order: a tile dragged to the top of
-// its group stays where it is in this list.
+// took whatever the join gave it. That was group by group in id order, and
+// inside each group rowid by rowid. This says so out loud instead of leaving
+// it to a query plan. But it says the same thing, id and id, because the
+// order is what somebody sees their suggestions in. A rewrite is not the
+// place to change it. It is creation order, not drawing order: a tile dragged
+// to the top of its group stays where it is in this list.
 //
 // The first version ordered the tiles by position, on the assumption that
-// drawing order was what the join gave; the parity harness proved otherwise
+// drawing order was what the join gave. The parity harness proved otherwise
 // against a start page that had been rearranged.
 func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, error) {
 	rows, err := db.sql.QueryContext(ctx,
@@ -160,7 +160,7 @@ func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, err
 	defer rows.Close()
 
 	// Not nil: the page serialises this straight to JSON, and a nil slice
-	// would be the literal null rather than [].
+	// serialises as the literal null rather than [].
 	links := []Link{}
 	for rows.Next() {
 		var link Link
@@ -174,13 +174,13 @@ func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, err
 
 // MoveItem moves a tile within its own group.
 //
-// Its idea of a position is not MoveItemToGroup's, and the difference is
-// preserved rather than smoothed over: here the destination index is "the
+// Its idea of a position is not MoveItemToGroup's. This code preserves the
+// difference instead of smoothing it over. Here the destination index is "the
 // first tile whose position is at least the one asked for", computed with the
-// tile still in the list, and a position past the end appends. Positions are
-// always compacted, so for the editor — which sends the index the row already
-// occupies in the DOM — the two agree. They would part company on a list with
-// gaps in it, and this is the behaviour that is deployed.
+// tile still in the list. A position past the end appends. Positions always
+// stay compacted, so for the editor — which sends the index the row already
+// occupies in the DOM — the two agree. On a list with gaps in it, the two
+// part company, and that is the behavior this code uses.
 func (db *DB) MoveItem(ctx context.Context, userID, itemID int64, position int) error {
 	return db.tx(ctx, func(tx *sql.Tx) error {
 		item, err := scanItem(tx.QueryRowContext(ctx, itemByIDQuery, itemID, userID))
@@ -209,24 +209,24 @@ func (db *DB) MoveItem(ctx context.Context, userID, itemID int64, position int) 
 			return ErrNotFound
 		}
 
-		// The index was worked out with the tile still in the list, so it can
-		// be one past the end of the list without it; clamping is the last
-		// step. Rails did not clamp, and a position past the last tile
+		// The loop above computes the index with the tile still in the list,
+		// so the index can be one past the end without it. Clamping is the
+		// last step. Rails did not clamp, and a position past the last tile
 		// (position=99 on a group of three) padded the array with a nil and
 		// then raised NoMethodError on it. The editor never sends one — it
 		// sends the index the row already occupies — so this fixes a 500 that
-		// only a hand-written request could reach.
+		// only a hand-written request can reach.
 		remaining := append(items[:from:from], items[from+1:]...)
 		moved := insertAt(remaining, *item, clamp(to, 0, len(remaining)))
 		return writeItemPositions(ctx, tx, moved)
 	})
 }
 
-// MoveItemToGroup moves a tile into a group, at a position that is clamped
-// into range, and closes the gap it leaves in the group it came from.
+// MoveItemToGroup moves a tile into a group at a position clamped into range,
+// and closes the gap it leaves in the group it came from.
 //
-// The target group may already hold this URL, which is the one refusal a move
-// can meet: the tile stays where it was and the editor redraws both groups
+// The target group can already hold this URL, which is the one refusal a move
+// can meet. The tile stays where it was, and the editor redraws both groups
 // from what is actually stored.
 func (db *DB) MoveItemToGroup(ctx context.Context, userID, itemID, groupID int64, position int) error {
 	return db.tx(ctx, func(tx *sql.Tx) error {
@@ -343,11 +343,11 @@ func itemErrors(ctx context.Context, tx *sql.Tx, groupID, excludeID int64, title
 
 // isWebURL is Rails' valid_url: parse it, and accept it only if what comes out
 // is an http or https URL. Go's parser is far more forgiving than Ruby's — it
-// will happily read "not a url at all" as a relative path — so the scheme is
+// will happily read "not a url at all" as a relative path. So the scheme is
 // what does the work here, exactly as the URI::HTTP check did there.
 //
 // A host is not required, because Ruby did not require one either: "http://"
-// is a URI::HTTP and was accepted.
+// is a URI::HTTP, and Ruby accepted it.
 func isWebURL(raw string) bool {
 	parsed, err := url.Parse(raw)
 	if err != nil {
@@ -369,9 +369,9 @@ func groupBelongsTo(ctx context.Context, tx *sql.Tx, userID, groupID int64) erro
 	return nil
 }
 
-// nextPositionInGroup asks where the last tile is rather than counting them:
-// positions can carry a gap while a tile is being dragged away, and counting
-// would drop the new tile on top of one.
+// nextPositionInGroup asks where the last tile is rather than counting them.
+// Positions can carry a gap while someone drags a tile away, and counting
+// instead drops the new tile on top of one.
 func nextPositionInGroup(ctx context.Context, tx *sql.Tx, groupID int64) (int, error) {
 	var highest sql.NullInt64
 	err := tx.QueryRowContext(ctx,
@@ -393,9 +393,10 @@ func reorderItemsInGroup(ctx context.Context, tx *sql.Tx, groupID int64) error {
 	return writeItemPositions(ctx, tx, items)
 }
 
-// writeItemPositions renumbers a list from zero, skipping every tile that is
-// already where it should be. updated_at is left alone for the same reason it
-// is on groups: a neighbour moving past a tile is not an edit of that tile.
+// writeItemPositions renumbers a list from zero. It skips every tile that is
+// already in its correct position. This leaves updated_at alone for the same
+// reason it is on groups: a neighbour that moves past a tile is not an edit
+// of that tile.
 func writeItemPositions(ctx context.Context, tx *sql.Tx, items []Item) error {
 	for i, item := range items {
 		if item.Position == i {

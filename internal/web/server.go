@@ -41,15 +41,15 @@ type Config struct {
 	SecretKey []byte
 
 	// SecureCookies marks every cookie Secure, and turns the HSTS header on.
-	// True in production, where kamal-proxy terminates TLS; false in
-	// development and in tests, where a Secure cookie would simply never be
-	// stored and the pages would appear to lose the session.
+	// It is true in production, where kamal-proxy terminates TLS. It is false
+	// in development and in tests: a Secure cookie never gets stored without
+	// HTTPS, and the pages appear to lose the session.
 	SecureCookies bool
 
 	// Host is the canonical host, used to build the absolute URLs that go in
 	// mail. Empty means "take it from the request", which is right in
-	// development and merely adequate in production: a request with a forged
-	// Host header would put a forged link in a password reset mail, and
+	// development and merely adequate in production. A request with a
+	// forged Host header puts a forged link in a password reset mail, and
 	// setting this closes that off.
 	Host string
 
@@ -69,8 +69,8 @@ const minSecretKeyLength = 32
 // Mailer is the one thing the app needs from Postmark: send this message.
 //
 // It is an interface, and *postmark.Client satisfies it, so the handler tests
-// hand it a recorder and read the message that would have gone out instead of
-// talking to anybody. Declaring it here rather than in the postmark package is
+// hand it a recorder, which captures the message instead of sending it.
+// Declaring it here rather than in the postmark package is
 // the Go convention and the useful one: the consumer says what it needs, and
 // the producer does not have to guess.
 type Mailer interface {
@@ -89,8 +89,8 @@ type Server struct {
 	templates *renderer
 	assets    *assetSet
 
-	// The two rate limiters, one per policy. Both are per-IP and in memory;
-	// see ratelimit.go for why that is enough.
+	// The two rate limiters, one per policy. Both are per-IP and in memory.
+	// See ratelimit.go for why that is enough.
 	signIn *limiter
 	signUp *limiter
 }
@@ -123,10 +123,10 @@ func NewServer(cfg Config, db *store.DB, logger *slog.Logger, mailer Mailer, now
 
 // newServer builds the Server without routing it.
 //
-// The split exists for the tests: they mount one extra route of their own — a
-// page behind requireAuthentication, which no real page is yet — and then wrap
-// the result the same way NewServer does. Everything else about the server
-// they get is the real thing.
+// The split exists for the tests. They mount one extra route of their own —
+// a page behind requireAuthentication, which no real page is yet. Then they
+// wrap the result the same way NewServer does. Everything else about the
+// server they get is the real thing.
 func newServer(cfg Config, db *store.DB, logger *slog.Logger, mailer Mailer, now func() time.Time) (*Server, error) {
 	if len(cfg.SecretKey) < minSecretKeyLength {
 		return nil, errors.New("web: secret key must be at least 32 bytes")
@@ -177,8 +177,8 @@ func newServer(cfg Config, db *store.DB, logger *slog.Logger, mailer Mailer, now
 //     pages included.
 //   - methodOverride, before routing, because it changes which route matches.
 //   - crossOriginProtection, before any handler that writes anything. It looks
-//     at whether the browser calls the request same-origin and not at the
-//     method, so it does not mind having been handed a rewritten one.
+//     at whether the browser calls the request same-origin, not at the
+//     method, so it does not mind a rewritten one.
 //   - resumeSession, last, so that every handler — and the not-found page —
 //     knows who is asking.
 func (s *Server) wrap(routes http.Handler) http.Handler {

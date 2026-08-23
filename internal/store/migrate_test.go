@@ -9,9 +9,10 @@ import (
 )
 
 // The schema a fresh database ends up with has to be the schema Rails
-// produces, statement for statement — down to the /*application='Tinystart'*/
-// comments, because SQLite stores the text of a CREATE verbatim and that text
-// is what a rolled-back Rails image would read.
+// produced, statement for statement — down to the /*application='Tinystart'*/
+// comments. SQLite stores the text of a CREATE verbatim, and production's
+// sqlite_master still holds Rails' text. A fresh database has to be
+// indistinguishable from it.
 //
 // testdata/rails_schema.sql is the captured output of
 // `sqlite3 storage/development.sqlite3 .schema` against the real thing.
@@ -36,10 +37,10 @@ func TestMigrateProducesTheRailsSchema(t *testing.T) {
 	}
 }
 
-// Rails records every migration it has run, and refuses to run one twice. A
-// database Go created has to carry the same list, or `kamal rollback` would
-// find an empty schema_migrations, believe none of them had run, and try to
-// create the tables again.
+// Rails recorded every migration it ran, and a database Go creates has to
+// carry the same list, so it is indistinguishable from the database Rails
+// left behind. Migrate also reads this table to decide which files in
+// migrations/ are pending.
 func TestMigrateRecordsTheRailsVersions(t *testing.T) {
 	db := newTestDB(t)
 
@@ -77,7 +78,7 @@ func TestMigrateRecordsTheEnvironment(t *testing.T) {
 		if key == "environment" && value != "production" {
 			t.Errorf("environment = %q, want production", value)
 		}
-		// Written by railsTime, so it has to read back as one.
+		// railsTime wrote this value, so it has to read back as one.
 		var when railsTime
 		if err := when.Scan(createdAt); err != nil {
 			t.Errorf("created_at %q: %v", createdAt, err)
@@ -86,8 +87,8 @@ func TestMigrateRecordsTheEnvironment(t *testing.T) {
 	assertEqualStrings(t, keys, []string{"environment"})
 }
 
-// Every real database already has the tables, because production has been
-// running Rails. Migrating one has to be a no-op, and a second boot has to be
+// Every real database already has the tables, because Rails already ran in
+// production. Migrating one has to be a no-op, and a second boot has to be
 // a no-op too.
 func TestMigrateIsIdempotent(t *testing.T) {
 	db := newTestDB(t)
@@ -109,8 +110,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	}
 }
 
-// A database Rails made, opened by Go: the schema is already there and nothing
-// may be laid down on top of it.
+// Go opens a database Rails made. The schema is already there, and Migrate
+// does not lay anything on top of it.
 func TestMigrateOnADatabaseRailsAlreadySetUp(t *testing.T) {
 	db := newTestDB(t)
 	loadSQL(t, db, filepath.Join("testdata", "rails_rows.sql"))
@@ -178,9 +179,9 @@ func schemaStatements(t *testing.T, db *DB) []string {
 
 // normaliseSchema turns a captured dump into the same shape
 // schemaStatements returns: the comment header dropped, one statement per
-// entry, sorted, and without sqlite_sequence — the engine creates that one
-// itself the first time an AUTOINCREMENT row is inserted, so whether it is
-// there says nothing about the schema.
+// entry, sorted, and without sqlite_sequence. The engine creates that table
+// itself the first time something inserts an AUTOINCREMENT row, so whether
+// it is there says nothing about the schema.
 func normaliseSchema(dump string) []string {
 	var body []string
 	for _, line := range strings.Split(dump, "\n") {

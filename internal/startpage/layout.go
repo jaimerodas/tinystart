@@ -2,16 +2,16 @@
 // whole start page as a small YAML file, small enough to read and edit by hand.
 //
 // It is pure domain — no database, no HTTP. Import parses and validates a file
-// and hands back the layout it describes; Export writes a layout back out. What
-// it means to *store* a layout belongs to internal/store, which imports these
-// types (the dependency only ever points that way, so that parsing has no
-// opinion about SQL and SQL has no opinion about YAML).
+// and hands back the layout it describes. Export writes a layout back out.
+// What it means to *store* a layout belongs to internal/store, which imports
+// these types. The dependency only ever points that way, so parsing has no
+// opinion about SQL and SQL has no opinion about YAML.
 //
 // The format is a mapping of column number → ordered list of groups, each group
-// a name and an ordered title → url mapping. Order is the whole point: a
+// a name and an ordered title → url mapping. Order is the whole point. A
 // group's index in its list is its position in that column, and a tile's index
 // in `items` is its position in the group. That is why nothing here is a Go map
-// — a map would lose exactly the thing the file is carrying.
+// — a map loses exactly the thing the file is carrying.
 package startpage
 
 import "strconv"
@@ -19,11 +19,11 @@ import "strconv"
 // Layout is a start page: how wide it is, and what is in its columns.
 //
 // Width is users.columns, and it is not the same number as len(Columns).
-// A column with nothing in it is not in the file at all, so a three-column page
-// whose third column is empty exports as two columns and re-imports as a
-// two-column page — see "Trailing empty columns" in the format doc. Export says
-// so in the header; Import sets Width to the highest column number it found,
-// which is what the importer must write to users.columns.
+// A column with nothing in it is not in the file at all. As a result, a
+// three-column page whose third column is empty exports as two columns and
+// re-imports as a two-column page — see "Trailing empty columns" in the format
+// doc. Export says so in the header. Import sets Width to the highest column
+// number it found, which is what the importer must write to users.columns.
 type Layout struct {
 	Width   int
 	Columns []Column
@@ -54,7 +54,7 @@ type Item struct {
 
 // Counts is the three numbers the header line states, and the three the flash
 // reports back after an import. They describe the *file*, not the page: the
-// columns are the highest column number in it, which is what a re-import sets
+// columns are the highest column number in it. That is what a re-import sets
 // the page's width to — an empty trailing column is not in the file at all.
 type Counts struct {
 	Columns int
@@ -62,8 +62,8 @@ type Counts struct {
 	Items   int
 }
 
-// Counts walks the layout. Cheap enough at this size to do it on demand rather
-// than keep a total that can drift.
+// Counts walks the layout. It is cheap enough at this size to do it on demand
+// rather than keep a total that can drift.
 func (l Layout) Counts() Counts {
 	var counts Counts
 	for _, column := range l.Columns {

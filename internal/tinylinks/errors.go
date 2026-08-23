@@ -6,10 +6,11 @@ import (
 	"net/http"
 )
 
-// The two "there was nothing to ask about" errors. Neither one is a failure of
-// the other app — no request was made — so a caller that clears a recorded
-// failure on success has to tell them apart from one. Rails returned an empty
-// array and false here, which said nothing about which of the two it was.
+// The two "there was nothing to ask about" errors. Neither one is a failure
+// of the other app. This package made no request. So a caller that clears a
+// recorded failure on success has to tell them apart from one. Rails
+// returned an empty array and false here, which said nothing about which of
+// the two it was.
 var (
 	// ErrEmptyQuery comes back from a search for nothing. The command bar
 	// fires on every keystroke, backspace included.
@@ -21,12 +22,12 @@ var (
 
 // StatusError is a reply that was not a success. Its message is what Rails
 // logged, and — for the two that need a reconnect — what it wrote to
-// connections.last_error for the start page to show, so the wording is not
-// free to drift.
+// connections.last_error for the start page to show. As a result, the
+// wording is not free to drift.
 type StatusError struct {
 	Status int
-	// Host names the other end the way a person would: the bare hostname of
-	// the base URL, or "the connected app" when there isn't one.
+	// Host names the other end the way a person names it: the bare hostname
+	// of the base URL, or "the connected app" when there is not one.
 	Host string
 }
 
@@ -42,8 +43,8 @@ func (e *StatusError) Error() string {
 }
 
 // NeedsReconnect is true for the statuses that mean the credential is the
-// problem. A bad gateway or a 500 is the other app's problem, not a credential
-// problem; asking the user to reconnect would be wrong.
+// problem. A bad gateway or a 500 is the other app's problem, not a
+// credential problem. Asking the user to reconnect is wrong in that case.
 func (e *StatusError) NeedsReconnect() bool {
 	return e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden
 }

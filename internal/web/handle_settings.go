@@ -18,7 +18,7 @@ const (
 )
 
 // settingsNavItem is one tab of the row every Settings page carries.
-// SettingsHelper built it with content_tag; here it is data, so the template
+// SettingsHelper built it with content_tag. Here it is data, so the template
 // has no decisions left to make.
 type settingsNavItem struct {
 	Title string
@@ -118,13 +118,13 @@ func (s *Server) handleSettings() http.Handler {
 	})
 }
 
-// handleSettingsUpdate is PATCH /settings: the theme and the accent colour,
+// handleSettingsUpdate is PATCH /settings: the theme and the accent color,
 // and nothing else.
 //
 // The column count is deliberately not accepted here, however it is spelled in
-// the body. It belongs to the editor, where a refused shrink can answer on the
-// page showing the groups it would have stranded; a copy of the control in
-// Settings would let the two drift apart.
+// the body. It belongs to the editor, where a refused shrink can answer on
+// the page: if it goes through, it strands the groups shown there. If
+// Settings keeps a copy of the control, the two drift apart.
 func (s *Server) handleSettingsUpdate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := userFrom(r.Context())

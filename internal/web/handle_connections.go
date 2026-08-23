@@ -15,18 +15,18 @@ import (
 // through that app's device flow.
 //
 // There is no admin gate here. Connecting your own account on the other app
-// needs no privilege; what keeps one person's archive out of another's command
-// bar is that every lookup on this page is by the current user, never
-// "the connection that happens to exist".
+// needs no privilege. What keeps one person's archive out of another's
+// command bar is that every lookup on this page is by the current user,
+// never "the connection that happens to exist".
 
 // defaultBaseURL is the address the form offers when nothing else is known.
 const defaultBaseURL = "https://links.pati.to"
 
 // pendingGrant is a device authorization that has been opened and not yet
-// approved. Rails parked it in the session; there is no server-side session
-// store here, so it goes in a signed cookie — which is the same lifetime with
-// none of the machinery, since it is short-lived, single-use and needs no
-// table.
+// approved. Rails parked it in the session. There is no server-side session
+// store here, so it goes in a signed cookie instead. That gives it the same
+// lifetime with none of the machinery, because it is short-lived, single-use
+// and needs no table.
 //
 // It is signed rather than encrypted: none of it is a secret. The device code
 // is useless without the other app agreeing, and the signature is there so
@@ -50,7 +50,7 @@ type connectionsData struct {
 }
 
 // connectedView is the box that describes a working connection: what it is
-// connected to, what the token may do, and how long it has left.
+// connected to, what the token can do, and how long it has left.
 type connectedView struct {
 	BaseURL  string
 	Hostname string
@@ -162,8 +162,8 @@ func (s *Server) handleConnectionPoll() http.Handler {
 			s.renderJSON(w, r, map[string]string{"status": "connected"})
 
 		case tinylinks.StatusPending, tinylinks.StatusUnreachable:
-			// An unreachable app mid-flow is usually a blip, not a refusal;
-			// keep waiting until the grant expires on its own.
+			// An unreachable app mid-flow is usually a blip, not a refusal.
+			// Keep waiting until the grant expires on its own.
 			s.renderJSON(w, r, map[string]string{"status": "pending"})
 
 		default:
@@ -224,8 +224,8 @@ func (s *Server) tokenExpiry(connection *store.Connection) string {
 
 // scopeList is Connection#scope_list: the scopes as prose. They are stored the
 // way the other app sends them — "search,visit" — which is not how a comma is
-// written in a sentence. A token with none of them at all is described rather
-// than left blank.
+// written in a sentence. scopeList describes a token with none of them at
+// all, rather than leaving it blank.
 func scopeList(scopes string) string {
 	var named []string
 	for scope := range strings.SplitSeq(scopes, ",") {
@@ -242,8 +242,8 @@ func scopeList(scopes string) string {
 // pendingGrant reads the grant in flight, and reports none for a cookie that
 // is absent, unreadable or past its expiry.
 //
-// A grant that ran out while the tab sat open is dropped here rather than
-// anywhere else, which is why this takes a ResponseWriter: the page that
+// It drops a grant here that ran out while the tab sat open, rather than
+// anywhere else. That is why this takes a ResponseWriter: the page that
 // notices is the page that clears it.
 func (s *Server) pendingGrant(w http.ResponseWriter, r *http.Request) *pendingGrant {
 	value, err := s.readSignedCookie(r, connectionGrantCookie)
@@ -268,11 +268,12 @@ func (s *Server) setPendingGrant(w http.ResponseWriter, grant pendingGrant) erro
 	if err != nil {
 		return err
 	}
-	// noExpiry, and the expiry checked on the way out instead. A cookie
-	// lifetime is enforced by the browser's clock, and a browser a few minutes
-	// behind would keep polling a grant this app has already given up on;
-	// carrying the deadline inside the value means the server decides. The
-	// cookie is dropped the moment a read notices it has passed.
+	// noExpiry, and the expiry checked on the way out instead. A cookie's
+	// lifetime relies on the browser's clock. If that clock runs a few
+	// minutes behind, the browser keeps polling a grant that this app has
+	// already given up on. Carrying the deadline inside the value instead
+	// means the server decides. The cookie is dropped the moment a read
+	// notices it has passed.
 	s.setSignedCookie(w, connectionGrantCookie, string(value), noExpiry)
 	return nil
 }

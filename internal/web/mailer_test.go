@@ -10,8 +10,8 @@ import (
 	"github.com/jaimerodas/tinystart/internal/postmark"
 )
 
-// Without a Postmark token there is nobody to send through, and the app on a
-// laptop still has to be able to say where a reset link went — which is what
+// Without a Postmark token there is nobody to send through. The app on a
+// laptop still has to be able to say where a reset link went. That is what
 // letter_opener did for the Rails app. The log is where it goes.
 func TestLogMailerWritesTheMessageToTheLog(t *testing.T) {
 	var out bytes.Buffer

@@ -40,8 +40,8 @@ var documentedPage = []string{
 }
 
 // pageSummary reads the page back the long way — through the queries the grid
-// itself uses — so that these tests are not checking ReplaceStartPage against
-// StartPageLayout's idea of what it wrote.
+// itself uses — so that these tests do not compare ReplaceStartPage only
+// against StartPageLayout's own idea of what it wrote.
 func pageSummary(t *testing.T, db *DB, userID int64) []string {
 	t.Helper()
 
@@ -168,9 +168,9 @@ func TestReplaceStartPageLeavesAnotherUsersPageAlone(t *testing.T) {
 	assertColumns(t, db, other.ID, 3)
 }
 
-// users.columns defaults to 1 and a group past it is refused, so the width has
-// to be written before the first group. This test fails if the two are
-// reordered.
+// users.columns defaults to 1 and validation refuses a group past it, so this
+// code must write the width before the first group. This test fails if the
+// two are reordered.
 func TestReplaceStartPageWidensBeforeCreatingGroups(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "one@example.com")
@@ -190,8 +190,8 @@ func TestReplaceStartPageWidensBeforeCreatingGroups(t *testing.T) {
 	assertColumns(t, db, user.ID, 3)
 }
 
-// And narrowing is safe for the mirror-image reason: the groups a narrower page
-// would strand have already been deleted.
+// And narrowing is safe for the mirror-image reason: this code already
+// deleted the groups a narrower page cannot show.
 func TestReplaceStartPageNarrowsThePage(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "one@example.com")
@@ -209,9 +209,10 @@ func TestReplaceStartPageNarrowsThePage(t *testing.T) {
 	assertColumns(t, db, user.ID, 1)
 }
 
-// Columns are created in ascending order however they arrive in the layout,
-// which is the order the file has them in and the order Rails created them in.
-// Nothing on the page shows it, so the proof is which group was made first.
+// This code creates columns in ascending order however they arrive in the
+// layout. That is the order the file has them in and the order Rails created
+// them in. Nothing on the page shows it, so the proof is which group was made
+// first.
 func TestReplaceStartPageCreatesColumnsInAscendingOrder(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "one@example.com")
@@ -315,7 +316,7 @@ func TestReplaceStartPageRefusalsWriteNothing(t *testing.T) {
 	}
 }
 
-// The sentence is for the page; the field errors underneath are for anything
+// The sentence is for the page. The field errors underneath are for anything
 // that wants to know which attribute it was.
 func TestRejectedErrorCarriesTheFieldErrors(t *testing.T) {
 	db := newTestDB(t)
@@ -482,8 +483,8 @@ func TestStartPageSurvivesAFileRoundTrip(t *testing.T) {
 	}
 }
 
-// A tile whose title collides is renumbered on the way out and comes back as
-// its own tile, rather than the two of them collapsing into one.
+// Export renumbers a tile whose title collides on the way out. It comes back
+// as its own tile, rather than the two of them collapsing into one.
 func TestStartPageRoundTripKeepsBothOfTwoIdenticalTitles(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "one@example.com")

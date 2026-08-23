@@ -7,7 +7,7 @@ import (
 )
 
 // Session is one signed-in browser. The cookie carries the id and a signature
-// over it; the row is what makes signing out somewhere else take effect here.
+// over it. The row is what makes signing out somewhere else take effect here.
 type Session struct {
 	ID        int64
 	UserID    int64
@@ -60,7 +60,7 @@ func (db *DB) CreateSession(ctx context.Context, userID int64, userAgent, ip str
 // ActiveSession is the one lookup the authentication middleware makes on every
 // request: a session that exists and has not expired. An expired one is
 // ErrNotFound, not a Session with a flag on it — there is nothing a caller
-// could usefully do with it, and returning it invites forgetting to check.
+// can usefully do with it, and returning it invites forgetting to check.
 //
 // The expiry is compared as text, which is sound because railsTime writes a
 // fixed-width, zero-padded, UTC timestamp: sorting those as strings is sorting
@@ -100,9 +100,9 @@ func (db *DB) DeleteExpiredSessions(ctx context.Context, userID int64) error {
 }
 
 // scanSession reads one row. user_agent and ip_address are nullable — Rails
-// stores NULL when the request carried neither — and both come back as the
-// empty string, because every caller treats "missing" and "empty" the same
-// way and a *string would make them all say so.
+// stores NULL when the request carried neither. Both come back as the empty
+// string, because every caller treats "missing" and "empty" the same way. If
+// they come back as *string, every caller needs its own nil check.
 func scanSession(row scanner) (*Session, error) {
 	var (
 		session   Session

@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// The rows in testdata/rails_rows.sql were written by ActiveRecord and copied
-// out of the development database. Reading them is the check that the store
-// understands what is already on disk — the timestamps, the 0/1 booleans, the
-// NULLs — rather than only what it wrote itself.
+// ActiveRecord wrote the rows in testdata/rails_rows.sql, copied out of the
+// development database. Reading them is the check that the store understands
+// what is already on disk. That includes the timestamps, the 0/1 booleans,
+// and the NULLs, not only what it wrote itself.
 func TestReadsRowsRailsWrote(t *testing.T) {
 	db := newTestDB(t)
 	loadSQL(t, db, filepath.Join("testdata", "rails_rows.sql"))
@@ -33,8 +33,8 @@ func TestReadsRowsRailsWrote(t *testing.T) {
 		t.Errorf("created_at = %v, want %v", user.CreatedAt, wantCreated)
 	}
 
-	// The password in the fixture is the one every Rails test used, hashed by
-	// the Ruby bcrypt gem at cost 12.
+	// The password in the fixture is the one every Rails test used. The Ruby
+	// bcrypt gem hashed it at cost 12.
 	if _, err := db.Authenticate(t.Context(), "someone@example.com", "password123"); err != nil {
 		t.Errorf("Authenticate against the captured digest: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestReadsRowsRailsWrote(t *testing.T) {
 }
 
 // Reading a row Rails wrote and writing it back has to leave the text on disk
-// byte for byte as it was. Anything else and the two images are writing two
+// byte for byte as it was. Anything else and the two images write two
 // different formats into the same column.
 func TestRewritesRailsTimestampsUnchanged(t *testing.T) {
 	db := newTestDB(t)
@@ -124,10 +124,10 @@ func TestRewritesRailsTimestampsUnchanged(t *testing.T) {
 }
 
 // The real thing, when it is around. storage/development.sqlite3 is not in the
-// repository — it is a working database on a laptop — so this skips wherever
-// it is absent, and is a genuine end-to-end read of a Rails-written file
-// wherever it is not. It never opens the original: WAL or not, a test has no
-// business writing to it.
+// repository — it is a working database on a laptop. So this test skips
+// wherever it is absent, and is a genuine end-to-end read of a Rails-written
+// file wherever it is not. It never opens the original: WAL or not, a test
+// has no business writing to it.
 func TestOpensACopyOfTheDevelopmentDatabase(t *testing.T) {
 	source := filepath.Join("..", "..", "storage", "development.sqlite3")
 	original, err := os.ReadFile(source)

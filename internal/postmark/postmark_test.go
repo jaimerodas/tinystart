@@ -20,7 +20,7 @@ type received struct {
 	body   map[string]any
 }
 
-// fake answers like Postmark and remembers what it was sent. The mutex is not
+// fake answers like Postmark and remembers what it receives. The mutex is not
 // decoration: the handler runs on the server's goroutine and the assertions on
 // the test's, and `go test -race` is part of the gate.
 func fake(t *testing.T, status int, body string) (*Client, func() received) {
@@ -127,14 +127,14 @@ func TestSendReportsWhatPostmarkRefused(t *testing.T) {
 	if apiError.Status != http.StatusUnprocessableEntity {
 		t.Errorf("Status = %d", apiError.Status)
 	}
-	// The log line has to say what to fix without anyone opening Postmark.
+	// The log line must say what to fix without anyone opening Postmark.
 	if !strings.Contains(err.Error(), "300") || !strings.Contains(err.Error(), "Invalid 'From' value.") {
 		t.Errorf("error = %q, want the code and the message in it", err)
 	}
 }
 
 // Not every failure comes with Postmark's error body — a proxy in front of it
-// answers however it likes — and the status alone still has to be reportable.
+// answers however it likes. The status alone must still be enough to report.
 func TestSendReportsAStatusWithoutAnErrorBody(t *testing.T) {
 	client, _ := fake(t, http.StatusInternalServerError, "<html>boom</html>")
 

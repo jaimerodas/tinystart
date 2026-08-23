@@ -29,7 +29,7 @@ func (s *Server) handleSessionNew() http.Handler {
 // The approved check is here and not in store.Authenticate on purpose: a
 // correct password for an account that is waiting for an admin still fails,
 // and it fails with the same message a wrong password gets. Telling the two
-// apart would confirm the address exists.
+// apart confirms the address exists.
 func (s *Server) handleSessionCreate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.sendEmptyInstallToSignUp(w, r) {
@@ -67,9 +67,9 @@ func (s *Server) handleSessionDestroy() http.Handler {
 }
 
 // sendEmptyInstallToSignUp is SessionsController#send_empty_install_to_signup.
-// A brand new installation has nobody to sign in as, so the form would be a
-// dead end; the first sign-up bootstraps itself as an approved admin. It
-// reports whether it answered the request.
+// A brand new installation has nobody to sign in as, so the form is a dead
+// end. The first sign-up bootstraps itself as an approved admin. It reports
+// whether it answered the request.
 func (s *Server) sendEmptyInstallToSignUp(w http.ResponseWriter, r *http.Request) bool {
 	any, err := s.db.AnyUsers(r.Context())
 	if err != nil {

@@ -47,7 +47,7 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 	if !strings.Contains(sent[0].HTMLBody, `<a href="https://start.example.com/passwords/`) {
 		t.Errorf("HTMLBody = %q, want an absolute reset link", sent[0].HTMLBody)
 	}
-	// The link is the last thing in the plain text, and then a blank line —
+	// The link is the last thing in the plain text, and then a blank line.
 	// Rails' mailer.text.erb layout is `<%= yield %>` and contributes the
 	// newline after it. The parity harness compares the message as sent, so
 	// the mail's whitespace is as much a part of it as a page's.
@@ -58,7 +58,7 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 	ts.get("/session/new").assertContains(resetSentNotice)
 }
 
-// The answer is the same whether the address is one we know or not: anything
+// The answer is the same whether the address is one we know or not. Anything
 // else turns this form into a way of asking who has an account here.
 func TestPasswordCreateWithAnUnknownEmailSendsNothingAndSaysTheSame(t *testing.T) {
 	ts := newTestServer(t)
@@ -73,8 +73,8 @@ func TestPasswordCreateWithAnUnknownEmailSendsNothingAndSaysTheSame(t *testing.T
 	ts.get("/session/new").assertContains(resetSentNotice)
 }
 
-// A mailer that is down must not change the answer either — a 500 here would
-// say "that address exists" as loudly as a different notice would.
+// A mailer that is down must not change the answer either — a 500 here says
+// "that address exists" as loudly as a different notice does.
 func TestPasswordCreateSaysTheSameWhenTheMailerFails(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
@@ -144,7 +144,7 @@ func TestPasswordUpdateWithMismatchedPasswords(t *testing.T) {
 	}
 }
 
-// A password ActiveRecord would have refused came back as "Passwords did not
+// A password ActiveRecord refuses came back as "Passwords did not
 // match." too, because PasswordsController#update was one call to update. The
 // message is misleading and it is the one the deployed app shows.
 func TestPasswordUpdateWithABlankPassword(t *testing.T) {
@@ -183,8 +183,8 @@ func TestAResetTokenExpires(t *testing.T) {
 	ts.get("/passwords/" + token + "/edit").assertRedirect("/passwords/new")
 }
 
-// And after the password it was issued against has changed, which is what
-// makes it single-use without a table to write it down in.
+// And after the password it was issued against changes, which is what makes
+// it single-use without a table to write it down in.
 func TestAResetTokenDiesWhenThePasswordChanges(t *testing.T) {
 	ts := newTestServer(t)
 	user := ts.createUser("one@example.com")
@@ -249,7 +249,7 @@ func (ts *testServer) resetToken(email string) string {
 }
 
 // tokenFromMail pulls the token back out of the message, so the flow test
-// walks the same link a person would click.
+// walks the same link a person clicks.
 func tokenFromMail(t *testing.T, body string) string {
 	t.Helper()
 	match := regexp.MustCompile(`/passwords/([^/\s]+)/edit`).FindStringSubmatch(body)
@@ -261,10 +261,11 @@ func tokenFromMail(t *testing.T, body string) string {
 
 // tamperSignature changes the first character after the dot — the first six
 // bits of the signature, every one of them significant. Not the last
-// character: a 32-byte HMAC in raw base64url is 43 characters, and the last one
+// character. A 32-byte HMAC in raw base64url is 43 characters. The last one
 // carries only two bits of data above four bits of padding that the decoder
-// ignores. Flipping it between A and B changed nothing the verifier could see,
-// which made this test pass or fail depending on how the token happened to end.
+// ignores. Flipping it between A and B changed nothing the verifier could
+// see. That made this test pass or fail based on how the token happened to
+// end.
 func tamperSignature(token string) string {
 	dot := strings.LastIndexByte(token, '.')
 	first := token[dot+1]

@@ -17,10 +17,10 @@ import (
 )
 
 // staticFS carries the CSS, the JavaScript, the icons and the files Rails kept
-// in public/. They are embedded rather than read from disk so the binary is
-// the whole deployment: no asset directory to copy into the image, and no
-// chance of the container serving a stylesheet from a different build than the
-// handler that linked to it.
+// in public/. The build embeds them instead of reading them from disk, so the
+// binary is the whole deployment. There is no asset directory to copy into the
+// image, and no chance that the container serves a stylesheet from a build
+// different than the one the handler links to.
 //
 // The tree under static/ mirrors where the files came from, and the mapping to
 // the URLs Rails served is in newAssets:
@@ -30,7 +30,7 @@ import (
 //	js/controllers/…   → /assets/controllers/<name>-<digest>.js
 //	js/lib/…           → /assets/lib/<name>-<digest>.js
 //	vendor/*.js        → /assets/<name>-<digest>.js   (turbo, stimulus)
-//	icons/*.svg        → not served at all; inlined by the icon template func
+//	icons/*.svg        → not served at all — inlined by the icon template func
 //	public/*           → /<name>, the way Rails served public/
 //
 //go:embed static
@@ -80,21 +80,21 @@ type module struct {
 
 // digest fingerprints a file's contents.
 //
-// Propshaft's own digest is not reproducible from the bytes alone — it folds
-// in the logical path — and nothing depends on matching it: the digest exists
+// Propshaft's own digest is not reproducible from the bytes alone, because it
+// folds in the logical path. Nothing depends on matching it. The digest exists
 // to make the URL change when the file does, and any collision-resistant hash
-// of the contents does that. So this is the first eight hex digits of the
-// SHA-256, which is the same shape (eight characters) in the same place, and
-// the parity check normalises the digits away.
+// of the contents does that. So this function uses the first eight hex digits
+// of the SHA-256. That is the same shape, eight characters, in the same place,
+// and the parity check normalizes the digits away.
 func digest(body []byte) string {
 	sum := sha256.Sum256(body)
 	return hex.EncodeToString(sum[:])[:8]
 }
 
 // newAssets reads the embedded tree once, at startup, and computes every
-// digest and every URL. Doing it here rather than lazily means a missing file
-// is a boot failure rather than a broken page an hour later, and that no
-// request ever hashes anything.
+// digest and every URL. Doing this here, rather than lazily, means a missing
+// file is a boot failure and not a broken page an hour later. It also means
+// no request ever hashes anything.
 func newAssets() (*assetSet, error) {
 	set := &assetSet{
 		byLogical: map[string]*asset{},
@@ -104,8 +104,8 @@ func newAssets() (*assetSet, error) {
 	}
 
 	// The prefixes each directory maps onto. "" means the file keeps its own
-	// name at the top of /assets, which is what Rails did for the vendored
-	// turbo and stimulus builds and for application.js.
+	// name at the top of /assets. That is what Rails did for the vendored
+	// turbo and stimulus builds, and for application.js.
 	served := []struct{ dir, prefix string }{
 		{"static/css", ""},
 		{"static/js", ""},
@@ -157,10 +157,10 @@ func (s *assetSet) add(logical string, body []byte) {
 	s.byURL[url] = a
 }
 
-// loadIcons reads app/assets/icons and applies the one change
-// ApplicationHelper#icon made: every glyph in this app sits inside a control
-// that carries its own label, so the <svg> is decorative and says so. Doing it
-// here rather than in the files means a new icon cannot forget to.
+// loadIcons reads app/assets/icons and applies the one change that
+// ApplicationHelper#icon made. Every glyph in this app sits inside a control
+// that carries its own label, so the <svg> is decorative and says so. Doing
+// this here, rather than in the files, means a new icon cannot forget to.
 func (s *assetSet) loadIcons() error {
 	entries, err := fs.ReadDir(staticFS, "static/icons")
 	if err != nil {
@@ -177,9 +177,9 @@ func (s *assetSet) loadIcons() error {
 	return nil
 }
 
-// loadPublic keeps the files Rails served out of public/ at the paths they
-// were served at: /icon.png, /robots.txt and the static error pages, which the
-// recovery middleware and the not-found handler render.
+// loadPublic keeps the files that Rails served out of public/ at the paths it
+// served them at: /icon.png, /robots.txt and the static error pages. The
+// recovery middleware and the not-found handler render these pages.
 func (s *assetSet) loadPublic() error {
 	entries, err := fs.ReadDir(staticFS, "static/public")
 	if err != nil {
@@ -198,10 +198,10 @@ func (s *assetSet) loadPublic() error {
 // buildLists settles the two orders the <head> depends on.
 //
 // stylesheet_link_tag :app links every file in app/assets/stylesheets
-// alphabetically, and the importmap is application, the three vendored
-// packages, then pin_all_from over controllers/ and lib/ — also alphabetical,
-// by file name. Both orders are visible in the HTML, so they are part of what
-// the parity check compares.
+// alphabetically. The importmap is application, the three vendored packages,
+// then pin_all_from over controllers/ and lib/ — also alphabetical, by file
+// name. Both orders are visible in the HTML, so they are part of what the
+// parity check compares.
 func (s *assetSet) buildLists() {
 	for logical, a := range s.byLogical {
 		if path.Ext(logical) == ".css" {
@@ -225,7 +225,7 @@ func (s *assetSet) buildLists() {
 	}
 
 	// Then pin_all_from, which walks each directory in name order. index.js is
-	// the directory's own name — "controllers", not "controllers/index" — and
+	// the directory's own name — "controllers", not "controllers/index". It
 	// still sorts under "i", which is why the bare specifier lands between
 	// grid_keyboard_controller and inline_form_controller.
 	for _, prefix := range []string{"controllers", "lib"} {
@@ -247,7 +247,7 @@ func (s *assetSet) buildLists() {
 }
 
 // contentTypeFor names the media type of one of the files served at the root.
-// mime.TypeByExtension knows all of them; the fallback is only there so that a
+// mime.TypeByExtension knows all of them. The fallback is only there so that a
 // file with no extension cannot be served as nothing at all.
 func contentTypeFor(name string) string {
 	if t := mime.TypeByExtension(path.Ext(name)); t != "" {
@@ -257,9 +257,9 @@ func contentTypeFor(name string) string {
 }
 
 // path returns the fingerprinted URL for a logical name. A name that is not
-// there is a programming error rather than a runtime condition — the files are
-// embedded, so either the template asked for something that does not exist or
-// the build lost a file — and returning the name unchanged makes it show up as
+// there is a programming error, not a runtime condition. The files are
+// embedded, so either the template asked for something that does not exist,
+// or the build lost a file. Returning the name unchanged makes it show up as
 // a 404 in the page rather than as a panic in production.
 func (s *assetSet) path(logical string) string {
 	if a := s.byLogical[logical]; a != nil {
@@ -269,9 +269,9 @@ func (s *assetSet) path(logical string) string {
 }
 
 // stylesheetTags is stylesheet_link_tag :app: every stylesheet in the
-// directory, in name order, each tracked by Turbo so a deploy that changes one
-// forces a full reload. The tags are joined with a newline and nothing else,
-// exactly as ActionView joined them.
+// directory, in name order. Turbo tracks each one, so a deploy that changes
+// one forces a full reload. The tags are joined with a newline and nothing
+// else, exactly as ActionView joined them.
 func (s *assetSet) stylesheetTags() template.HTML {
 	var out strings.Builder
 	for i, a := range s.stylesheets {
@@ -286,11 +286,11 @@ func (s *assetSet) stylesheetTags() template.HTML {
 // importmapTags is javascript_importmap_tags: the import map itself, a
 // modulepreload for every module in it, and the one line that starts the app.
 //
-// The JSON is written by hand rather than marshalled because an import map is
-// an ordered document to a reader even though it is unordered to a parser, and
-// Go's encoder sorts map keys — which would shuffle application to the middle
-// and make the diff against Rails' output noise. Every value is a path this
-// package built, so there is nothing to escape.
+// The JSON is written by hand rather than marshalled. An import map is an
+// ordered document to a reader, even though it is unordered to a parser.
+// Go's encoder also sorts map keys, which moves application to the middle
+// and adds noise to the diff against Rails' output. Every value is a path
+// this package built, so there is nothing to escape.
 func (s *assetSet) importmapTags() template.HTML {
 	var out strings.Builder
 	out.WriteString(`<script type="importmap" data-turbo-track="reload">{` + "\n")
@@ -312,17 +312,17 @@ func (s *assetSet) importmapTags() template.HTML {
 }
 
 // icon is ApplicationHelper#icon. A name with no file behind it renders
-// nothing, which is what the Ruby did too — the caller is a layout, and a
-// missing glyph should not take the page down with it.
+// nothing, which is what the Ruby did too. The caller is a layout, and a
+// missing glyph must not take the page down with it.
 func (s *assetSet) icon(name string) template.HTML {
 	return s.icons[name]
 }
 
 // handleAsset serves the fingerprinted files. The URL contains the digest of
-// the contents, so the answer for a given URL can never change and the cache
-// headers say so: a year, immutable, no revalidation. A URL that is not in the
-// table is a 404 rather than a fallback to the undigested file, because a
-// wrong digest means a stale page and serving it anyway hides that.
+// the contents, so the answer for a given URL can never change. The cache
+// headers say so: a year, immutable, no revalidation. A URL that is not in
+// the table is a 404, rather than a fallback to the undigested file. A wrong
+// digest means a stale page, and serving it anyway hides that.
 func (s *assetSet) handleAsset() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		a := s.byURL[r.URL.Path]
@@ -332,10 +332,10 @@ func (s *assetSet) handleAsset() http.Handler {
 		}
 		w.Header().Set("Content-Type", a.contentType)
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		// The zero time tells ServeContent there is no modification date to
-		// report, which is the truth: the file's identity is its digest, and a
-		// conditional request against a date would only ever be a slower way of
-		// asking a question the URL has already answered.
+		// The zero time tells ServeContent that there is no modification date to
+		// report. That is true: the file's identity is its digest. A conditional
+		// request against a date is only ever a slower way of asking a question
+		// the URL has already answered.
 		http.ServeContent(w, r, a.logical, time.Time{}, bytes.NewReader(a.body))
 	})
 }

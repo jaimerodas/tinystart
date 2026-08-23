@@ -14,11 +14,11 @@ import (
 
 // Settings → Import & Export: a user's start page out as the YAML interchange
 // format in docs/start-page-format.md, and back in again. The format and the
-// reasons behind it are in that file; the work is in internal/startpage.
+// reasons behind it are in that file. The work is in internal/startpage.
 
 // maxImportBytes is what a start page can plausibly weigh. It is a few dozen
-// tiles; anything past this is either a mistake or a file that has no business
-// being read into memory.
+// tiles. Anything past this is either a mistake or a file that has no
+// business being read into memory.
 const maxImportBytes = 512 * 1024
 
 // importExportData is the page, which has nothing on it but the nav.
@@ -38,7 +38,7 @@ func (s *Server) handleImportExport() http.Handler {
 //
 // Its own action rather than a format on the page, because the file is a .yml
 // and the route that produced it read better this way. The response is an
-// attachment: the link carries data-turbo="false", since Turbo Drive
+// attachment: the link carries data-turbo="false", because Turbo Drive
 // intercepts link clicks and has nothing to do with a download.
 func (s *Server) handleExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,9 +50,9 @@ func (s *Server) handleExport() http.Handler {
 			return
 		}
 		// UTC, because the date in the header and in the filename is what
-		// Rails' Date.current gave — the application time zone, which is UTC —
-		// and an export made at eleven at night in Mexico City should not be
-		// dated the day before the one the file says it is.
+		// Rails' Date.current gave — the application time zone, which is UTC.
+		// An export made at eleven at night in Mexico City must not be dated
+		// the day before the one the file says it is.
 		today := s.now().UTC()
 		body, err := startpage.Export(layout, today)
 		if err != nil {
@@ -74,9 +74,9 @@ func (s *Server) handleExport() http.Handler {
 
 // handleImportCreate is POST /settings/import_export.
 //
-// Importing replaces the whole page, so a refusal has to change nothing: every
-// check here happens before the write, and the write itself is one transaction
-// that either lands or does not.
+// Importing replaces the whole page, so a refusal has to change nothing.
+// Every check here happens before the write, and the write itself is one
+// transaction that either lands or does not.
 func (s *Server) handleImportCreate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := userFrom(r.Context())
@@ -95,7 +95,7 @@ func (s *Server) handleImportCreate() http.Handler {
 		if err := s.db.ReplaceStartPage(r.Context(), user.ID, result.Layout); err != nil {
 			// A record the models refused is a sentence about the file, and
 			// belongs on the page for the same reason the parse errors do.
-			// Anything else is a database that could not be written to.
+			// Anything else means the database write itself failed.
 			var rejected *store.RejectedError
 			if !errors.As(err, &rejected) {
 				s.serverError(w, r, err)
@@ -119,8 +119,9 @@ func (s *Server) handleImportCreate() http.Handler {
 // and reports false.
 func (s *Server) uploadedSource(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	// The cap is on the reader as well as on the field, so a body that claims
-	// to be a start page and is a gigabyte never reaches memory. The multipart
-	// parser is given a little room above it for the boundaries and headers.
+	// to be a start page and is a gigabyte never reaches memory. This gives
+	// the multipart parser a little room above it for the boundaries and
+	// headers.
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportBytes+4096)
 	if err := r.ParseMultipartForm(maxImportBytes); err != nil {
 		var tooLarge *http.MaxBytesError
@@ -144,8 +145,9 @@ func (s *Server) uploadedSource(w http.ResponseWriter, r *http.Request) ([]byte,
 	if err != nil {
 		return nil, s.refuse(w, r, "that file is too large to be a start page.")
 	}
-	// The real data is in Spanish, and an upload is bytes, so a file that
-	// isn't UTF-8 would import mangled names rather than fail.
+	// The real data is in Spanish, and an upload is bytes. Without this
+	// check, a file that is not UTF-8 imports mangled names instead of
+	// failing.
 	if !utf8.Valid(source) {
 		return nil, s.refuse(w, r, "that file isn't valid UTF-8 text.")
 	}

@@ -45,8 +45,8 @@ func TestItemCreateRefusesADuplicateInTheSameGroup(t *testing.T) {
 
 // --- update ---
 //
-// A tile owns its own title and url and there is no metadata to re-fetch, so a
-// typo has to be fixable from the edit page.
+// A tile owns its own title and url, with no metadata to re-fetch, so a typo
+// has to be fixable from the edit page.
 
 func TestItemUpdate(t *testing.T) {
 	ts, user := startPageServer(t)
@@ -260,7 +260,7 @@ func TestItemMoveWithinItsOwnGroup(t *testing.T) {
 	}
 }
 
-// The one refusal a tile move can meet: the group it is going to already holds
+// The one refusal a tile move can meet: the destination group already holds
 // the link.
 func TestItemMoveIntoAGroupThatAlreadyHasTheLink(t *testing.T) {
 	ts, user := startPageServer(t)
@@ -279,8 +279,8 @@ func TestItemMoveIntoAGroupThatAlreadyHasTheLink(t *testing.T) {
 }
 
 // A move redraws the group the tile left and the group it landed in, and
-// nothing else. Redrawing the whole grid would take #start_page_grid with it,
-// and that node carries the drag and keyboard controllers.
+// nothing else. Redrawing the whole grid takes #start_page_grid with it, and
+// that node carries the drag and keyboard controllers.
 func TestItemMoveStreamsTheTwoGroupsAndNotTheGrid(t *testing.T) {
 	ts, user := startPageServer(t)
 	group := ts.newGroup(user.ID, "Test Group", 1)
@@ -307,9 +307,10 @@ func TestItemMoveWithinOneGroupStreamsThatGroupAlone(t *testing.T) {
 		assertStreams("replace:group_" + id(group.ID))
 }
 
-// The client moved the tile before it asked. A refusal that only says so leaves
-// the page showing a position the database does not have — and the next move
-// computes its index from that page — so both groups come back as stored.
+// The client moved the tile before it asked. A refusal that only says so
+// leaves the page showing a position the database does not have. The next
+// move then computes its index from that page. So both groups come back as
+// stored.
 func TestItemMoveRefusalAnswers422AndRedrawsBothGroups(t *testing.T) {
 	ts, user := startPageServer(t)
 	group := ts.newGroup(user.ID, "Test Group", 1)
@@ -354,7 +355,7 @@ func TestItemWritesAreScopedToTheSignedInUser(t *testing.T) {
 		{"move", http.MethodPost, path + "/move", map[string]string{"position": "0"}},
 		{"visit", http.MethodPost, path + "/visit", nil},
 		// A tile of mine into a group of theirs is the same refusal from the
-		// other end: the group id has to belong to the signed-in user too.
+		// other end. The group id has to belong to the signed-in user too.
 		{"move into another user's group", http.MethodPost,
 			"/start/items/" + id(ts.newItem(user.ID, mine.ID, "Mine", "https://mine.example.com").ID) + "/move",
 			map[string]string{"group_id": id(theirGroup.ID), "position": "0"}},
@@ -401,7 +402,7 @@ func TestItemCreateRequiresAuthentication(t *testing.T) {
 
 // The drag and keyboard controllers post JSON, not a form — see
 // lib/start_page_moves.js. group_id arrives as the string the data attribute
-// held, and position as a number; a reorder within the group omits group_id.
+// held, and position as a number. A reorder within the group omits group_id.
 func TestItemMoveAcceptsTheJSONTheEditorSends(t *testing.T) {
 	ts, user := startPageServer(t)
 	group := ts.newGroup(user.ID, "Test Group", 1)

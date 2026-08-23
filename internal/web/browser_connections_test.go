@@ -1,9 +1,9 @@
 //go:build browser
 
 // The two places where this app talks to another one through JavaScript. The
-// Rails suite had no system test for either: the poller and the federated half
-// of the command bar were only ever driven from Ruby, where the fetch that
-// carries them does not exist.
+// Rails suite had no system test for either. The poller and the federated
+// half of the command bar were only ever driven from Ruby, where the fetch
+// that carries them does not exist.
 //
 // Both run against a real server standing in for the connected app, so nothing
 // is mocked on either side of the wire.
@@ -21,7 +21,7 @@ func TestBrowserTheConnectionPollerNoticesApproval(t *testing.T) {
 	p, user := startPageBrowser(t)
 	flow := newFakeFlow(t)
 	// Approved before the page can ask, so the poller's first tick is the one
-	// that finds it — the alternative is a test that waits out the five second
+	// that finds it. The alternative is a test that waits out the five second
 	// interval to prove the same thing.
 	flow.answers(`{"token":"a-token","scopes":["search","visit"],"expires_at":"2027-01-01T00:00:00Z"}`)
 
@@ -42,8 +42,8 @@ func TestBrowserTheConnectionPollerNoticesApproval(t *testing.T) {
 }
 
 // A connected app's results arrive in a section of their own, named after it,
-// after the local tiles and after the debounce. The three states the bar can
-// be in are decided in JavaScript from a value the server rendered, so this is
+// after the local tiles and after the debounce. The server renders a value
+// that decides the three states the bar can be in, in JavaScript, so this is
 // the only place they meet.
 func TestBrowserCommandBarSearchesTheConnectedApp(t *testing.T) {
 	p, user := startPageBrowser(t)
@@ -55,13 +55,13 @@ func TestBrowserCommandBarSearchesTheConnectedApp(t *testing.T) {
 	p.visit("/")
 	p.fillIn(".command-bar input", "app")
 
-	// The tiles are filtered in the same tick; the other app is half a second
+	// The tiles are filtered in the same tick. The other app is half a second
 	// behind it, by design.
 	p.assertText(".command-bar-suggestions", "Apple")
 	p.assertText(".command-bar-suggestions", "Apple Support")
-	// Upper case because that is what is on the screen: the section headers
-	// are text-transformed, and innerText is what was rendered rather than
-	// what was written.
+	// Upper case because that is what is on the screen. The section headers
+	// are text-transformed, and innerText reports what was rendered rather
+	// than what was written.
 	p.assertText(".command-bar-suggestions", "FROM 127.0.0.1")
 	p.assertCountNow(".command-bar-section-header", 2)
 

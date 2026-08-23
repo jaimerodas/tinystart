@@ -3,9 +3,10 @@ import { trackTileVisit } from "lib/track_visit"
 
 // Counts a visit when a tile is opened.
 //
-// Attached once to the grid; clicks are handled by delegation so it covers
+// Attached once to the grid. It handles clicks by delegation, so it covers
 // every a[data-item-id] inside, including tiles rendered later by a Turbo
-// Stream. The href is never touched, so opening in a new tab still works.
+// Stream. This code never touches the href, so opening in a new tab still
+// works.
 export default class extends Controller {
   connect() {
     this.onClick = this.onClick.bind(this)

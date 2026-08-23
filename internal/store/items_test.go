@@ -271,9 +271,9 @@ func TestMoveItemToAGroupThatIsNotYours(t *testing.T) {
 	assertNotFound(t, db.MoveItemToGroup(t.Context(), user.ID, item.ID, theirs.ID, 0))
 }
 
-// Changing which group a tile is in is an edit; shuffling it up and down
-// inside one is not, and Rails' update_column skipped the callbacks that would
-// have said otherwise.
+// Changing which group a tile is in is an edit. Shuffling it up and down
+// inside one is not, and Rails' update_column skips the callbacks that
+// normally mark a record changed.
 func TestWhichMovesTouchUpdatedAt(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")
@@ -389,7 +389,7 @@ func TestLinksForCommandBar(t *testing.T) {
 	newItem(t, db, user.ID, development.ID, "GitHub", "https://github.com")
 	newItem(t, db, user.ID, development.ID, "Stack Overflow", "https://stackoverflow.com")
 
-	// A connection's token grants one account; the grid has to be just as
+	// A connection's token grants one account. The grid has to be just as
 	// private.
 	theirs := newGroup(t, db, other.ID, "Theirs", 1)
 	newItem(t, db, other.ID, theirs.ID, "Theirs", "https://theirs.example.com")
@@ -411,9 +411,9 @@ func TestLinksForCommandBar(t *testing.T) {
 
 // The order is the order the tiles were made, not the order they are drawn.
 //
-// Rails asked for these through a has_many :through with no ORDER BY and took
-// what SQLite gave it, which is group by group and rowid by rowid — so a tile
-// dragged to the top of its group stays at the bottom of this list. The
+// Rails asked for these through a has_many :through with no ORDER BY. It took
+// what SQLite gave it: group by group and rowid by rowid. So a tile dragged
+// to the top of its group stays at the bottom of this list. The
 // parity harness caught the difference the first time a development database
 // had a group whose drawing order and creation order disagreed. It matters
 // because this list is what the command bar filters, and its order is the
@@ -443,8 +443,8 @@ func TestLinksForCommandBarIsInCreationOrderNotDrawingOrder(t *testing.T) {
 	assertEqualStrings(t, titles, []string{"First", "Second", "Last"})
 }
 
-// The page serialises this straight to JSON, and a nil slice would be the
-// literal null rather than an empty array.
+// The page serialises this straight to JSON, and a nil slice serialises as
+// the literal null rather than an empty array.
 func TestLinksForCommandBarWithNoTiles(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")

@@ -22,7 +22,7 @@ proxy:
 
 # Credentials for your image host.
 registry:
-  # Specify the registry server, if you're not using Docker Hub
+  # Specify the registry server, if you are not using Docker Hub
   server: ghcr.io
   username: jaimerodas
 
@@ -36,9 +36,9 @@ builder:
 
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 #
-# The token for federated search is *not* here: it's obtained through the other
-# app's device flow and stored in tinystart's database, so rotating it never
-# needs a redeploy.
+# The token for federated search is *not* here. The device flow obtains it
+# and stores it in tinystart's database, so rotating it never needs a
+# redeploy.
 env:
   secret:
     # Signs every cookie and every password reset link (cmd/tinystart/main.go).
@@ -47,11 +47,11 @@ env:
   clear:
     TINYSTART_ENV: production
     TINYSTART_DB: /data/production.sqlite3
-    # Absolute links — only the password reset mail has any — come from here,
+    # Only the password reset mail has absolute links. They come from here,
     # never from the request's Host header, which is whatever the client sent.
     TINYSTART_HOST: https://start.pati.to
 
-# Aliases are triggered with "kamal <alias>". You can overwrite arguments on invocation:
+# You trigger aliases with "kamal <alias>". You can overwrite arguments on invocation:
 # "kamal logs -r job" will tail logs from the first server in the job section.
 #
 aliases:
@@ -65,15 +65,16 @@ aliases:
 # Use a persistent storage volume for the sqlite database files.
 #
 # This name must stay different from tinylinks'. A named volume is host-side
-# storage, independent of the image: mounting tinylinks_storage here would put
-# both apps on the same production.sqlite3.
+# storage, independent of the image. If you mount tinylinks_storage here,
+# both apps land on the same production.sqlite3.
 volumes:
   - "tinystart_storage:/data"
 
-# No asset_path: the CSS and JavaScript are compiled into the binary and served
-# from it with content digests in their names, so there is nothing on disk to
-# bridge between versions. A page mid-deploy that asks for an old digest gets
-# a 404 and Turbo reloads it (data-turbo-track="reload").
+# No asset_path: the build compiles the CSS and JavaScript into the binary
+# and serves them from it with content digests in their names. As a result,
+# there is nothing on disk to bridge between versions. A page mid-deploy that
+# asks for an old digest gets a 404, and Turbo reloads it
+# (data-turbo-track="reload").
 
 # Configure rolling deploys by setting a wait time between batches of restarts.
 #

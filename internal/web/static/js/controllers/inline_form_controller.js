@@ -2,13 +2,14 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="inline-form"
 //
-// Swaps a trigger for the form it guards, in place: the "add" buttons at the
-// bottom of a column or a group, and the rows that an edit button turns into a
-// form. Both halves are already in the DOM, so opening one costs no round trip.
+// Swaps a trigger for the form it guards, in place. That covers the "add"
+// buttons at the bottom of a column or a group, and the rows that an edit
+// button turns into a form. Both halves are already in the DOM, so opening
+// one costs no round trip.
 //
-// The server can hand back a form that is already open — a failed save keeps
-// its errors visible, and a successful "add link" leaves the form ready for the
-// next one.
+// The server can hand back a form that is already open. A failed save keeps
+// its errors visible, and a successful "add link" leaves the form ready for
+// the next one.
 export default class extends Controller {
   static targets = ["trigger", "form", "field"]
   static values = { open: { type: Boolean, default: false } }
@@ -27,9 +28,9 @@ export default class extends Controller {
     event?.preventDefault()
     this.openValue = false
 
-    // An abandoned edit should leave nothing behind — not the values a failed
-    // save had refused, and not the errors that came back with them. reset()
-    // is no use here: it restores what was rendered, which after a rejection is
+    // An abandoned edit must leave nothing behind — not the values a failed
+    // save refused, and not the errors that came back with them. reset() is
+    // no use here: it restores what was rendered, which after a rejection is
     // the bad input itself.
     this.formTarget.querySelectorAll("[data-pristine]").forEach(field => {
       field.value = field.dataset.pristine
@@ -41,9 +42,10 @@ export default class extends Controller {
   }
 
   // The trigger is the button itself when adding, and the row holding the edit
-  // button when editing. A row is focusable in its own right — it is the grid's
-  // roving tab stop — so focus goes back to the row, not to the pencil inside
-  // it, which would leave the highlight pointing at something Tab cannot reach.
+  // button when editing. A row is focusable in its own right — it is the
+  // grid's roving tab stop. So focus goes back to the row, not to the pencil
+  // inside it. Focusing the pencil instead leaves the highlight pointing at
+  // something Tab cannot reach.
   triggerButton() {
     const trigger = this.triggerTarget
     return trigger.matches("button, [tabindex]") ? trigger : trigger.querySelector("button")

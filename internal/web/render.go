@@ -31,9 +31,9 @@ const (
 
 // renderer is the parsed templates.
 //
-// Each page gets its own template set rather than all of them sharing one,
-// because every page defines a template called "content" and a layout renders
-// "content" — two pages in one set would be a redefinition. Parsing the
+// Each page gets its own template set rather than all of them sharing one.
+// Every page defines a template called "content", and a layout renders
+// "content". Putting two pages in the same set redefines it. Parsing the
 // layouts and partials again for each page costs a few hundred microseconds,
 // once, at boot.
 type renderer struct {
@@ -45,9 +45,9 @@ func newRenderer(assets *assetSet) (*renderer, error) {
 	funcs := templateFuncs(assets)
 
 	// The layouts, the two shared partials, and the start page's own family of
-	// partials. The last of these is parsed into every page set rather than
-	// only the two start pages, because a Turbo Stream renders one of them on
-	// its own and renderPartial looks it up through a page's set.
+	// partials. This parses the last of these into every page set, rather
+	// than only the two start pages. A Turbo Stream renders one of them on
+	// its own, and renderPartial looks it up through a page's set.
 	shared := []string{
 		"templates/layouts/*.html",
 		"templates/shared/*.html",
@@ -77,8 +77,8 @@ func newRenderer(assets *assetSet) (*renderer, error) {
 }
 
 // templateFuncs is everything a template can call. They are all pure functions
-// of the assets, which are fixed at boot, so binding them once here is enough
-// and no request has to carry them.
+// of the assets, which are fixed at boot. So binding them once here is
+// enough, and no request has to carry them.
 func templateFuncs(assets *assetSet) template.FuncMap {
 	return template.FuncMap{
 		// asset is Rails' asset_path: a logical name in, a fingerprinted URL
@@ -100,10 +100,10 @@ func templateFuncs(assets *assetSet) template.FuncMap {
 		},
 		// htmlComment puts an HTML comment back into the output. html/template
 		// elides comments as it escapes, and the start page has one that is
-		// not a note to the reader: command_bar_controller.js empties
+		// not a note to the reader. command_bar_controller.js empties
 		// .command-bar-suggestions and fills it, and the comment is what the
-		// markup says about that. Every caller passes a literal, and the one
-		// sequence that could end the comment early is dropped.
+		// markup says about that. Every caller passes a literal, and this
+		// drops the one sequence that can end the comment early.
 		"htmlComment": func(text string) template.HTML {
 			return template.HTML("<!-- " + strings.ReplaceAll(text, "--", "") + " -->") //nolint:gosec // see above
 		},
@@ -118,13 +118,13 @@ func templateFuncs(assets *assetSet) template.FuncMap {
 	}
 }
 
-// view is what every template is handed: the parts of the page that come from
-// the request rather than from the handler, plus the handler's own data under
-// Data.
+// view is what every template is handed. It carries the parts of the page
+// that come from the request rather than from the handler, plus the
+// handler's own data under Data.
 //
-// Keeping the page's data in a field rather than embedding it means a page
-// template says .Data.Email and there is never a question of which struct a
-// name came from.
+// Keeping the page's data in a field, rather than embedding it, means a
+// page template says .Data.Email. There is never a question of which
+// struct a name came from.
 type view struct {
 	Title string
 	Theme string
@@ -136,10 +136,10 @@ type view struct {
 
 // render writes one page.
 //
-// It renders into a buffer first. A template that fails halfway — a nil
-// dereference in a field, a function that panics — would otherwise have
-// already written a 200 and half a document, and there is no taking that back;
-// with the buffer, a failure is still a clean 500.
+// It renders into a buffer first. A template can fail halfway — a nil
+// dereference in a field, a function that panics. Without the buffer, that
+// already writes a 200 and half a document, with no taking it back. With
+// the buffer, a failure is still a clean 500.
 func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, layout, page string, data any) {
 	set := s.templates.pages[page]
 	if set == nil {
@@ -182,7 +182,7 @@ var pageTitles = map[string]string{
 }
 
 // renderJSON writes one JSON body. Marshal rather than Encoder, because
-// Encoder appends a newline and the two endpoints that use this — the command
+// Encoder appends a newline. The two endpoints that use this — the command
 // bar's search and the device flow's poller — answer bodies that Rails wrote
 // without one.
 func (s *Server) renderJSON(w http.ResponseWriter, r *http.Request, value any) {
@@ -196,8 +196,9 @@ func (s *Server) renderJSON(w http.ResponseWriter, r *http.Request, value any) {
 }
 
 // themeFor and colorFor are ApplicationHelper's theme_data_attribute and
-// color_data_attribute: the signed-in user's preference, or the defaults that
-// make the sign-in page look like the app before anyone has said who they are.
+// color_data_attribute: the signed-in user's preference, or the defaults.
+// Those make the sign-in page look like the app before anyone has said who
+// they are.
 func themeFor(user *store.User) string {
 	if user == nil {
 		return "system"
@@ -212,9 +213,9 @@ func colorFor(user *store.User) string {
 	return user.ColorPreference
 }
 
-// serverError is the one place an unexpected failure is turned into a page: it
-// is logged with the request id, and the visitor gets the same static 500 the
-// Rails app served.
+// serverError is the one place this app turns an unexpected failure into a
+// page. It logs the failure with the request id, and the visitor gets the
+// same static 500 the Rails app served.
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	s.log.ErrorContext(r.Context(), "server error",
 		"error", err,

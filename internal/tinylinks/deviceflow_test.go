@@ -40,7 +40,7 @@ func TestStartSendsTheGrantRequest(t *testing.T) {
 }
 
 // One person can have two tinystarts pointed at the same app — a laptop and
-// the real one — and the other app lists its tokens by this name. Without the
+// the real one. The other app lists its tokens by this name. Without the
 // host both read "tinystart" and revoking the right one is guesswork.
 func TestStartNamesTheHostItIsAskingFrom(t *testing.T) {
 	tests := []struct {
@@ -156,7 +156,7 @@ func TestCheckSendsTheDeviceCode(t *testing.T) {
 	if code := request.form.Get("device_code"); code != "abc" {
 		t.Errorf("device_code = %q", code)
 	}
-	// check does not name the client; only the grant does.
+	// check does not name the client. Only the grant does.
 	if name := request.form.Get("client_name"); name != "" {
 		t.Errorf("client_name = %q, want none", name)
 	}
@@ -171,14 +171,15 @@ func TestCheckStatuses(t *testing.T) {
 	}{
 		{"approved", http.StatusOK,
 			`{"token":"t","scopes":["search","visit"],"expires_at":"2026-11-05T00:00:00Z"}`, StatusApproved},
-		// RFC 8628 has the token endpoint answer 400 while it waits, so the
-		// status is ignored and the "error" field decides — as it did in Ruby,
-		// which never looked at the code at all.
+		// RFC 8628 has the token endpoint answer 400 while it waits. So this
+		// code ignores the status, and the "error" field decides. Ruby did
+		// the same: it never looked at the code at all.
 		{"pending", http.StatusBadRequest, `{"error":"authorization_pending"}`, StatusPending},
 		{"denied", http.StatusBadRequest, `{"error":"access_denied"}`, StatusDenied},
 		{"expired", http.StatusBadRequest, `{"error":"expired_token"}`, StatusExpired},
-		// Anything the other app invents is treated as the end of the grant:
-		// a status this app cannot act on is over, whatever it is called.
+		// This package treats anything the other app invents as the end of
+		// the grant. A status this app cannot act on is over, whatever it is
+		// called.
 		{"an unknown error is the end of it", http.StatusBadRequest, `{"error":"slow_down"}`, StatusExpired},
 	}
 
