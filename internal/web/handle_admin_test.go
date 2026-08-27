@@ -29,7 +29,7 @@ type storeUsers struct {
 
 func TestAdminUsersRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings/admin/users").assertRedirect("/session/new")
+	ts.get("/settings/admin/users").assertRedirect("/sign_in")
 }
 
 // Not an error page, just the start page: someone who is signed in and not an

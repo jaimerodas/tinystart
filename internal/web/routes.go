@@ -30,11 +30,32 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	}
 
 	// Sign in and out. new and create are the two pages an anonymous visitor
-	// can reach. destroy is behind the wall, because signing out is something
-	// only a signed-in person can do.
-	mux.Handle("GET /session/new", s.handleSessionNew())
-	mux.Handle("POST /session", s.rateLimited(s.signIn, s.handleSessionCreate()))
+	// can reach, at /sign_in to match /sign_up. destroy is behind the wall,
+	// because signing out is something only a signed-in person can do — it
+	// stays at /session, reached through the hidden _method field on the
+	// header's log-out button.
+	mux.Handle("GET /sign_in", s.handleSessionNew())
+	mux.Handle("POST /sign_in", s.rateLimited(s.signIn, s.handleSessionCreate()))
 	mux.Handle("DELETE /session", s.requireAuthentication(s.handleSessionDestroy()))
+	// ServeMux only sends 405 on its own when no other pattern matches the
+	// request. The catch-all "/" below matches every path and method, so
+	// without this line a wrong method on /session would fall through to the
+	// 404 page instead. This bare pattern matches every method, but the
+	// method-specific pattern above wins for DELETE — see the ServeMux docs
+	// on precedence.
+	mux.Handle("/session", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Allow", "DELETE")
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}))
+
+	// The page moved to /sign_in in August 2026. Bookmarks still point here.
+	mux.Handle("GET /session/new", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		target := "/sign_in"
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+	}))
 
 	// Sign up. Both actions turn a signed-in visitor away — there is nothing
 	// on this page for someone who already has an account.
@@ -157,7 +178,7 @@ func (s *Server) handleNotFound() http.Handler {
 func (s *Server) rateLimited(l *limiter, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !l.allow(remoteIP(r)) {
-			s.redirect(w, r, "/session/new", flashAlert, "Try again later.")
+			s.redirect(w, r, "/sign_in", flashAlert, "Try again later.")
 			return
 		}
 		next.ServeHTTP(w, r)

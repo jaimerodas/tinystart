@@ -52,7 +52,7 @@ func (s *Server) handlePasswordCreate() http.Handler {
 				s.log.ErrorContext(r.Context(), "sending password reset", "error", err, "user_id", user.ID)
 			}
 		}
-		s.redirect(w, r, "/session/new", flashNotice, resetSentNotice)
+		s.redirect(w, r, "/sign_in", flashNotice, resetSentNotice)
 	})
 }
 
@@ -102,7 +102,7 @@ func (s *Server) handlePasswordUpdate() http.Handler {
 			return
 		}
 
-		s.redirect(w, r, "/session/new", flashNotice, resetDoneNotice)
+		s.redirect(w, r, "/sign_in", flashNotice, resetDoneNotice)
 	})
 }
 

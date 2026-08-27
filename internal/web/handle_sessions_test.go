@@ -16,13 +16,13 @@ import (
 func TestSessionNewRedirectsToSignUpWhenThereAreNoUsers(t *testing.T) {
 	ts := newTestServer(t)
 
-	ts.get("/session/new").assertRedirect("/sign_up")
+	ts.get("/sign_in").assertRedirect("/sign_up")
 }
 
 func TestSessionCreateRedirectsToSignUpWhenThereAreNoUsers(t *testing.T) {
 	ts := newTestServer(t)
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"nobody@example.com"},
 		"password": {testPassword},
 	}).assertRedirect("/sign_up")
@@ -32,9 +32,9 @@ func TestSessionNewShowsTheFormOnceAUserExists(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.get("/session/new").
+	ts.get("/sign_in").
 		assertStatus(http.StatusOK).
-		assertContains(`<form data-turbo="false" action="/session"`)
+		assertContains(`<form data-turbo="false" action="/sign_in"`)
 }
 
 // Anything behind the sign-in wall funnels to sign-up too, because that path
@@ -46,8 +46,8 @@ func TestAProtectedPageSendsABrandNewInstallToSignUp(t *testing.T) {
 	// directly — which is also the only thing under test here.
 	protected := ts.protectedPath()
 
-	ts.get(protected).assertRedirect("/session/new")
-	ts.get("/session/new").assertRedirect("/sign_up")
+	ts.get(protected).assertRedirect("/sign_in")
+	ts.get("/sign_in").assertRedirect("/sign_up")
 }
 
 // The login form opts out of Turbo so that the theme and color attributes on
@@ -56,14 +56,14 @@ func TestSessionNewFormOptsOutOfTurbo(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.get("/session/new").assertContains(`data-turbo="false" action="/session"`)
+	ts.get("/sign_in").assertContains(`data-turbo="false" action="/sign_in"`)
 }
 
 func TestSignInWithValidCredentials(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {testPassword},
 	}).assertRedirect("/")
@@ -83,15 +83,15 @@ func TestAnUnapprovedUserCannotSignIn(t *testing.T) {
 		t.Fatal("the second user was approved on creation; the fixture is wrong")
 	}
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"pending@example.com"},
 		"password": {testPassword},
-	}).assertRedirect("/session/new")
+	}).assertRedirect("/sign_in")
 
 	if ts.sessionCookie() != "" {
 		t.Error("an unapproved user was given a session cookie")
 	}
-	ts.get("/session/new").assertContains("Try another email address or password.")
+	ts.get("/sign_in").assertContains("Try another email address or password.")
 }
 
 func TestAnApprovedUserCanSignIn(t *testing.T) {
@@ -99,7 +99,7 @@ func TestAnApprovedUserCanSignIn(t *testing.T) {
 	ts.createUser("first@example.com")
 	ts.createApprovedUser("pending@example.com")
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"pending@example.com"},
 		"password": {testPassword},
 	}).assertRedirect("/")
@@ -109,15 +109,15 @@ func TestSignInWithInvalidCredentials(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {"wrongpassword"},
-	}).assertRedirect("/session/new")
+	}).assertRedirect("/sign_in")
 
 	if ts.sessionCookie() != "" {
 		t.Error("a failed sign-in left a session cookie")
 	}
-	ts.get("/session/new").assertContains("Try another email address or password.")
+	ts.get("/sign_in").assertContains("Try another email address or password.")
 }
 
 func TestSigningOut(t *testing.T) {
@@ -129,7 +129,7 @@ func TestSigningOut(t *testing.T) {
 
 	// The log-out button is a form, so the DELETE arrives as a POST carrying
 	// _method — which is the method-override middleware's whole job.
-	ts.post("/session", url.Values{"_method": {"delete"}}).assertRedirect("/session/new")
+	ts.post("/session", url.Values{"_method": {"delete"}}).assertRedirect("/sign_in")
 
 	if ts.sessionCookie() != "" {
 		t.Error("the session cookie survived signing out")
@@ -144,9 +144,9 @@ func TestSigningInReturnsToWhereTheVisitorWasHeaded(t *testing.T) {
 	ts.createUser("one@example.com")
 
 	protected := ts.protectedPath()
-	ts.get(protected).assertRedirect("/session/new")
+	ts.get(protected).assertRedirect("/sign_in")
 
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {testPassword},
 	}).assertRedirect(protected)
@@ -186,7 +186,7 @@ func TestASessionCloseToExpiryIsExtended(t *testing.T) {
 	// Far enough that the session has less than a week left, but not so far
 	// that it has run out.
 	ts.clock.advance(25 * 24 * time.Hour)
-	ts.get("/session/new")
+	ts.get("/sign_in")
 
 	after, err := ts.db.ActiveSession(t.Context(), id)
 	if err != nil {
@@ -208,7 +208,7 @@ func TestASessionWithPlentyOfTimeLeftIsNotExtended(t *testing.T) {
 		t.Fatalf("reading the session: %v", err)
 	}
 
-	ts.get("/session/new")
+	ts.get("/sign_in")
 
 	after, err := ts.db.ActiveSession(t.Context(), id)
 	if err != nil {
@@ -225,7 +225,7 @@ func TestSigningOutRequiresASession(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.post("/session", url.Values{"_method": {"delete"}}).assertRedirect("/session/new")
+	ts.post("/session", url.Values{"_method": {"delete"}}).assertRedirect("/sign_in")
 }
 
 // The admin section is not an error page for someone signed in without the
@@ -242,4 +242,65 @@ func TestAdminOnlyTurnsAwayANonAdmin(t *testing.T) {
 	ts.post("/session", url.Values{"_method": {"delete"}})
 	ts.signIn("admin@example.com")
 	ts.get(ts.adminPath()).assertStatus(http.StatusOK)
+}
+
+// The sign-in URL matches /sign_up: no more "/session/new" and "POST
+// /session" for the two actions a visitor can start.
+
+func TestSignInShowsTheFormOnceAUserExists(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("one@example.com")
+
+	ts.get("/sign_in").
+		assertStatus(http.StatusOK).
+		assertContains(`<form data-turbo="false" action="/sign_in"`)
+}
+
+func TestPostSignInWithValidCredentials(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createApprovedUser("one@example.com")
+
+	ts.post("/sign_in", url.Values{
+		"email":    {"one@example.com"},
+		"password": {testPassword},
+	}).assertRedirect("/")
+
+	if ts.sessionCookie() == "" {
+		t.Error("no session cookie after signing in")
+	}
+}
+
+// The old URL stays reachable, because a bookmark or a search result should
+// not break. It answers 301, not a temporary redirect, so a crawler updates
+// its own link.
+func TestSessionNewRedirectsPermanentlyToSignIn(t *testing.T) {
+	ts := newTestServer(t)
+
+	ts.get("/session/new").
+		assertStatus(http.StatusMovedPermanently).
+		assertRedirect("/sign_in")
+}
+
+func TestSessionNewRedirectPreservesTheQueryString(t *testing.T) {
+	ts := newTestServer(t)
+
+	ts.get("/session/new?email=x@y.z").
+		assertStatus(http.StatusMovedPermanently).
+		assertRedirect("/sign_in?email=x@y.z")
+}
+
+// POST /session no longer signs anyone in — only DELETE is left registered
+// on that path, so the method itself is now wrong, not the credentials.
+func TestPostSessionAnswersMethodNotAllowed(t *testing.T) {
+	ts := newTestServer(t)
+
+	ts.post("/session", nil).assertStatus(http.StatusMethodNotAllowed)
+}
+
+func TestSignInPrefillsTheEmailField(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("one@example.com")
+
+	ts.get("/sign_in?email=someone@example.com").
+		assertContains(`value="someone@example.com"`)
 }

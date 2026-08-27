@@ -24,13 +24,13 @@ func TestBrowserSignInThroughTheForm(t *testing.T) {
 	p := newBrowserPage(t)
 	user := p.ts.createApprovedUser("one@example.com")
 
-	p.visit("/session/new")
+	p.visit("/sign_in")
 	p.fillIn("#email", user.Email)
 	p.fillIn("#password", "the wrong one")
 	p.click(`input[value="Sign in"]`)
 
 	p.assertText(".flash-card", "Try another email address or password")
-	if got := p.currentPath(); got != "/session/new" {
+	if got := p.currentPath(); got != "/sign_in" {
 		t.Errorf("path = %q, want to still be on the form", got)
 	}
 	// The flash is a full-screen overlay while it is up, so a second attempt
@@ -85,7 +85,7 @@ func TestBrowserThePagesForVisitorsLoadWithoutAScriptError(t *testing.T) {
 	p.ts.createApprovedUser("one@example.com")
 
 	for _, each := range []struct{ path, marker string }{
-		{"/session/new", "#login form"},
+		{"/sign_in", "#login form"},
 		{"/sign_up", "form"},
 		{"/passwords/new", "form"},
 		{"/", ".demo-cta"},

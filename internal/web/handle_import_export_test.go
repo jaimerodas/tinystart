@@ -75,9 +75,9 @@ func fixtureFile(t *testing.T) []byte {
 
 func TestImportExportRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings/import_export").assertRedirect("/session/new")
-	ts.get("/settings/export").assertRedirect("/session/new")
-	ts.upload(fixtureFile(t)).assertRedirect("/session/new")
+	ts.get("/settings/import_export").assertRedirect("/sign_in")
+	ts.get("/settings/export").assertRedirect("/sign_in")
+	ts.upload(fixtureFile(t)).assertRedirect("/sign_in")
 }
 
 // One control, and it says what it exports — there is no "Export" heading

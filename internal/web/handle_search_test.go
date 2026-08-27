@@ -108,7 +108,7 @@ func (ts *testServer) lastError(userID int64) string {
 
 func TestSearchRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/search.json?q=alpha").assertRedirect("/session/new")
+	ts.get("/search.json?q=alpha").assertRedirect("/sign_in")
 }
 
 func TestSearchReturnsTheResultsAsABareArray(t *testing.T) {
@@ -304,7 +304,7 @@ func TestSearchAnswersBothSpellings(t *testing.T) {
 
 func TestVisitRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.post("/visits?link_id=7", nil).assertRedirect("/session/new")
+	ts.post("/visits?link_id=7", nil).assertRedirect("/sign_in")
 }
 
 func TestVisitForwardsToTheConnectedApp(t *testing.T) {

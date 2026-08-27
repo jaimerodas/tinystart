@@ -121,10 +121,10 @@ func TestTheFlashIsShownOnceAndThenGone(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	ts.post("/session", form("email", "one@example.com", "password", "wrong"))
+	ts.post("/sign_in", form("email", "one@example.com", "password", "wrong"))
 
-	ts.get("/session/new").assertContains("Try another email address or password.")
-	ts.get("/session/new").assertNotContains("Try another email address or password.")
+	ts.get("/sign_in").assertContains("Try another email address or password.")
+	ts.get("/sign_in").assertNotContains("Try another email address or password.")
 }
 
 // A notice carries the tick, an alert does not. The class on the card carries
@@ -135,12 +135,12 @@ func TestNoticeAndAlertRenderDifferently(t *testing.T) {
 	ts.createUser("one@example.com")
 
 	ts.post("/passwords", form("email", "one@example.com"))
-	ts.get("/session/new").
+	ts.get("/sign_in").
 		assertContains(`<div class="flash-card notice" role="status" aria-live="polite">`).
 		assertContains(`<svg aria-hidden="true" focusable="false"`)
 
-	ts.post("/session", form("email", "one@example.com", "password", "wrong"))
-	ts.get("/session/new").
+	ts.post("/sign_in", form("email", "one@example.com", "password", "wrong"))
+	ts.get("/sign_in").
 		assertContains(`<div class="flash-card alert" role="status" aria-live="polite">`).
 		assertNotContains(`<svg aria-hidden="true" focusable="false"`)
 }

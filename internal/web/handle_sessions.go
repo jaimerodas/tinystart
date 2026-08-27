@@ -13,7 +13,7 @@ type sessionsNewData struct {
 	Email string
 }
 
-// handleSessionNew is GET /session/new.
+// handleSessionNew is GET /sign_in.
 func (s *Server) handleSessionNew() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.sendEmptyInstallToSignUp(w, r) {
@@ -24,7 +24,7 @@ func (s *Server) handleSessionNew() http.Handler {
 	})
 }
 
-// handleSessionCreate is POST /session.
+// handleSessionCreate is POST /sign_in.
 //
 // The approved check is here and not in store.Authenticate on purpose: a
 // correct password for an account that is waiting for an admin still fails,
@@ -42,7 +42,7 @@ func (s *Server) handleSessionCreate() http.Handler {
 			return
 		}
 		if user == nil || !user.Approved {
-			s.redirect(w, r, "/session/new", flashAlert, "Try another email address or password.")
+			s.redirect(w, r, "/sign_in", flashAlert, "Try another email address or password.")
 			return
 		}
 
@@ -62,7 +62,7 @@ func (s *Server) handleSessionDestroy() http.Handler {
 			s.serverError(w, r, err)
 			return
 		}
-		s.redirect(w, r, "/session/new", "", "")
+		s.redirect(w, r, "/sign_in", "", "")
 	})
 }
 

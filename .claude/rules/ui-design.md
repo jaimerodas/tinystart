@@ -41,7 +41,7 @@ Templates live in `internal/web/templates/`.
 | `pages/settings_import_export` | `/settings/import_export` |
 | `pages/settings_connections` | `/settings/connections` |
 | `pages/settings_users`, `shared/admin_user` | `/settings/admin/users` |
-| `pages/sessions_new`, `users_new`, `passwords_*` | `/session/new`, `/sign_up`, `/passwords/…` |
+| `pages/sessions_new`, `users_new`, `passwords_*` | `/sign_in`, `/sign_up`, `/passwords/…` |
 
 ## Visual Standards
 

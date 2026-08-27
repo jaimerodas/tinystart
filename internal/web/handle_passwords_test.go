@@ -27,7 +27,7 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 	user := ts.createUser("one@example.com")
 
 	ts.post("/passwords", url.Values{"email": {"one@example.com"}}).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 
 	sent := ts.mail.messages()
 	if len(sent) != 1 {
@@ -55,7 +55,7 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 		t.Errorf("TextBody = %q, want it to end with the link and a blank line", sent[0].TextBody)
 	}
 
-	ts.get("/session/new").assertContains(resetSentNotice)
+	ts.get("/sign_in").assertContains(resetSentNotice)
 }
 
 // The answer is the same whether the address is one we know or not. Anything
@@ -65,12 +65,12 @@ func TestPasswordCreateWithAnUnknownEmailSendsNothingAndSaysTheSame(t *testing.T
 	ts.createUser("one@example.com")
 
 	ts.post("/passwords", url.Values{"email": {"nonexistent@example.com"}}).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 
 	if sent := ts.mail.messages(); len(sent) != 0 {
 		t.Errorf("sent %d messages for an unknown address, want 0", len(sent))
 	}
-	ts.get("/session/new").assertContains(resetSentNotice)
+	ts.get("/sign_in").assertContains(resetSentNotice)
 }
 
 // A mailer that is down must not change the answer either — a 500 here says
@@ -81,8 +81,8 @@ func TestPasswordCreateSaysTheSameWhenTheMailerFails(t *testing.T) {
 	ts.mail.failWith = errMailerDown
 
 	ts.post("/passwords", url.Values{"email": {"one@example.com"}}).
-		assertRedirect("/session/new")
-	ts.get("/session/new").assertContains(resetSentNotice)
+		assertRedirect("/sign_in")
+	ts.get("/sign_in").assertContains(resetSentNotice)
 }
 
 func TestPasswordEditWithAValidToken(t *testing.T) {
@@ -114,9 +114,9 @@ func TestPasswordUpdateWithAValidPassword(t *testing.T) {
 		"_method":               {"put"},
 		"password":              {"newpassword123"},
 		"password_confirmation": {"newpassword123"},
-	}).assertRedirect("/session/new")
+	}).assertRedirect("/sign_in")
 
-	ts.get("/session/new").assertContains(resetDoneNotice)
+	ts.get("/sign_in").assertContains(resetDoneNotice)
 
 	if _, err := ts.db.Authenticate(t.Context(), "one@example.com", "newpassword123"); err != nil {
 		t.Errorf("the new password does not work: %v", err)
@@ -214,7 +214,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	ts.createApprovedUser("one@example.com")
 
 	ts.post("/passwords", url.Values{"email": {"one@example.com"}}).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 
 	sent := ts.mail.messages()
 	if len(sent) != 1 {
@@ -228,10 +228,10 @@ func TestPasswordResetFlow(t *testing.T) {
 		"_method":               {"put"},
 		"password":              {"mynewpassword123"},
 		"password_confirmation": {"mynewpassword123"},
-	}).assertRedirect("/session/new")
+	}).assertRedirect("/sign_in")
 
 	// And the new password gets them in.
-	ts.post("/session", url.Values{
+	ts.post("/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {"mynewpassword123"},
 	}).assertRedirect("/")

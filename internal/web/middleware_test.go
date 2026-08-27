@@ -150,7 +150,7 @@ func TestCrossSitePostsAreRejected(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	req := ts.request(http.MethodPost, "/session", url.Values{
+	req := ts.request(http.MethodPost, "/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {testPassword},
 	})
@@ -167,7 +167,7 @@ func TestSameOriginPostsAreAllowed(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	req := ts.request(http.MethodPost, "/session", url.Values{
+	req := ts.request(http.MethodPost, "/sign_in", url.Values{
 		"email":    {"one@example.com"},
 		"password": {testPassword},
 	})
@@ -180,7 +180,7 @@ func TestCrossSiteGetsAreAllowed(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
 
-	req := ts.request(http.MethodGet, "/session/new", nil)
+	req := ts.request(http.MethodGet, "/sign_in", nil)
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
 	ts.do(req).assertStatus(http.StatusOK)

@@ -467,7 +467,7 @@ func TestItemCreateRequiresAuthentication(t *testing.T) {
 	ts.createApprovedUser("one@example.com")
 
 	ts.post("/start/items", form("start_page_item[url]", itemURL, "start_page_item[title]", "One")).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 }
 
 // The drag and keyboard controllers post JSON, not a form — see

@@ -20,7 +20,7 @@ func settingsServer(t *testing.T) (*testServer, *store.User) {
 
 func TestSettingsRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings").assertRedirect("/session/new")
+	ts.get("/settings").assertRedirect("/sign_in")
 }
 
 // Links lead: it is the number worth glancing at, and the one that grows.
@@ -221,7 +221,7 @@ func TestPasswordUpdateRefusesABodyWithNoUserKey(t *testing.T) {
 
 func TestPasswordRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings/password/edit").assertRedirect("/session/new")
+	ts.get("/settings/password/edit").assertRedirect("/sign_in")
 	ts.send(http.MethodPatch, "/settings/password", form("user[new_password]", "x")).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 }

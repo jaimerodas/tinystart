@@ -237,7 +237,7 @@ func (ts *testServer) adminPath() string     { return testAdminPath }
 // cookie does everything the tests do afterwards.
 func (ts *testServer) signIn(email string) {
 	ts.t.Helper()
-	resp := ts.post("/session", url.Values{"email": {email}, "password": {testPassword}})
+	resp := ts.post("/sign_in", url.Values{"email": {email}, "password": {testPassword}})
 	if resp.StatusCode != http.StatusSeeOther {
 		ts.t.Fatalf("signing in as %s: status %d, want %d", email, resp.StatusCode, http.StatusSeeOther)
 	}

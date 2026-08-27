@@ -89,7 +89,7 @@ func (s *Server) requireAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if userFrom(r.Context()) == nil {
 			s.setSignedCookie(w, returnToCookie, r.URL.RequestURI(), noExpiry)
-			http.Redirect(w, r, "/session/new", http.StatusSeeOther)
+			http.Redirect(w, r, "/sign_in", http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r)

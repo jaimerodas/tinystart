@@ -35,7 +35,7 @@ func TestSignUpPageOffersASignInLinkOnceAUserExists(t *testing.T) {
 
 	ts.get("/sign_up").
 		assertContains("Already registered?").
-		assertContains(`<a href="/session/new">Log in</a>`)
+		assertContains(`<a href="/sign_in">Log in</a>`)
 }
 
 func TestSignUpCreatesAUser(t *testing.T) {

@@ -21,7 +21,7 @@ func TestDemoPageShownToSignedOutVisitor(t *testing.T) {
 	resp.assertContains("GitHub")
 	resp.assertContains("Wikipedia")
 	resp.assertContains(`class="demo-cta"`)
-	resp.assertContains(`href="/session/new"`)
+	resp.assertContains(`href="/sign_in"`)
 
 	// The demo is a look, not an invitation to sign up here, and not the real
 	// editing surface — none of that belongs to someone with no account. The

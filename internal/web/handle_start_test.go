@@ -299,7 +299,7 @@ func TestEditorRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createApprovedUser("one@example.com")
 
-	ts.get("/start/edit").assertRedirect("/session/new")
+	ts.get("/start/edit").assertRedirect("/sign_in")
 }
 
 // --- the editor ---

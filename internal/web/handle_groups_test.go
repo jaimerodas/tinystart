@@ -313,7 +313,7 @@ func TestGroupCreateRequiresAuthentication(t *testing.T) {
 	ts.createApprovedUser("one@example.com")
 
 	ts.post("/start/groups", form("start_page_group[name]", "Test Group")).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 }
 
 // id is the string form of a row id, which every one of these paths needs.

@@ -249,7 +249,7 @@ func (p *browserPage) currentPath() string {
 // cookie — and is one of the things worth proving works.
 func (p *browserPage) signIn(email string) {
 	p.t.Helper()
-	p.visit("/session/new")
+	p.visit("/sign_in")
 	p.fillIn("#email", email)
 	p.fillIn("#password", testPassword)
 	p.click(`input[value="Sign in"]`)

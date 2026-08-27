@@ -91,10 +91,10 @@ func (ts *testServer) pollStatus() string {
 
 func TestConnectionsRequireAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings/connections").assertRedirect("/session/new")
-	ts.get("/settings/connections/poll").assertRedirect("/session/new")
+	ts.get("/settings/connections").assertRedirect("/sign_in")
+	ts.get("/settings/connections/poll").assertRedirect("/sign_in")
 	ts.post("/settings/connections", form("base_url", "https://links.example.com")).
-		assertRedirect("/session/new")
+		assertRedirect("/sign_in")
 }
 
 // Connecting your own account on the other app needs no privilege — the

@@ -91,16 +91,16 @@ func TestSignInIsRateLimited(t *testing.T) {
 
 	credentials := url.Values{"email": {"one@example.com"}, "password": {"wrong"}}
 	for range signInLimit {
-		ts.post("/session", credentials).assertStatus(http.StatusSeeOther)
+		ts.post("/sign_in", credentials).assertStatus(http.StatusSeeOther)
 	}
 
-	ts.post("/session", credentials).assertRedirect("/session/new")
-	ts.get("/session/new").assertContains("Try again later.")
+	ts.post("/sign_in", credentials).assertRedirect("/sign_in")
+	ts.get("/sign_in").assertContains("Try again later.")
 
 	// And the window runs out.
 	ts.clock.advance(signInWindow)
-	ts.post("/session", credentials)
-	ts.get("/session/new").assertContains("Try another email address or password.")
+	ts.post("/sign_in", credentials)
+	ts.get("/sign_in").assertContains("Try another email address or password.")
 }
 
 func TestSignUpIsRateLimited(t *testing.T) {
@@ -114,6 +114,6 @@ func TestSignUpIsRateLimited(t *testing.T) {
 	}
 
 	ts.post("/sign_up", form("user[email]", "z@example.com", "user[password]", "password")).
-		assertRedirect("/session/new")
-	ts.get("/session/new").assertContains("Try again later.")
+		assertRedirect("/sign_in")
+	ts.get("/sign_in").assertContains("Try again later.")
 }
