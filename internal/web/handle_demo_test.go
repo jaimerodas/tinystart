@@ -56,6 +56,9 @@ func TestDemoPageEmbedsTheCommandBarsLinks(t *testing.T) {
 
 	// There is no connection to federate against without a signed-in user.
 	resp.assertContains(`data-command-bar-federation-value="off"`)
+	// No account behind the demo means no stored preference either, so it
+	// falls back to the same default the Stimulus value itself defaults to.
+	resp.assertContains(`data-command-bar-engine-value="duckduckgo"`)
 }
 
 func TestDemoPageDoesNotListTheEditShortcut(t *testing.T) {

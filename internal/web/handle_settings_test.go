@@ -115,6 +115,58 @@ func TestSettingsLeavesAnUnsentPreferenceAlone(t *testing.T) {
 	}
 }
 
+// The search engine picker offers the three valid engines, with the stored
+// one checked.
+func TestSettingsOffersTheSearchEngineChoices(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains(`name="user[search_engine]"`).
+		assertContains(`id="search_engine_duckduckgo" type="radio" value="duckduckgo" checked="checked"`).
+		assertContains(`<label for="search_engine_duckduckgo">DuckDuckGo</label>`).
+		assertContains(`id="search_engine_google" type="radio" value="google"`).
+		assertContains(`<label for="search_engine_google">Google</label>`).
+		assertContains(`id="search_engine_kagi" type="radio" value="kagi"`).
+		assertContains(`<label for="search_engine_kagi">Kagi</label>`)
+}
+
+func TestSettingsUpdatesTheSearchEngine(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[search_engine]", "kagi")).
+		assertRedirect("/settings")
+
+	if got := ts.reloadUser(user).SearchEngine; got != "kagi" {
+		t.Errorf("search engine = %q, want kagi", got)
+	}
+	ts.get("/settings").assertContains("Settings updated successfully.")
+}
+
+func TestSettingsRefusesAnInvalidSearchEngine(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[search_engine]", "bing")).
+		assertRedirect("/settings")
+
+	if got := ts.reloadUser(user).SearchEngine; got != "duckduckgo" {
+		t.Errorf("search engine = %q, want the refusal to have changed nothing", got)
+	}
+	ts.get("/settings").
+		assertContains("Failed to update settings: Search engine bing is not a valid search engine")
+}
+
+// A theme-only submission must not blank the stored engine — formValueOr's
+// fallback applies here exactly as it does for theme and color.
+func TestSettingsLeavesTheSearchEngineAloneWhenNotSent(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[theme_preference]", "dark"))
+
+	if got := ts.reloadUser(user).SearchEngine; got != "duckduckgo" {
+		t.Errorf("search engine = %q, want the stored duckduckgo", got)
+	}
+}
+
 func TestSettingsRefusesAnInvalidTheme(t *testing.T) {
 	ts, user := settingsServer(t)
 
@@ -135,6 +187,15 @@ func TestSettingsRefusesABodyWithNoUserKey(t *testing.T) {
 
 	ts.send(http.MethodPatch, "/settings", form("theme_preference", "dark")).
 		assertStatus(http.StatusBadRequest)
+}
+
+// A body carrying only user[search_engine] is still a user submission, not an
+// empty one.
+func TestSettingsAcceptsABodyWithOnlyASearchEngine(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[search_engine]", "google")).
+		assertStatus(http.StatusSeeOther)
 }
 
 // The Users tab is built for an admin and absent for everybody else. Someone

@@ -6,7 +6,8 @@ export default class extends Controller {
   // federation: "active" federates to the connected app, "reconnect" says the token was
   // rejected, anything else (no connection) keeps the bar purely local.
   // source: the host those results come from, which names the section.
-  static values = { links: Array, federation: String, source: String }
+  // engine: which web search a non-URL query goes to; the default covers the demo page.
+  static values = { links: Array, federation: String, source: String, engine: { type: String, default: "duckduckgo" } }
 
   connect() {
     this.selectedIndex = -1
@@ -264,7 +265,7 @@ export default class extends Controller {
     // If it is a valid URL, navigate to it
     const finalUrl = validatedUrl
       ? validatedUrl.href
-      : this.buildDuckDuckGoSearchUrl(input);
+      : this.buildSearchUrl(input);
 
     if (openInNewTab) {
       window.open(finalUrl, "_blank");
@@ -291,9 +292,15 @@ export default class extends Controller {
     }
   }
 
-  buildDuckDuckGoSearchUrl(query) {
-    const encodedQuery = encodeURIComponent(query.trim());
-    return `https://duckduckgo.com/?q=${encodedQuery}`;
+  // Server validates the search engine choice; unknown values fall back to DuckDuckGo.
+  buildSearchUrl(query) {
+    const bases = {
+      duckduckgo: "https://duckduckgo.com/?q=",
+      google: "https://www.google.com/search?q=",
+      kagi: "https://kagi.com/search?q=",
+    };
+    const base = bases[this.engineValue] || bases.duckduckgo;
+    return base + encodeURIComponent(query.trim());
   }
 
   clearSearch() {

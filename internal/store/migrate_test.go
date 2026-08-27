@@ -8,25 +8,33 @@ import (
 	"testing"
 )
 
-// The schema a fresh database ends up with has to be the schema Rails
-// produced, statement for statement — down to the /*application='Tinystart'*/
-// comments. SQLite stores the text of a CREATE verbatim, and production's
-// sqlite_master still holds Rails' text. A fresh database has to be
-// indistinguishable from it.
-//
-// testdata/rails_schema.sql is the captured output of
-// `sqlite3 storage/development.sqlite3 .schema` against the real thing.
+// A database Rails set up — testdata/rails_schema.sql, the captured output of
+// `sqlite3 storage/development.sqlite3 .schema` against the real thing — and
+// a fresh database Go migrates from nothing have to end up with the identical
+// schema, statement for statement, once Migrate has run on both. Production
+// is the first shape and a new install is the second, and nothing tells them
+// apart afterwards.
 func TestMigrateProducesTheRailsSchema(t *testing.T) {
-	db := newTestDB(t)
+	fresh := newTestDB(t)
+
+	rails, err := Open(t.Context(), filepath.Join(t.TempDir(), "rails.sqlite3"))
+	if err != nil {
+		t.Fatalf("opening the rails-shaped database: %v", err)
+	}
+	t.Cleanup(func() { rails.Close() })
 
 	captured, err := os.ReadFile(filepath.Join("testdata", "rails_schema.sql"))
 	if err != nil {
 		t.Fatalf("reading the captured schema: %v", err)
 	}
+	execCapturedSchema(t, rails, string(captured))
 
-	want := normaliseSchema(string(captured))
-	got := normaliseSchema(strings.Join(schemaStatements(t, db), ";\n") + ";")
+	if err := rails.Migrate(t.Context()); err != nil {
+		t.Fatalf("migrating the rails-shaped database: %v", err)
+	}
 
+	got := schemaStatements(t, rails)
+	want := schemaStatements(t, fresh)
 	if len(got) != len(want) {
 		t.Fatalf("got %d statements, want %d\n%s", len(got), len(want), diffStatements(got, want))
 	}
@@ -38,10 +46,11 @@ func TestMigrateProducesTheRailsSchema(t *testing.T) {
 }
 
 // Rails recorded every migration it ran, and a database Go creates has to
-// carry the same list, so it is indistinguishable from the database Rails
-// left behind. Migrate also reads this table to decide which files in
-// migrations/ are pending.
-func TestMigrateRecordsTheRailsVersions(t *testing.T) {
+// carry all eleven, so it is indistinguishable from the database Rails left
+// behind. Migrate also reads this table to decide which files in migrations/
+// are pending, and by now one of them has run: schema_migrations carries that
+// version too.
+func TestMigrateRecordsEveryMigrationVersion(t *testing.T) {
 	db := newTestDB(t)
 
 	versions, err := db.appliedVersions(t.Context())
@@ -49,12 +58,18 @@ func TestMigrateRecordsTheRailsVersions(t *testing.T) {
 		t.Fatalf("appliedVersions: %v", err)
 	}
 
-	want := slices.Clone(railsMigrations)
+	for _, version := range railsMigrations {
+		if !slices.Contains(versions, version) {
+			t.Errorf("missing rails version %s", version)
+		}
+	}
+
+	want := append(slices.Clone(railsMigrations), "20260827180000")
 	slices.Sort(want)
 	assertEqualStrings(t, versions, want)
 
-	if len(want) != 11 {
-		t.Errorf("%d versions, want the eleven in db/migrate", len(want))
+	if len(want) != 12 {
+		t.Errorf("%d versions, want the eleven in db/migrate plus the one migration added since", len(want))
 	}
 }
 
@@ -105,8 +120,9 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("appliedVersions: %v", err)
 	}
-	if len(versions) != len(railsMigrations) {
-		t.Errorf("%d versions after two migrations, want %d", len(versions), len(railsMigrations))
+	want := len(railsMigrations) + 1
+	if len(versions) != want {
+		t.Errorf("%d versions after two migrations, want %d", len(versions), want)
 	}
 }
 
@@ -177,12 +193,14 @@ func schemaStatements(t *testing.T, db *DB) []string {
 	return statements
 }
 
-// normaliseSchema turns a captured dump into the same shape
-// schemaStatements returns: the comment header dropped, one statement per
-// entry, sorted, and without sqlite_sequence. The engine creates that table
-// itself the first time something inserts an AUTOINCREMENT row, so whether
-// it is there says nothing about the schema.
-func normaliseSchema(dump string) []string {
+// execCapturedSchema loads a dump shaped like testdata/rails_schema.sql: the
+// comment header dropped, and every CREATE TABLE run before any CREATE
+// INDEX. The dump itself is ordered by name, so an index can precede the
+// table it belongs to — fine for `sqlite3 .schema`, fatal for exec, which
+// runs each statement as it reaches it.
+func execCapturedSchema(t *testing.T, db *DB, dump string) {
+	t.Helper()
+
 	var body []string
 	for _, line := range strings.Split(dump, "\n") {
 		if !strings.HasPrefix(line, "--") {
@@ -190,17 +208,23 @@ func normaliseSchema(dump string) []string {
 		}
 	}
 
-	var statements []string
+	var tables, indexes []string
 	for _, statement := range strings.Split(strings.Join(body, "\n"), ";\n") {
 		statement = strings.TrimSpace(statement)
-		statement = strings.TrimSuffix(statement, ";")
-		if statement == "" || strings.Contains(statement, "sqlite_sequence") {
+		if statement == "" {
 			continue
 		}
-		statements = append(statements, statement)
+		if strings.HasPrefix(statement, "CREATE TABLE") {
+			tables = append(tables, statement)
+		} else {
+			indexes = append(indexes, statement)
+		}
 	}
-	slices.Sort(statements)
-	return statements
+
+	ordered := strings.Join(append(tables, indexes...), ";\n") + ";"
+	if _, err := db.sql.ExecContext(t.Context(), ordered); err != nil {
+		t.Fatalf("loading the captured schema: %v", err)
+	}
 }
 
 func diffStatements(got, want []string) string {

@@ -7,6 +7,7 @@ grid is always full here. */}}
 {{define "content"}}<main class="start-page" data-controller="command-bar start-shortcuts"
       data-command-bar-links-value="{{.Data.LinksJSON}}"
       data-command-bar-federation-value="off"
+      data-command-bar-engine-value="duckduckgo"
       data-action="keydown@window->start-shortcuts#keydown turbo:before-cache@window->start-shortcuts#closeDialog">
   {{template "shortcuts_dialog" .Data.Shortcuts}}
 

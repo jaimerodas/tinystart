@@ -273,6 +273,17 @@ func TestStartPageTellsTheCommandBarAboutFederation(t *testing.T) {
 	})
 }
 
+// The command bar reads its search engine off the page, not off a default:
+// a user who picked Google in Settings gets Google here.
+func TestStartPageTellsTheCommandBarTheUsersSearchEngine(t *testing.T) {
+	ts, user := startPageServer(t)
+	if err := ts.db.UpdatePreferences(t.Context(), user.ID, user.ThemePreference, user.ColorPreference, "google"); err != nil {
+		t.Fatalf("setting the search engine: %v", err)
+	}
+
+	ts.get("/").assertContains(`data-command-bar-engine-value="google"`)
+}
+
 // One person's tiles must never surface in another person's grid or command
 // bar.
 func TestStartPageShowsOnlyTheSignedInUsersTiles(t *testing.T) {

@@ -12,8 +12,14 @@
 -- See railsTime in time.go.
 --
 -- Loaded on top of schema.sql by the tests; see rails_rows_test.go.
+--
+-- The users row carries one more value than ActiveRecord ever wrote:
+-- 'duckduckgo', the search_engine default that
+-- migrations/20260827180000_add_search_engine_to_users.sql backfills onto
+-- every existing row. That is what this row looks like after that migration
+-- runs, which is the shape these tests load it into.
 
-INSERT INTO users VALUES(1,1,1,'blue','2026-08-07 22:36:04.233339','someone@example.com','$2a$12$EtqmeoUoVPpd432xuXr.1u1dG9BK5oqEVVXpHUxZfLDb5VQG1leBe','system','2026-08-10 17:05:23.270058',3);
+INSERT INTO users VALUES(1,1,1,'blue','2026-08-07 22:36:04.233339','someone@example.com','$2a$12$EtqmeoUoVPpd432xuXr.1u1dG9BK5oqEVVXpHUxZfLDb5VQG1leBe','system','2026-08-10 17:05:23.270058',3,'duckduckgo');
 
 INSERT INTO start_page_groups VALUES(15,1,'2026-08-10 16:00:49.065150','Lo de siempre',0,'2026-08-10 16:00:49.065150',1);
 INSERT INTO start_page_groups VALUES(17,2,'2026-08-10 16:00:49.095721','Mis proyectitos',0,'2026-08-10 16:00:49.095721',1);

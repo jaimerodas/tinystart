@@ -65,8 +65,9 @@ type settingsShowData struct {
 	MemberSinceDate string
 	MemberSinceAgo  string
 
-	Themes []choice
-	Colors []choice
+	Themes  []choice
+	Colors  []choice
+	Engines []choice
 }
 
 // choice is one radio button: its value, its label, and whether it is the one
@@ -106,9 +107,17 @@ func (s *Server) handleSettings() http.Handler {
 				{Value: "light", Label: "Light"},
 				{Value: "dark", Label: "Dark"},
 			},
+			Engines: []choice{
+				{Value: "duckduckgo", Label: "DuckDuckGo"},
+				{Value: "google", Label: "Google"},
+				{Value: "kagi", Label: "Kagi"},
+			},
 		}
 		for i := range data.Themes {
 			data.Themes[i].Checked = data.Themes[i].Value == user.ThemePreference
+		}
+		for i := range data.Engines {
+			data.Engines[i].Checked = data.Engines[i].Value == user.SearchEngine
 		}
 		for _, color := range store.ValidColors {
 			data.Colors = append(data.Colors, choice{Value: color, Checked: color == user.ColorPreference})
@@ -118,8 +127,8 @@ func (s *Server) handleSettings() http.Handler {
 	})
 }
 
-// handleSettingsUpdate is PATCH /settings: the theme and the accent color,
-// and nothing else.
+// handleSettingsUpdate is PATCH /settings: the theme, the accent color and
+// the search engine, and nothing else.
 //
 // The column count is deliberately not accepted here, however it is spelled in
 // the body. It belongs to the editor, where a refused shrink can answer on
@@ -135,7 +144,8 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 		}
 		// params.require(:user) answers 400 for a body with no user key at
 		// all, rather than treating it as an empty one.
-		if !r.PostForm.Has("user[theme_preference]") && !r.PostForm.Has("user[color_preference]") {
+		if !r.PostForm.Has("user[theme_preference]") && !r.PostForm.Has("user[color_preference]") &&
+			!r.PostForm.Has("user[search_engine]") {
 			s.serveErrorPage(w, http.StatusBadRequest, "/400.html")
 			return
 		}
@@ -145,8 +155,9 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 		// both, and a request carrying one changes only that one.
 		theme := formValueOr(r, "user[theme_preference]", user.ThemePreference)
 		color := formValueOr(r, "user[color_preference]", user.ColorPreference)
+		engine := formValueOr(r, "user[search_engine]", user.SearchEngine)
 
-		err := s.db.UpdatePreferences(r.Context(), user.ID, theme, color)
+		err := s.db.UpdatePreferences(r.Context(), user.ID, theme, color, engine)
 		if err == nil {
 			s.redirect(w, r, "/settings", flashNotice, "Settings updated successfully.")
 			return

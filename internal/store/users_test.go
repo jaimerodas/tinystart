@@ -113,6 +113,9 @@ func TestCreateUserDefaults(t *testing.T) {
 	if stored.Columns != 1 {
 		t.Errorf("columns = %d, want 1", stored.Columns)
 	}
+	if stored.SearchEngine != "duckduckgo" {
+		t.Errorf("search engine = %q, want duckduckgo", stored.SearchEngine)
+	}
 	if stored.PasswordDigest == "password123" || stored.PasswordDigest == "" {
 		t.Errorf("password_digest = %q, want a hash", stored.PasswordDigest)
 	}
@@ -189,19 +192,22 @@ func TestCreateUserHashesAtRailsCost(t *testing.T) {
 
 func TestUpdatePreferences(t *testing.T) {
 	tests := []struct {
-		name  string
-		theme string
-		color string
-		want  []string
+		name         string
+		theme        string
+		color        string
+		searchEngine string
+		want         []string
 	}{
-		{"a theme it does not know", "neon", "teal", []string{"Theme preference neon is not a valid theme"}},
-		{"a colour it does not know", "dark", "chartreuse", []string{"Color preference chartreuse is not a valid color"}},
+		{"a theme it does not know", "neon", "teal", "duckduckgo", []string{"Theme preference neon is not a valid theme"}},
+		{"a colour it does not know", "dark", "chartreuse", "duckduckgo", []string{"Color preference chartreuse is not a valid color"}},
 		// Grey left the palette and everyone holding it was migrated to teal.
 		// Nothing can put it back.
-		{"grey, which left the palette", "dark", "gray", []string{"Color preference gray is not a valid color"}},
-		{"both wrong", "neon", "gray", []string{
+		{"grey, which left the palette", "dark", "gray", "duckduckgo", []string{"Color preference gray is not a valid color"}},
+		{"a search engine it does not know", "dark", "teal", "bing", []string{"Search engine bing is not a valid search engine"}},
+		{"all three wrong", "neon", "gray", "bing", []string{
 			"Theme preference neon is not a valid theme",
 			"Color preference gray is not a valid color",
+			"Search engine bing is not a valid search engine",
 		}},
 	}
 
@@ -210,19 +216,21 @@ func TestUpdatePreferences(t *testing.T) {
 			db := newTestDB(t)
 			user := newUser(t, db, "test@example.com")
 
-			err := db.UpdatePreferences(t.Context(), user.ID, test.theme, test.color)
+			err := db.UpdatePreferences(t.Context(), user.ID, test.theme, test.color, test.searchEngine)
 			assertInvalid(t, err, test.want...)
 		})
 	}
 
-	t.Run("every listed theme and colour is accepted", func(t *testing.T) {
+	t.Run("every listed theme, colour and search engine is accepted", func(t *testing.T) {
 		db := newTestDB(t)
 		user := newUser(t, db, "test@example.com")
 
 		for _, theme := range ValidThemes {
 			for _, color := range ValidColors {
-				if err := db.UpdatePreferences(t.Context(), user.ID, theme, color); err != nil {
-					t.Fatalf("UpdatePreferences(%q, %q): %v", theme, color, err)
+				for _, engine := range ValidSearchEngines {
+					if err := db.UpdatePreferences(t.Context(), user.ID, theme, color, engine); err != nil {
+						t.Fatalf("UpdatePreferences(%q, %q, %q): %v", theme, color, engine, err)
+					}
 				}
 			}
 		}
@@ -231,8 +239,9 @@ func TestUpdatePreferences(t *testing.T) {
 		if err != nil {
 			t.Fatalf("UserByID: %v", err)
 		}
-		if stored.ThemePreference != "dark" || stored.ColorPreference != "pink" {
-			t.Errorf("stored %q/%q, want dark/pink", stored.ThemePreference, stored.ColorPreference)
+		if stored.ThemePreference != "dark" || stored.ColorPreference != "pink" || stored.SearchEngine != "kagi" {
+			t.Errorf("stored %q/%q/%q, want dark/pink/kagi",
+				stored.ThemePreference, stored.ColorPreference, stored.SearchEngine)
 		}
 	})
 }

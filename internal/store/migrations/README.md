@@ -1,9 +1,9 @@
 # Migrations
 
-Empty on purpose. `schema.sql` is the database as Rails left it, and nothing
-has needed changing since.
+`schema.sql` is the database as Rails left it. Each file here is one change
+made after the rewrite.
 
-When something does, add a file here named `<version>_<name>.sql`, where
+To add a change, add a file named `<version>_<name>.sql`, where
 `<version>` is a UTC timestamp in Rails' `YYYYMMDDHHMMSS` shape:
 
     20261101093000_add_pinned_to_start_page_items.sql

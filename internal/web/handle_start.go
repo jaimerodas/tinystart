@@ -33,6 +33,9 @@ type startShowData struct {
 	Source     string
 	Reconnect  bool
 	Hostname   string
+	// SearchEngine tells the bar which engine a non-URL query goes to,
+	// so a signed-in visitor gets the one they picked in Settings.
+	SearchEngine string
 
 	Shortcuts   []shortcut
 	ColumnCount int
@@ -91,11 +94,12 @@ func (s *Server) handleStartPage() http.Handler {
 		}
 
 		data := startShowData{
-			LinksJSON:   string(encoded),
-			HasTiles:    len(links) > 0,
-			Federation:  federationState(connection),
-			Shortcuts:   showPageShortcuts,
-			ColumnCount: user.Columns,
+			LinksJSON:    string(encoded),
+			HasTiles:     len(links) > 0,
+			Federation:   federationState(connection),
+			SearchEngine: user.SearchEngine,
+			Shortcuts:    showPageShortcuts,
+			ColumnCount:  user.Columns,
 		}
 		if connection != nil {
 			data.Source = connection.Hostname()
