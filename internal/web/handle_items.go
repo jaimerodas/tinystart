@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jaimerodas/tinystart/internal/store"
 )
@@ -48,7 +49,7 @@ func (s *Server) handleItemCreate() http.Handler {
 		title := r.PostFormValue("start_page_item[title]")
 		itemURL := r.PostFormValue("start_page_item[url]")
 
-		_, err = s.db.CreateItem(ctx, user.ID, groupID, title, itemURL)
+		_, err = s.db.CreateItem(ctx, user.ID, groupID, title, normalizeItemURL(itemURL))
 		if err == nil {
 			if !wantsTurboStream(r) {
 				s.redirect(w, r, "/start/edit", flashNotice, itemCreated)
@@ -86,9 +87,11 @@ func (s *Server) handleItemCreate() http.Handler {
 			GroupName: group.Name,
 			Open:      true,
 			Form: itemForm{
-				GroupID:    group.ID,
-				Typed:      true,
-				Title:      title,
+				GroupID: group.ID,
+				Typed:   true,
+				Title:   title,
+				// The raw value, not the normalized one, so the person sees
+				// what they typed.
 				URL:        itemURL,
 				Errors:     invalid.FullMessages(),
 				TitleError: invalid.On("title"),
@@ -118,7 +121,7 @@ func (s *Server) handleItemUpdate() http.Handler {
 		title := r.PostFormValue("start_page_item[title]")
 		itemURL := r.PostFormValue("start_page_item[url]")
 
-		item, err := s.db.UpdateItem(ctx, user.ID, id, title, itemURL)
+		item, err := s.db.UpdateItem(ctx, user.ID, id, title, normalizeItemURL(itemURL))
 		if errors.Is(err, store.ErrNotFound) {
 			s.notFound(w)
 			return
@@ -357,4 +360,22 @@ func (s *Server) groupStreams(ctx context.Context, userID, destination, source i
 		streams = append(streams, stream)
 	}
 	return streams, nil
+}
+
+// normalizeItemURL adds a scheme to a URL typed without one. Typing a scheme
+// by hand is friction, so a bare host gets one added here. A URL that
+// already has a scheme is never rewritten, even a wrong one: the store
+// rejects it, and the message names the value the person actually typed.
+// Local hosts are the one exception to https: they serve plain http.
+func normalizeItemURL(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	if strings.Contains(raw, "://") {
+		return raw
+	}
+	if strings.HasPrefix(raw, "localhost") || strings.HasPrefix(raw, "127.0.0.1") {
+		return "http://" + raw
+	}
+	return "https://" + raw
 }

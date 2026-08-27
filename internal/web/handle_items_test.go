@@ -26,6 +26,76 @@ func TestItemCreate(t *testing.T) {
 	}
 }
 
+// A URL typed without a scheme is a shortcut, not a mistake. The handler
+// fills the scheme in before the model sees the value.
+func TestItemCreateNormalizesAURLWithNoScheme(t *testing.T) {
+	cases := []struct {
+		name   string
+		typed  string
+		stored string
+	}{
+		{"a bare domain gets https", "example.com/one", "https://example.com/one"},
+		{"localhost gets http", "localhost:3000", "http://localhost:3000"},
+		{"a loopback address gets http", "127.0.0.1:8080/x", "http://127.0.0.1:8080/x"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ts, user := startPageServer(t)
+			group := ts.newGroup(user.ID, "Test Group", 1)
+
+			ts.post("/start/items", form(
+				"start_page_item[url]", c.typed,
+				"start_page_item[title]", "One",
+				"group_id", id(group.ID))).
+				assertRedirect("/start/edit")
+			ts.assertFlash(flashNotice, itemCreated)
+
+			items, err := ts.db.ItemsInGroup(ts.t.Context(), group.ID)
+			if err != nil {
+				t.Fatalf("reading group %d: %v", group.ID, err)
+			}
+			if len(items) != 1 || items[0].URL != c.stored {
+				t.Errorf("stored tiles = %+v, want one with url %q", items, c.stored)
+			}
+		})
+	}
+}
+
+// The uniqueness check runs against the normalized value, not the typed one,
+// or a scheme-less duplicate would slip past it.
+func TestItemCreateNormalizesBeforeCheckingForADuplicate(t *testing.T) {
+	ts, user := startPageServer(t)
+	group := ts.newGroup(user.ID, "Test Group", 1)
+	ts.newItem(user.ID, group.ID, "One", itemURL)
+
+	ts.post("/start/items", form(
+		"start_page_item[url]", "example.com/one",
+		"start_page_item[title]", "Two",
+		"group_id", id(group.ID))).
+		assertRedirect("/start/edit")
+	ts.assertFlash(flashAlert, "Failed to add tile: Url has already been taken")
+
+	if got := ts.itemTitles(group.ID); len(got) != 1 {
+		t.Errorf("tiles = %v, want just the one", got)
+	}
+}
+
+func TestItemUpdateNormalizesAURLWithNoScheme(t *testing.T) {
+	ts, user := startPageServer(t)
+	group := ts.newGroup(user.ID, "Test Group", 1)
+	item := ts.newItem(user.ID, group.ID, "One", itemURL)
+
+	ts.send(http.MethodPatch, "/start/items/"+id(item.ID), form(
+		"start_page_item[url]", "start.pati.to",
+		"start_page_item[title]", "One")).
+		assertRedirect("/start/edit")
+	ts.assertFlash(flashNotice, itemUpdated)
+
+	if got := ts.item(user.ID, item.ID).URL; got != "https://start.pati.to" {
+		t.Errorf("url = %q, want https://start.pati.to", got)
+	}
+}
+
 func TestItemCreateRefusesADuplicateInTheSameGroup(t *testing.T) {
 	ts, user := startPageServer(t)
 	group := ts.newGroup(user.ID, "Test Group", 1)

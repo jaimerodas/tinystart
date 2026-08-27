@@ -12,7 +12,7 @@
 {{end}}
   {{if .TitleError}}<div class="field_with_errors">{{end}}<input class="control" required="required" placeholder="Title" aria-label="Title" data-inline-form-target="field" data-pristine="{{.PristineTitle}}" type="text"{{if .ShowValue}} value="{{.Title}}"{{end}} name="start_page_item[title]" id="start_page_item_title" />{{if .TitleError}}</div>{{end}}
 
-  {{if .URLError}}<div class="field_with_errors">{{end}}<input class="control" required="required" placeholder="https://example.com" aria-label="URL" data-pristine="{{.PristineURL}}" type="url"{{if .ShowValue}} value="{{.URL}}"{{end}} name="start_page_item[url]" id="start_page_item_url" />{{if .URLError}}</div>{{end}}
+  {{if .URLError}}<div class="field_with_errors">{{end}}<input class="control" required="required" placeholder="example.com" aria-label="URL" data-pristine="{{.PristineURL}}" type="text"{{if .ShowValue}} value="{{.URL}}"{{end}} name="start_page_item[url]" id="start_page_item_url" />{{if .URLError}}</div>{{end}}
 
   <div class="inline-form-actions">
     <input type="submit" name="commit" value="{{.Submit}}" class="control" data-disable-with="{{.Submit}}" />

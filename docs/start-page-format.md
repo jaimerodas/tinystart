@@ -183,11 +183,13 @@ repeats what the model said about it.
 
 Two of those deserve elaboration:
 
-- **No URL normalization exists anywhere in tinystart.** Neither the model nor
-  `StartPageItemsController` prepends a scheme, strips whitespace or downcases
-  anything — whatever is in the file is stored verbatim, and `valid_url` is the
-  only gate. A bare `example.com` is rejected outright rather than fixed up. If
-  you hand-edit a url, include the scheme.
+- **The importer does not normalize URLs.** It stores what the file says,
+  verbatim, and `valid_url` is the only gate. It does not add a scheme, strip
+  whitespace, or downcase anything. A bare `example.com` is rejected, not
+  repaired. If you hand-edit a url, include the scheme. The editor form is
+  different on purpose: it adds a missing scheme (`https://`, or `http://`
+  for hosts that start with `localhost` or `127.0.0.1`) before it saves.
+  This keeps an import→export round trip byte-identical.
 - **The url uniqueness index is case-sensitive** (plain SQLite BINARY
   collation), while tinylinks compares urls case-insensitively. So
   `https://X.com` and `https://x.com` in one group would both import and render

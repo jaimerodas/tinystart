@@ -121,6 +121,26 @@ func TestBrowserAddAGroupAddTilesEditThemAndDelete(t *testing.T) {
 	}
 }
 
+// A URL with no scheme is the common case at the keyboard: nobody types
+// "https://". The editor fills it in before it saves, so the tile still
+// shows up.
+func TestBrowserAddingALinkWithNoSchemeFillsInHTTPS(t *testing.T) {
+	p, user := startPageBrowser(t)
+	group := p.ts.newGroup(user.ID, "Tools", 1)
+
+	p.visit("/start/edit")
+
+	p.clickOn(newItemSel(group.ID), "Add link")
+	p.fillInLabelled(newItemSel(group.ID), "Title", "GitHub")
+	p.fillInLabelled(newItemSel(group.ID), "URL", "github.com")
+	p.clickOn(newItemSel(group.ID), "Add")
+
+	p.assertText(groupSel(group)+" .item-title", "GitHub")
+	if got := p.itemNamed(group.ID, "GitHub").URL; got != "https://github.com" {
+		t.Errorf("url = %q, want https://github.com", got)
+	}
+}
+
 // A rejected save leaves the form where it was, and it must still hold what
 // was typed, or the message has nothing to point at.
 func TestBrowserARejectedTileKeepsItsFormOpenWithTheTypedValues(t *testing.T) {
@@ -156,7 +176,8 @@ func TestBrowserARejectedEditKeepsTheSavedValuesBehindIt(t *testing.T) {
 
 	p.clickOn(itemSel(item), "Edit tile")
 	p.fillInLabelled(itemSel(item), "Title", "Renamed")
-	// Passes the browser's own url validation, fails the model's.
+	// ftp:// has a scheme, so the editor does not rewrite it. The model
+	// rejects the scheme anyway.
 	p.fillInLabelled(itemSel(item), "URL", "ftp://example.com")
 	p.clickOn(itemSel(item), "Save")
 
