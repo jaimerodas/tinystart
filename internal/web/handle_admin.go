@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/jaimerodas/tinystart/internal/postmark"
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
@@ -90,13 +91,21 @@ func (s *Server) handleAdminUserApprove() http.Handler {
 			return
 		}
 
-		if _, err := s.db.ToggleApproved(r.Context(), id); err != nil {
+		user, err := s.db.ToggleApproved(r.Context(), id)
+		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				s.notFound(w)
 				return
 			}
 			s.serverError(w, r, err)
 			return
+		}
+		// The toggle already landed, so a mail failure here is logged and
+		// swallowed rather than shown — it would misreport the toggle itself.
+		if user.Approved {
+			if err := s.sendAccountApproved(r, user); err != nil {
+				s.log.ErrorContext(r.Context(), "sending account-approved mail", "error", err, "user_id", user.ID)
+			}
 		}
 		s.redirect(w, r, "/settings/admin/users", "", "")
 	})
@@ -131,5 +140,27 @@ func (s *Server) handleAdminUserPasswordReset() http.Handler {
 			return
 		}
 		s.redirect(w, r, "/settings/admin/users", flashNotice, "Password reset instructions sent")
+	})
+}
+
+// sendAccountApproved tells a user their account is approved and links back
+// to the app. Shaped like sendPasswordReset: both bodies, one send.
+func (s *Server) sendAccountApproved(r *http.Request, user *store.User) error {
+	data := struct{ URL string }{s.baseURL(r) + "/"}
+	html, err := s.renderMail("account_approved.html", data)
+	if err != nil {
+		return err
+	}
+	text, err := s.renderMail("account_approved.txt", data)
+	if err != nil {
+		return err
+	}
+
+	return s.mailer.Send(r.Context(), postmark.Message{
+		From:     s.cfg.MailFrom,
+		To:       user.Email,
+		Subject:  "Your account is approved",
+		TextBody: text,
+		HTMLBody: html,
 	})
 }

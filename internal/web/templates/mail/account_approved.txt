@@ -1,0 +1,4 @@
+{{define "account_approved.txt"}}Good news! An admin approved your account. You can sign in and create links here:
+{{.URL}}
+
+{{end}}

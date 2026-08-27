@@ -1,0 +1,5 @@
+{{define "awaiting_approval.txt"}}Thank you for your registration. We created your account, but you cannot sign in yet. An admin must approve it first.
+
+We will send you an email when the admin approves your account.
+
+{{end}}

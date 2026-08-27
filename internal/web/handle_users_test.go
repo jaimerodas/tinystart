@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/jaimerodas/tinystart/internal/store"
@@ -153,6 +154,90 @@ func TestTheFirstUserToSignUpIsAnApprovedAdmin(t *testing.T) {
 	}
 	if second.Admin || second.Approved {
 		t.Errorf("second user: admin=%v approved=%v, want both false", second.Admin, second.Approved)
+	}
+}
+
+// Everyone after the first waits for an admin, and the mail is how they find
+// out there is a wait at all.
+func TestSignUpSendsAwaitingApprovalMail(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("first@example.com") // the bootstrap admin
+
+	ts.post("/sign_up", url.Values{
+		"user[email]":    {"second@example.com"},
+		"user[password]": {"password"},
+	}).assertRedirect("/")
+
+	sent := ts.mail.messages()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d messages, want 1", len(sent))
+	}
+	if sent[0].To != "second@example.com" {
+		t.Errorf("To = %q, want %q", sent[0].To, "second@example.com")
+	}
+	if sent[0].From != ts.app.cfg.MailFrom {
+		t.Errorf("From = %q, want %q", sent[0].From, ts.app.cfg.MailFrom)
+	}
+	if sent[0].Subject != "Your account waits for approval" {
+		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your account waits for approval")
+	}
+	if sent[0].TextBody == "" {
+		t.Error("TextBody is empty")
+	}
+	if sent[0].HTMLBody == "" {
+		t.Error("HTMLBody is empty")
+	}
+	if !strings.Contains(sent[0].TextBody, "An admin must approve it first.") {
+		t.Errorf("TextBody = %q, want the approval sentence", sent[0].TextBody)
+	}
+}
+
+// The first signup bootstraps the install as an approved admin. Nobody has
+// to approve them, so nothing gets mailed.
+func TestTheFirstUserToSignUpSendsNoMail(t *testing.T) {
+	ts := newTestServer(t)
+
+	ts.post("/sign_up", url.Values{
+		"user[email]":    {"first@example.com"},
+		"user[password]": {"password"},
+	}).assertRedirect("/")
+
+	if sent := ts.mail.messages(); len(sent) != 0 {
+		t.Errorf("sent %d messages for the bootstrap admin, want 0", len(sent))
+	}
+}
+
+// A signup that fails validation never reaches the database, so there is
+// nobody to mail.
+func TestSignUpWithInvalidDataSendsNoMail(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("first@example.com")
+
+	ts.post("/sign_up", url.Values{
+		"user[email]":    {""},
+		"user[password]": {""},
+	}).assertStatus(http.StatusUnprocessableEntity)
+
+	if sent := ts.mail.messages(); len(sent) != 0 {
+		t.Errorf("sent %d messages for an invalid signup, want 0", len(sent))
+	}
+}
+
+// A mailer that is down does not stop the account from being created — the
+// person still signed up, and an admin still needs to see them waiting.
+func TestSignUpRedirectsEvenWhenTheMailerFails(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("first@example.com")
+	ts.mail.failWith = errMailerDown
+
+	ts.post("/sign_up", url.Values{
+		"user[email]":    {"second@example.com"},
+		"user[password]": {"password"},
+	}).assertRedirect("/")
+
+	ts.get("/sign_up").assertContains("User was successfully created.")
+	if _, err := ts.db.UserByEmail(t.Context(), "second@example.com"); err != nil {
+		t.Errorf("the user was not created: %v", err)
 	}
 }
 

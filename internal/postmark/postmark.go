@@ -1,12 +1,12 @@
 // Package postmark sends mail through Postmark's HTTPS API.
 //
-// It is the whole of what postmark-rails did for this app, which is one
-// message: the password reset. The web layer renders the mail itself —
-// subject, both bodies, the link with the token in it. This package only
-// puts it on the wire.
+// It is the whole of what postmark-rails did for this app: the password
+// reset, and the two account mails, at signup and at approval. The web layer
+// renders each mail itself — subject, both bodies, the links. This package
+// only puts it on the wire.
 //
 // There is no SMTP, no queue and no retry. A reset that fails to send is a
-// reset the person asks for again.
+// reset the person asks for again, and the account mails log and go on.
 package postmark
 
 import (

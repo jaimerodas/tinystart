@@ -113,11 +113,12 @@ func (s *Server) handlePasswordUpdate() http.Handler {
 func (s *Server) sendPasswordReset(r *http.Request, user *store.User) error {
 	url := s.baseURL(r) + "/passwords/" + s.passwordResetToken(user) + "/edit"
 
-	html, err := s.renderMail("password_reset.html", url)
+	data := struct{ URL string }{url}
+	html, err := s.renderMail("password_reset.html", data)
 	if err != nil {
 		return err
 	}
-	text, err := s.renderMail("password_reset.txt", url)
+	text, err := s.renderMail("password_reset.txt", data)
 	if err != nil {
 		return err
 	}
@@ -131,9 +132,11 @@ func (s *Server) sendPasswordReset(r *http.Request, user *store.User) error {
 	})
 }
 
-func (s *Server) renderMail(name, url string) (string, error) {
+// renderMail executes a mail template with the given data, which is whatever
+// shape that template expects.
+func (s *Server) renderMail(name string, data any) (string, error) {
 	var out bytes.Buffer
-	if err := s.templates.mail.ExecuteTemplate(&out, name, struct{ URL string }{url}); err != nil {
+	if err := s.templates.mail.ExecuteTemplate(&out, name, data); err != nil {
 		return "", err
 	}
 	return out.String(), nil

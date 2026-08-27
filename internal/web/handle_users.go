@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/jaimerodas/tinystart/internal/postmark"
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
@@ -59,8 +60,15 @@ func (s *Server) handleUserCreate() http.Handler {
 		}
 
 		email := r.PostFormValue("user[email]")
-		_, err := s.db.CreateUser(r.Context(), email, r.PostFormValue("user[password]"))
+		user, err := s.db.CreateUser(r.Context(), email, r.PostFormValue("user[password]"))
 		if err == nil {
+			// The bootstrap first user comes back already approved, so
+			// there is no wait to tell them about.
+			if !user.Approved {
+				if err := s.sendAwaitingApproval(r, user); err != nil {
+					s.log.ErrorContext(r.Context(), "sending awaiting-approval mail", "error", err, "user_id", user.ID)
+				}
+			}
 			s.redirect(w, r, "/", flashNotice, "User was successfully created.")
 			return
 		}
@@ -94,4 +102,25 @@ func (s *Server) signUpForm(r *http.Request, email string, invalid store.Validat
 		PasswordInvalid: invalid.On("password"),
 		AnyUsers:        any,
 	}, nil
+}
+
+// sendAwaitingApproval tells a new user their account is waiting on an
+// admin. Shaped like sendPasswordReset: both bodies, one send.
+func (s *Server) sendAwaitingApproval(r *http.Request, user *store.User) error {
+	html, err := s.renderMail("awaiting_approval.html", nil)
+	if err != nil {
+		return err
+	}
+	text, err := s.renderMail("awaiting_approval.txt", nil)
+	if err != nil {
+		return err
+	}
+
+	return s.mailer.Send(r.Context(), postmark.Message{
+		From:     s.cfg.MailFrom,
+		To:       user.Email,
+		Subject:  "Your account waits for approval",
+		TextBody: text,
+		HTMLBody: html,
+	})
 }

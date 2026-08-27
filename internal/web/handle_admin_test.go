@@ -96,6 +96,10 @@ func TestAdminApproveIsAToggle(t *testing.T) {
 	if !ts.reloadUser(users.waiting).Approved {
 		t.Fatal("the user was not approved")
 	}
+	// Landing on approved mails the notice; the toggle itself is checked below.
+	if sent := ts.mail.messages(); len(sent) != 1 {
+		t.Fatalf("sent %d messages after approving, want 1", len(sent))
+	}
 
 	ts.get("/settings/admin/users").
 		assertContains(`action="` + approvePath(users.waiting.ID) + `"><button type="submit">Block</button>`)
@@ -103,6 +107,75 @@ func TestAdminApproveIsAToggle(t *testing.T) {
 	ts.post(approvePath(users.waiting.ID), nil)
 	if ts.reloadUser(users.waiting).Approved {
 		t.Error("the user was not blocked again")
+	}
+	// Blocking sends nothing, so the count from the approval above holds.
+	if sent := ts.mail.messages(); len(sent) != 1 {
+		t.Errorf("sent %d messages after blocking, want still 1", len(sent))
+	}
+}
+
+// Approval is the moment a waiting account can finally sign in, so it is
+// worth a mail with a link back to the app.
+func TestAdminApproveSendsApprovedMail(t *testing.T) {
+	ts, users := adminServer(t)
+
+	ts.post(approvePath(users.waiting.ID), nil).assertRedirect("/settings/admin/users")
+
+	sent := ts.mail.messages()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d messages, want 1", len(sent))
+	}
+	if sent[0].To != users.waiting.Email {
+		t.Errorf("To = %q, want %q", sent[0].To, users.waiting.Email)
+	}
+	if sent[0].Subject != "Your account is approved" {
+		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your account is approved")
+	}
+	if !strings.Contains(sent[0].TextBody, "https://start.example.com/") {
+		t.Errorf("TextBody = %q, want the absolute URL", sent[0].TextBody)
+	}
+	if !strings.Contains(sent[0].HTMLBody, "https://start.example.com/") {
+		t.Errorf("HTMLBody = %q, want the absolute URL", sent[0].HTMLBody)
+	}
+}
+
+// Blocking is not news the blocked person needs mailed to them.
+func TestAdminBlockSendsNoMail(t *testing.T) {
+	ts, users := adminServer(t)
+	ts.post(approvePath(users.waiting.ID), nil) // approve, which mails once
+	before := len(ts.mail.messages())
+
+	ts.post(approvePath(users.waiting.ID), nil).assertRedirect("/settings/admin/users") // block
+
+	if got := len(ts.mail.messages()); got != before {
+		t.Errorf("sent %d messages after blocking, want still %d", got, before)
+	}
+}
+
+// Re-approving after a block mails again: landing on approved is the news,
+// each time it happens.
+func TestAdminReApproveSendsMailAgain(t *testing.T) {
+	ts, users := adminServer(t)
+	ts.post(approvePath(users.waiting.ID), nil) // approve
+	ts.post(approvePath(users.waiting.ID), nil) // block
+
+	ts.post(approvePath(users.waiting.ID), nil).assertRedirect("/settings/admin/users") // approve again
+
+	if sent := ts.mail.messages(); len(sent) != 2 {
+		t.Fatalf("sent %d messages across both approvals, want 2", len(sent))
+	}
+}
+
+// A mailer that is down does not stop the toggle: the admin's click still
+// takes effect even when the notice cannot go out.
+func TestAdminApproveSucceedsEvenWhenTheMailerFails(t *testing.T) {
+	ts, users := adminServer(t)
+	ts.mail.failWith = errMailerDown
+
+	ts.post(approvePath(users.waiting.ID), nil).assertRedirect("/settings/admin/users")
+
+	if !ts.reloadUser(users.waiting).Approved {
+		t.Error("the user was not approved")
 	}
 }
 
