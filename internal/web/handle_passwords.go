@@ -124,11 +124,12 @@ func (s *Server) sendPasswordReset(r *http.Request, user *store.User) error {
 	}
 
 	return s.mailer.Send(r.Context(), postmark.Message{
-		From:     s.cfg.MailFrom,
-		To:       user.Email,
-		Subject:  "Reset your password",
-		TextBody: text,
-		HTMLBody: html,
+		From:          s.cfg.MailFrom,
+		To:            user.Email,
+		Subject:       "Reset your password",
+		TextBody:      text,
+		HTMLBody:      html,
+		MessageStream: postmark.StreamOutbound,
 	})
 }
 

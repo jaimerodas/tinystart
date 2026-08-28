@@ -55,11 +55,12 @@ func fake(t *testing.T, status int, body string) (*Client, func() received) {
 
 func message() Message {
 	return Message{
-		From:     DefaultFrom,
-		To:       "someone@example.com",
-		Subject:  "Reset your password",
-		TextBody: "You can reset your password within the next 15 minutes",
-		HTMLBody: "<p>You can reset your password within the next 15 minutes</p>",
+		From:          DefaultFrom,
+		To:            "someone@example.com",
+		Subject:       "Reset your password",
+		TextBody:      "You can reset your password within the next 15 minutes",
+		HTMLBody:      "<p>You can reset your password within the next 15 minutes</p>",
+		MessageStream: StreamOutbound,
 	}
 }
 
@@ -89,11 +90,12 @@ func TestSendPostsTheMessage(t *testing.T) {
 
 	// The field names are Postmark's, not Go's — HtmlBody in particular.
 	want := map[string]any{
-		"From":     "noreply@rodas.mx",
-		"To":       "someone@example.com",
-		"Subject":  "Reset your password",
-		"TextBody": "You can reset your password within the next 15 minutes",
-		"HtmlBody": "<p>You can reset your password within the next 15 minutes</p>",
+		"From":          "TinyStart <noreply@pati.to>",
+		"To":            "someone@example.com",
+		"Subject":       "Reset your password",
+		"TextBody":      "You can reset your password within the next 15 minutes",
+		"HtmlBody":      "<p>You can reset your password within the next 15 minutes</p>",
+		"MessageStream": "outbound",
 	}
 	for field, value := range want {
 		if request.body[field] != value {

@@ -107,20 +107,22 @@ func (s *Server) signUpForm(r *http.Request, email string, invalid store.Validat
 // sendAwaitingApproval tells a new user their account is waiting on an
 // admin. Shaped like sendPasswordReset: both bodies, one send.
 func (s *Server) sendAwaitingApproval(r *http.Request, user *store.User) error {
-	html, err := s.renderMail("awaiting_approval.html", nil)
+	data := struct{ URL string }{s.baseURL(r) + "/"}
+	html, err := s.renderMail("awaiting_approval.html", data)
 	if err != nil {
 		return err
 	}
-	text, err := s.renderMail("awaiting_approval.txt", nil)
+	text, err := s.renderMail("awaiting_approval.txt", data)
 	if err != nil {
 		return err
 	}
 
 	return s.mailer.Send(r.Context(), postmark.Message{
-		From:     s.cfg.MailFrom,
-		To:       user.Email,
-		Subject:  "Your account waits for approval",
-		TextBody: text,
-		HTMLBody: html,
+		From:          s.cfg.MailFrom,
+		To:            user.Email,
+		Subject:       "Your TinyStart account is waiting for approval",
+		TextBody:      text,
+		HTMLBody:      html,
+		MessageStream: postmark.StreamOutbound,
 	})
 }

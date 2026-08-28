@@ -128,14 +128,17 @@ func TestAdminApproveSendsApprovedMail(t *testing.T) {
 	if sent[0].To != users.waiting.Email {
 		t.Errorf("To = %q, want %q", sent[0].To, users.waiting.Email)
 	}
-	if sent[0].Subject != "Your account is approved" {
-		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your account is approved")
+	if sent[0].Subject != "Your TinyStart account is approved" {
+		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your TinyStart account is approved")
 	}
 	if !strings.Contains(sent[0].TextBody, "https://start.example.com/") {
 		t.Errorf("TextBody = %q, want the absolute URL", sent[0].TextBody)
 	}
 	if !strings.Contains(sent[0].HTMLBody, "https://start.example.com/") {
 		t.Errorf("HTMLBody = %q, want the absolute URL", sent[0].HTMLBody)
+	}
+	if sent[0].MessageStream != "outbound" {
+		t.Errorf("MessageStream = %q, want %q", sent[0].MessageStream, "outbound")
 	}
 }
 

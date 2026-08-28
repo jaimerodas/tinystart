@@ -1,15 +1,14 @@
 {{define "awaiting_approval.html"}}<!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <style>
-      /* Email styles need to be inline */
-    </style>
   </head>
 
   <body>
-    <p>Thank you for your registration. We created your account, but you cannot sign in yet. An admin must approve it first.</p>
-    <p>We will send you an email when the admin approves your account.</p>
+    <p>Thank you for signing up for TinyStart.</p>
+    <p>We created your account, but you cannot sign in yet. An admin must approve it first. We will send you another email when your account is approved.</p>
+    <hr>
+    <p style="font-size: 12px; color: #666666;">You received this email because this address was used to sign up for TinyStart at <a href="{{.URL}}">{{.URL}}</a></p>
   </body>
 </html>
 {{end}}

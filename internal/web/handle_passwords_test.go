@@ -54,6 +54,9 @@ func TestPasswordCreateWithAnExistingEmailSendsMail(t *testing.T) {
 	if !strings.HasSuffix(sent[0].TextBody, "/edit\n\n") {
 		t.Errorf("TextBody = %q, want it to end with the link and a blank line", sent[0].TextBody)
 	}
+	if sent[0].MessageStream != "outbound" {
+		t.Errorf("MessageStream = %q, want %q", sent[0].MessageStream, "outbound")
+	}
 
 	ts.get("/sign_in").assertContains(resetSentNotice)
 }

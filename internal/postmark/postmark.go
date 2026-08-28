@@ -25,10 +25,18 @@ const (
 	// than a constant in the code so tests can point at an httptest server.
 	DefaultBaseURL = "https://api.postmarkapp.com"
 
-	// DefaultFrom is the sender the app always used — ApplicationMailer's
-	// `default from:`. Postmark refuses anything that is not a verified
-	// signature on the account. As a result, this is not a free choice.
-	DefaultFrom = "noreply@rodas.mx"
+	// DefaultFrom is the sender for everything the app sends. The address is
+	// on pati.to — the domain the mails link to — because Gmail reads a mail
+	// authenticated as one domain that links to another as phishing. The
+	// domain carries DKIM and a custom Return-Path in Postmark, and Postmark
+	// refuses anything that is not a verified signature on the account. As a
+	// result, this is not a free choice.
+	DefaultFrom = "TinyStart <noreply@pati.to>"
+
+	// StreamOutbound is Postmark's transactional message stream. Every mail
+	// the app sends is transactional, and naming the stream on each message
+	// keeps a broadcast stream from ever carrying one.
+	StreamOutbound = "outbound"
 
 	// TestToken is Postmark's own sandbox token: their API accepts a message
 	// sent with it, validates it, and delivers nothing. Useful for a smoke
@@ -64,11 +72,12 @@ type Client struct {
 // The two bodies are optional individually and required together: Postmark
 // refuses a message with neither.
 type Message struct {
-	From     string `json:"From"`
-	To       string `json:"To"`
-	Subject  string `json:"Subject"`
-	TextBody string `json:"TextBody,omitempty"`
-	HTMLBody string `json:"HtmlBody,omitempty"`
+	From          string `json:"From"`
+	To            string `json:"To"`
+	Subject       string `json:"Subject"`
+	TextBody      string `json:"TextBody,omitempty"`
+	HTMLBody      string `json:"HtmlBody,omitempty"`
+	MessageStream string `json:"MessageStream,omitempty"`
 }
 
 // Error means that Postmark declined to send the message. Status is the HTTP

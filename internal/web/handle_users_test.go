@@ -180,8 +180,8 @@ func TestSignUpSendsAwaitingApprovalMail(t *testing.T) {
 	if sent[0].From != ts.app.cfg.MailFrom {
 		t.Errorf("From = %q, want %q", sent[0].From, ts.app.cfg.MailFrom)
 	}
-	if sent[0].Subject != "Your account waits for approval" {
-		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your account waits for approval")
+	if sent[0].Subject != "Your TinyStart account is waiting for approval" {
+		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your TinyStart account is waiting for approval")
 	}
 	if sent[0].TextBody == "" {
 		t.Error("TextBody is empty")
@@ -191,6 +191,16 @@ func TestSignUpSendsAwaitingApprovalMail(t *testing.T) {
 	}
 	if !strings.Contains(sent[0].TextBody, "An admin must approve it first.") {
 		t.Errorf("TextBody = %q, want the approval sentence", sent[0].TextBody)
+	}
+	// The footer says who sent the mail and why, in both bodies. A mail that
+	// never names its sender is what a spam filter is trained on.
+	for _, body := range []string{sent[0].TextBody, sent[0].HTMLBody} {
+		if !strings.Contains(body, "https://start.example.com/") {
+			t.Errorf("body = %q, want the site's absolute URL", body)
+		}
+	}
+	if sent[0].MessageStream != "outbound" {
+		t.Errorf("MessageStream = %q, want %q", sent[0].MessageStream, "outbound")
 	}
 }
 

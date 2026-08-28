@@ -157,10 +157,11 @@ func (s *Server) sendAccountApproved(r *http.Request, user *store.User) error {
 	}
 
 	return s.mailer.Send(r.Context(), postmark.Message{
-		From:     s.cfg.MailFrom,
-		To:       user.Email,
-		Subject:  "Your account is approved",
-		TextBody: text,
-		HTMLBody: html,
+		From:          s.cfg.MailFrom,
+		To:            user.Email,
+		Subject:       "Your TinyStart account is approved",
+		TextBody:      text,
+		HTMLBody:      html,
+		MessageStream: postmark.StreamOutbound,
 	})
 }

@@ -1,5 +1,8 @@
-{{define "awaiting_approval.txt"}}Thank you for your registration. We created your account, but you cannot sign in yet. An admin must approve it first.
+{{define "awaiting_approval.txt"}}Thank you for signing up for TinyStart.
 
-We will send you an email when the admin approves your account.
+We created your account, but you cannot sign in yet. An admin must approve it first. We will send you another email when your account is approved.
+
+--
+You received this email because this address was used to sign up for TinyStart at {{.URL}}
 
 {{end}}
