@@ -49,6 +49,7 @@ blocker, not a note.
 | Command bar, federated search | `static/js/controllers/command_bar_controller.js`, `handle_search.go`, `internal/tinylinks` |
 | Connections (OAuth device flow) | `handle_connections.go`, `tinylinks.DeviceFlow`, `/settings/connections` |
 | Import & export | `internal/startpage`, `store.ReplaceStartPage`, `handle_import_export.go` |
+| Chrome new-tab extension | `static/chrome/`, `handle_extension.go`, download from `/settings` |
 | Auth, password reset | `auth.go`, `handle_sessions.go`, `handle_users.go`, `handle_passwords.go`, `passwordreset.go` |
 | Backups | `bin/backup_db`, installed by `.kamal/hooks/post-deploy`, weekly |
 

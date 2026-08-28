@@ -127,6 +127,7 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("GET /settings/import_export", s.requireAuthentication(s.handleImportExport()))
 	mux.Handle("POST /settings/import_export", s.requireAuthentication(s.handleImportCreate()))
 	mux.Handle("GET /settings/export", s.requireAuthentication(s.handleExport()))
+	mux.Handle("GET /settings/extension.zip", s.requireAuthentication(s.handleExtension()))
 
 	// Connections. One per user — the plural is what the section is called and
 	// what the URL reads — and no admin gate: connecting your own account on

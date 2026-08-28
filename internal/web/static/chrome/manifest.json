@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "TinyStart New Tab",
+  "version": "1.0",
+  "description": "Opens your TinyStart start page in every new tab.",
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
+  "chrome_url_overrides": { "newtab": "newtab.html" }
+}
