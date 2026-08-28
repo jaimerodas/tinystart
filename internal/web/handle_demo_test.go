@@ -21,7 +21,9 @@ func TestDemoPageShownToSignedOutVisitor(t *testing.T) {
 	resp.assertContains("GitHub")
 	resp.assertContains("Wikipedia")
 	resp.assertContains(`class="demo-cta"`)
-	resp.assertContains(`href="/sign_in"`)
+	// data-turbo="false" is load-bearing: a Turbo visit swaps the body under
+	// password managers, and 1Password misses the sign-in form it swaps in.
+	resp.assertContains(`<a class="action-button" data-turbo="false" href="/sign_in">Sign in</a>`)
 
 	// The demo is a look, not an invitation to sign up here, and not the real
 	// editing surface — none of that belongs to someone with no account. The

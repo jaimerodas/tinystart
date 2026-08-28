@@ -35,7 +35,9 @@ func TestSignUpPageOffersASignInLinkOnceAUserExists(t *testing.T) {
 
 	ts.get("/sign_up").
 		assertContains("Already registered?").
-		assertContains(`<a href="/sign_in">Log in</a>`)
+		// data-turbo="false" for the same reason as the demo page's sign-in
+		// link: password managers miss a form that a Turbo visit swaps in.
+		assertContains(`<a data-turbo="false" href="/sign_in">Log in</a>`)
 }
 
 func TestSignUpCreatesAUser(t *testing.T) {
