@@ -8,9 +8,13 @@ image: jaimerodas/tinystart
 #
 # The same droplet runs tinylinks. kamal-proxy multiplexes :443 by Host header,
 # so both apps share the server without knowing about each other.
+#
+# By name, not by IP: DNS points straight at the droplet (it has to, for
+# Let's Encrypt below), so the name resolves at deploy time and the address
+# stays out of the repo.
 servers:
   web:
-    - 146.190.35.4
+    - start.pati.to
 
 # Enable SSL auto certification via Let's Encrypt (and allow for multiple apps on one server).
 # Set ssl: false if using something like Cloudflare to terminate SSL (but keep host!).
