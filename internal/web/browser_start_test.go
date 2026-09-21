@@ -131,6 +131,47 @@ func TestBrowserCommandBarFiltersTheTilesOnThePage(t *testing.T) {
 	p.assertNoTextNow(".command-bar-suggestions", "GitHub")
 }
 
+// The tile somebody opens most is the one they most likely want again, so it
+// goes first, ahead of the alphabet.
+func TestBrowserCommandBarPutsTheMostVisitedTileFirst(t *testing.T) {
+	p, user := startPageBrowser(t)
+	group := p.tilesForFiltering(user)
+	apple := p.ts.newItem(user.ID, group.ID, "Apple Music", "https://music.apple.com")
+	for range 3 {
+		if err := p.ts.db.IncrementVisitCount(t.Context(), user.ID, apple.ID); err != nil {
+			t.Fatalf("IncrementVisitCount: %v", err)
+		}
+	}
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "a")
+	p.assertText(".command-bar-suggestions", "Apple Music")
+
+	got := p.texts(".command-bar-suggestion .suggestion-title")
+	want := []string{"Apple Music", "Amazon Shopping", "Apple"}
+	if !slices.Equal(got, want) {
+		t.Errorf("suggestions = %q, want %q", got, want)
+	}
+}
+
+// A tile is often remembered by its address and not by its title. The scheme
+// is not part of what is matched: "https" is in every URL, so one letter of it
+// would match every tile.
+func TestBrowserCommandBarMatchesTheURL(t *testing.T) {
+	p, user := startPageBrowser(t)
+	group := p.tilesForFiltering(user)
+	p.ts.newItem(user.ID, group.ID, "Mail", "https://app.fastmail.com")
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "fastm")
+
+	p.assertText(".command-bar-suggestions", "Mail")
+
+	p.fillIn(".command-bar input", "https")
+
+	p.assertNoSelector(".command-bar-suggestion")
+}
+
 // The signed-out twin of the test above: no account, no tiles from the
 // database, just the fixed demo grid — but the same local filtering over it.
 func TestBrowserDemoCommandBarFiltersTheDemoTiles(t *testing.T) {

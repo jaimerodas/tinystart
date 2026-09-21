@@ -409,15 +409,38 @@ func TestLinksForCommandBar(t *testing.T) {
 	}
 }
 
+// The command bar ranks its matches by how often a tile is opened, so the
+// count has to travel with the link.
+func TestLinksForCommandBarCarriesTheVisitCount(t *testing.T) {
+	db := newTestDB(t)
+	user := newUser(t, db, "test@example.com")
+	group := newGroup(t, db, user.ID, "Search", 1)
+	newItem(t, db, user.ID, group.ID, "Never", "https://never.example.com")
+	twice := newItem(t, db, user.ID, group.ID, "Twice", "https://twice.example.com")
+	for range 2 {
+		if err := db.IncrementVisitCount(t.Context(), user.ID, twice.ID); err != nil {
+			t.Fatalf("IncrementVisitCount: %v", err)
+		}
+	}
+
+	links, err := db.LinksForCommandBar(t.Context(), user.ID)
+	if err != nil {
+		t.Fatalf("LinksForCommandBar: %v", err)
+	}
+
+	if links[0].Visits != 0 || links[1].Visits != 2 {
+		t.Errorf("visits = %d and %d, want 0 and 2", links[0].Visits, links[1].Visits)
+	}
+}
+
 // The order is the order the tiles were made, not the order they are drawn.
 //
 // Rails asked for these through a has_many :through with no ORDER BY. It took
 // what SQLite gave it: group by group and rowid by rowid. So a tile dragged
 // to the top of its group stays at the bottom of this list. The
 // parity harness caught the difference the first time a development database
-// had a group whose drawing order and creation order disagreed. It matters
-// because this list is what the command bar filters, and its order is the
-// order somebody sees the suggestions in.
+// had a group whose drawing order and creation order disagreed. The command
+// bar sorts its matches itself, so this order only decides a tie there.
 func TestLinksForCommandBarIsInCreationOrderNotDrawingOrder(t *testing.T) {
 	db := newTestDB(t)
 	user := newUser(t, db, "test@example.com")

@@ -24,13 +24,13 @@ type Item struct {
 const itemColumns = `id, start_page_group_id, title, url, position, visit_count, created_at, updated_at`
 
 // Link is one entry of the JSON the start page embeds so the command bar can
-// filter tiles without a round trip. The field order is the order Rails' hash
-// literal had, because encoding/json writes fields in declaration order. The
-// rewrite compares the two documents byte for byte.
+// filter tiles without a round trip. Visits is there because the bar puts the
+// tile somebody opens most at the top of its matches.
 type Link struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
-	ID    int64  `json:"id"`
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+	ID     int64  `json:"id"`
+	Visits int    `json:"visits"`
 }
 
 // CreateItem adds a tile at the bottom of a group. Like CreateGroup, the form
@@ -139,9 +139,9 @@ func (db *DB) ItemsInGroup(ctx context.Context, groupID int64) ([]Item, error) {
 // Rails asked for these through a has_many :through with no order at all and
 // took whatever the join gave it. That was group by group in id order, and
 // inside each group rowid by rowid. This says so out loud instead of leaving
-// it to a query plan. But it says the same thing, id and id, because the
-// order is what somebody sees their suggestions in. A rewrite is not the
-// place to change it. It is creation order, not drawing order: a tile dragged
+// it to a query plan. But it says the same thing, id and id. The command
+// bar sorts its matches itself, so this order only decides between two tiles
+// that tie there. It is creation order, not drawing order: a tile dragged
 // to the top of its group stays where it is in this list.
 //
 // The first version ordered the tiles by position, on the assumption that
@@ -149,7 +149,7 @@ func (db *DB) ItemsInGroup(ctx context.Context, groupID int64) ([]Item, error) {
 // against a start page that had been rearranged.
 func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, error) {
 	rows, err := db.sql.QueryContext(ctx,
-		`SELECT i.title, i.url, i.id
+		`SELECT i.title, i.url, i.id, i.visit_count
 		 FROM start_page_items i
 		 JOIN start_page_groups g ON g.id = i.start_page_group_id
 		 WHERE g.user_id = ?
@@ -164,7 +164,7 @@ func (db *DB) LinksForCommandBar(ctx context.Context, userID int64) ([]Link, err
 	links := []Link{}
 	for rows.Next() {
 		var link Link
-		if err := rows.Scan(&link.Title, &link.URL, &link.ID); err != nil {
+		if err := rows.Scan(&link.Title, &link.URL, &link.ID, &link.Visits); err != nil {
 			return nil, err
 		}
 		links = append(links, link)

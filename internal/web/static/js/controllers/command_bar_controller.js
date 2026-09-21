@@ -113,12 +113,22 @@ export default class extends Controller {
     }
   }
 
+  // A tile matches on its title or on its address. The scheme and a leading
+  // "www." are not part of the address here: "https" is in every URL, so one
+  // letter of it would match every tile.
+  //
+  // The most visited match goes first, because it is the one most likely
+  // wanted again. Among equals, a title that starts with the query goes before
+  // one that only contains it, and then the alphabet decides.
   filterLocalLinks(query) {
     const lowerQuery = query.toLowerCase()
+    const address = link => link.url.toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\/(www\.)?/, "")
 
     return this.linksValue.filter(link =>
-      link.title.toLowerCase().includes(lowerQuery)
+      link.title.toLowerCase().includes(lowerQuery) || address(link).includes(lowerQuery)
     ).sort((a, b) => {
+      if (a.visits !== b.visits) return b.visits - a.visits
+
       const aTitle = a.title.toLowerCase()
       const bTitle = b.title.toLowerCase()
 

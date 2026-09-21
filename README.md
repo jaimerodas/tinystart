@@ -29,7 +29,8 @@ trampas que vale la pena conocer, está en [`docs/gotchas.md`](docs/gotchas.md).
   editar, `Esc` para cancelar el movimiento.
 - `⌥E` te lleva de la start page al editor y `⌥S` de regreso. `?` abre la lista
   completa de atajos.
-- La barra de comandos filtra tus tiles al instante y, si tienes una conexión
+- La barra de comandos filtra tus tiles al instante, por título o por URL, y
+  pone primero los que más abres. Si tienes una conexión
   configurada, le pregunta también a la otra app y te muestra esos resultados en
   una segunda sección.
 - Tema (claro / oscuro / el del sistema) y color de acento, en Settings.
