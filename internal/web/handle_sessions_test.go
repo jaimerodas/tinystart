@@ -156,8 +156,10 @@ func TestSigningInCleansUpExpiredSessions(t *testing.T) {
 	ts := newTestServer(t)
 	user := ts.createUser("one@example.com")
 
+	// The store sweeps by the wall clock, not the test's, so the expiry is
+	// measured from the wall clock too.
 	expired, err := ts.db.CreateSession(t.Context(), user.ID, "Old Browser", "192.168.1.1",
-		ts.clock.Now().Add(-5*24*time.Hour))
+		time.Now().Add(-5*24*time.Hour))
 	if err != nil {
 		t.Fatalf("creating an expired session: %v", err)
 	}

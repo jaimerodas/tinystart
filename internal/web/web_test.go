@@ -87,7 +87,11 @@ func newTestServer(t *testing.T) *testServer {
 	}
 
 	mail := &recordingMailer{}
-	clock := &testClock{now: time.Date(2026, 8, 15, 12, 0, 0, 0, time.UTC)}
+	// The clock starts far in the future on purpose. The client's cookie jar
+	// uses the real time. When this date was 2026-08-15, each session cookie
+	// had an expiry date of 2026-09-14, and on that day the jar started to
+	// drop them all. Every test with a signed-in user failed.
+	clock := &testClock{now: time.Date(2099, 8, 15, 12, 0, 0, 0, time.UTC)}
 
 	s, err := newServer(Config{
 		SecretKey: []byte(strings.Repeat("secret-key-", 4)),

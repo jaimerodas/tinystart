@@ -53,10 +53,10 @@ func TestSettingsCountsAnEmptyPage(t *testing.T) {
 // know, and the machine-readable one is what a reader's tooling gets.
 func TestSettingsSaysMemberSinceThreeWays(t *testing.T) {
 	ts, user := settingsServer(t)
-	// Far enough that the account's real created_at cannot drift the answer
-	// across a boundary — the store stamps it from the wall clock, not the
-	// test's. A day either side of a year is still "about 1 year".
-	ts.clock.advance(400 * 24 * time.Hour)
+	// The store stamps created_at from the wall clock, not the test's, so the
+	// page's clock is set from created_at. 400 days is far from each boundary
+	// of "about 1 year".
+	ts.clock.set(user.CreatedAt.Add(400 * 24 * time.Hour))
 
 	created := user.CreatedAt.UTC()
 	ts.get("/settings").
