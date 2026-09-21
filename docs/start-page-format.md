@@ -9,10 +9,9 @@ for the migration) and `startpage.Export` in tinystart. One thing consumes it:
 `startpage.Import`, with `store.ReplaceStartPage` doing the writing. Both ends
 of tinystart's half live at **Settings → Import & Export**
 (`internal/web/handle_import_export.go`, `/settings/import_export`). The
-package is `internal/startpage`; the names below (`StartPageImporter`,
-`StartPageExporter`) are the Rails services it replaced, kept where the
-reasoning was written against them — the behavior is the same, and the Go
-export is byte-identical to the Ruby one for the same page.
+package is `internal/startpage`. tinylinks is a Ruby app and writes its files
+with Psych, so `psych.go` quotes scalars the way Psych does: the two exporters
+produce byte-identical files for the same page.
 
 It carries the layout and nothing else — no visit counts, so the command bar's
 ranking starts cold after an import. It is **not a backup format**; that is
@@ -94,32 +93,30 @@ Leading `#` comment lines are informational and safe to ignore entirely. See
 
 ## Importing
 
-This is what `StartPageImporter` does, and the order is not stylistic. Steps 1
-and 2 are the difference between an import that works and one that fails on its
-very first group.
+`startpage.Import` reads the file into a `Layout` and `store.ReplaceStartPage`
+writes it. The order of the writes is not stylistic. Steps 2 and 3 are the
+difference between an import that works and one that fails on its very first
+group.
 
 1. **Resolve the target user.** The file contains no user identity at all — the
-   importer is told which user out of band. In tinystart that is `current_user`.
-2. **Set `user.columns` to the highest top-level key, and do it before creating
-   any group.** `users.columns` defaults to **1**, and
-   `StartPageGroup#column_within_user_limit` rejects any group whose `column`
-   exceeds it. Widening is always safe: `User#columns_leave_no_group_stranded`
-   only blocks *shrinking* — and by this point the groups a shrink could strand
-   have already been destroyed by step 5, so narrowing is safe here too.
-   There is a test that fails with `Column cannot exceed start page column limit
-   of 1` if these two are ever reordered.
-3. For each column key in ascending order, for each group in list order, create
-   the group with its `name` and `column` and **no `position`**.
-4. For each entry in `items`, in order, create the tile with its `url` and
-   `title` and **no `position`**.
-5. Delete the user's existing groups first, and wrap all of it — the delete, the
-   column count and every create — in one transaction. See [Re-runs](#re-runs).
+   importer is told which user out of band. In tinystart that is the signed-in
+   user.
+2. **Delete the user's existing tiles and groups**, inside the transaction that
+   holds every step after it. See [Re-runs](#re-runs).
+3. **Set `users.columns` to the highest top-level key, and do it before creating
+   any group.** `users.columns` defaults to **1**, and `groupErrors` rejects any
+   group whose `column` exceeds it. Narrowing is safe here too: step 2 already
+   deleted the groups a narrower page cannot show.
+   `TestReplaceStartPageWidensBeforeCreatingGroups` fails with `cannot exceed
+   start page column limit of 1` if these two are ever reordered.
+4. For each column key in ascending order, for each group in list order, create
+   the group with its `name` and `column`. Its `position` is its index in the
+   list.
+5. For each entry in `items`, in order, create the tile with its `url` and
+   `title`. Its `position` is its index in the mapping.
 
-Omitting `position` in steps 3 and 4 is the point. `StartPageGroup` has
-`before_validation :place_at_end_of_column, on: :create` and `StartPageItem`
-has `before_validation :place_at_end_of_group, on: :create`; both fill in the
-next position when it is blank. Creating records in file order therefore
-reproduces the file's order exactly, with no arithmetic.
+The page is empty after step 2, so counting from zero in file order reproduces
+the file's order exactly, with no arithmetic.
 
 ### Use the literal key as the column number. Never re-index.
 
@@ -137,17 +134,17 @@ Keys can be **non-contiguous**. Empty columns are omitted from the file, so:
 ```
 
 means *columns 1 and 3 of a three-column page*, with column 2 empty. It does
-**not** mean two adjacent columns. An importer that iterates
-`data.values.each_with_index` puts "Right" in column 2 and shifts the whole
-layout left, silently. Read `column` from the key; derive `users.columns` from
-`keys.max`. There is a test pinning this, and it fails when the loop is changed
-to walk `data.values` with an index.
+**not** mean two adjacent columns. An importer that numbers the columns by
+counting them puts "Right" in column 2 and shifts the whole layout left,
+silently. Read `column` from the key; derive `users.columns` from the highest
+key. There is a test pinning this, and it fails when the loop numbers the
+columns by index.
 
 ### Re-runs
 
 **It replaces, it does not merge.** The user's existing `start_page_groups` are
-deleted (items cascade via `dependent: :destroy`) and the page is rebuilt from
-the file, inside the transaction from step 5.
+deleted, tiles first, and the page is rebuilt from the file, all inside one
+transaction.
 
 Replace is trivially idempotent, which matters because the realistic workflow is
 *export, look at it, edit the YAML by hand, import again*. Merging would have to
@@ -155,10 +152,10 @@ invent answers for renamed groups and removed tiles that nobody needs.
 
 Two consequences of replacing, both of which have tests:
 
-- **A refusal must change nothing.** Everything is validated before the first
-  write, and the delete lives inside the same transaction as the creates, so a
-  file that fails on its last tile leaves the page untouched. Dropping the
-  transaction makes four tests fail.
+- **A refusal must change nothing.** Every validation runs inside the same
+  transaction as the delete, so a
+  file that fails on its last tile leaves the page untouched.
+  `TestReplaceStartPageRefusalsWriteNothing` pins it.
 - **A file with no groups in it is refused rather than obeyed.** It would be a
   legal instruction to delete everything, which is never what anybody meant by
   picking a file. Checked on the groups, not on the mapping: `1: []` is a mapping
@@ -167,24 +164,24 @@ Two consequences of replacing, both of which have tests:
 
 ## Constraints the import must satisfy
 
-All of these are enforced by tinystart's models and schema. Either exporter
+All of these are enforced by `internal/store` and the schema. Either exporter
 guarantees each one, so a file straight out of tinylinks or tinystart will pass —
 but a hand-edited file can break any of them, and the importer fails loudly
 rather than writing half a page. The message names the group or the tile and
-repeats what the model said about it.
+repeats what the validation said about it.
 
 | Constraint | Where | Consequence of ignoring it |
 |---|---|---|
-| `users.columns` must be 1–6 and ≥ every group's `column` | `User` numericality + `StartPageGroup#column_within_user_limit` | Every group past column 1 fails validation |
-| Group names unique **per user, across all columns** | `UNIQUE (user_id, name)` + model validation | Second group with a repeated name is rejected |
+| `users.columns` must be 1–6 and ≥ every group's `column` | `ReplaceStartPage` + `groupErrors` | Every group past column 1 fails validation |
+| Group names unique **per user, across all columns** | `UNIQUE (user_id, name)` + `groupErrors` | Second group with a repeated name is rejected |
 | Tile urls unique **per group** | `UNIQUE (start_page_group_id, url)` | Second tile with the same url in one group is rejected |
-| `url` must parse to `URI::HTTP` / `URI::HTTPS` | `StartPageItem#valid_url` | Rejected |
-| `title` and `url` both present | `StartPageItem` presence validations | Rejected |
+| `url` must parse as an `http` or `https` URL | `isWebURL` | Rejected |
+| `title` and `url` both present | `itemErrors` | Rejected |
 
 Two of those deserve elaboration:
 
 - **The importer does not normalize URLs.** It stores what the file says,
-  verbatim, and `valid_url` is the only gate. It does not add a scheme, strip
+  verbatim, and `isWebURL` is the only gate. It does not add a scheme, strip
   whitespace, or downcase anything. A bare `example.com` is rejected, not
   repaired. If you hand-edit a url, include the scheme. The editor form is
   different on purpose: it adds a missing scheme (`https://`, or `http://`
@@ -204,11 +201,11 @@ import risk — just don't be surprised by the asymmetry.
 The importer may rely on all of these for a file it did not have to hand-edit.
 Each is covered by a test in tinylinks'
 `test/services/start_page_export_service_test.rb` and, for tinystart's half, in
-`test/services/start_page_exporter_test.rb`.
+`internal/startpage/export_test.go`.
 
 - Every title is non-empty. A tile whose link had no title uses its url as the
-  title, which is what tinylinks renders today; in tinystart `title` is a
-  presence-validated column, so there is nothing to fill in.
+  title, which is what tinylinks renders today; in tinystart a tile cannot be
+  saved without a title, so there is nothing to fill in.
 - **Titles are unique within a group**, numbered where they weren't: a second
   tile called `Fastmail` becomes `Fastmail (2)`, a third `Fastmail (3)`. If you
   see a `(2)` in the file it is this, not corruption — and see the warning in
@@ -220,17 +217,16 @@ Each is covered by a test in tinylinks'
   one group really can hold two tiles called the same thing — where tinylinks
   merely made them likely, tinystart makes them legal. A YAML mapping cannot
   hold a repeated key, and Psych keeps the last of two silently, so an
-  undeduped export loses a tile outright. Removing the deduping fails five
-  tests.
+  undeduped export loses a tile outright.
+  `TestRoundTripRenumbersARepeatedTitleRatherThanLosingTheTile` pins it.
 - Group names are unique across the whole file. tinylinks enforces
   `UNIQUE (start_page_id, name)`, which is exactly what tinystart's
   `UNIQUE (user_id, name)` needs, so this holds by construction at both ends.
-- Every url parses to `URI::HTTP` / `URI::HTTPS`.
+- Every url parses as an `http` or `https` URL.
 - The highest column key is ≤ 6.
 - Groups only ever appear in columns the page actually shows. A group stranded
   beyond the page's width blocks the export in tinylinks; in tinystart it cannot
-  arise, because `columns_leave_no_group_stranded` refuses to create the
-  situation.
+  arise, because `store.UpdateColumns` refuses to create the situation.
 
 ## Parsing notes
 
@@ -274,7 +270,7 @@ tinystart are told apart at a glance. Line 2 is the counts. Everything after
 that is a warning the exporter raised, carried along so it stays with the file —
 the two above are the ones tinystart can produce.
 
-**`StartPageImporter` checks line 2 and warns when it disagrees** with what was
+**`startpage.Import` checks line 2 and warns when it disagrees** with what was
 loaded — it imports anyway. A mismatch is the only visible symptom of a collapsed
 duplicate key, so it is worth saying out loud, but it cannot be a refusal:
 deleting a tile by hand lowers the count in exactly the way a collapsed key does,
@@ -284,7 +280,7 @@ message, and a file with no counts line says nothing at all.
 
 Note what the check cannot see: a repeated **group name**. Groups are list items,
 not mapping keys, so duplicating one changes no count. That is caught later by
-`StartPageGroup`'s uniqueness validation, which names the group properly.
+`groupErrors`' uniqueness check, which names the group properly.
 
 ## What is deliberately absent
 

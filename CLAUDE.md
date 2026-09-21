@@ -15,9 +15,8 @@ organized into groups across columns. Live at https://start.pati.to.
   generated at boot. No Node, no bundler. The binary embeds the assets and
   serves them with content digests in their names.
 - Kamal 2 → DigitalOcean, on the same droplet as `tinylinks` and `gastitos`.
-- Was Rails until August 2026. `docs/go-rewrite-plan.md` is the plan, the
-  measurements, and everything found on the way. Read it before you ask why
-  something is the way it is.
+- Was Rails until August 2026. The database and the markup are what Rails
+  left. `docs/gotchas.md` says what that means in practice.
 
 ## Commands
 
@@ -123,8 +122,8 @@ explained at the place it lives. This is the list, not the reasoning.
 
 - `docs/start-page-format.md` — the import/export YAML spec, and the contract
   `internal/startpage` implements.
-- `docs/go-rewrite-plan.md` — decisions and findings; the "Found while
-  building" sections are the gotchas.
+- `docs/gotchas.md` — what cuts across files: the gate, cookies, templates,
+  browser tests, deploy.
 - `.claude/rules/` — `done.md` (verified, not assumed), `testing.md` (test
   first), `ui-design.md` (the editor's keyboard model, the visual standards,
   and the deliberate exceptions to them).

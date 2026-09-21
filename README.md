@@ -17,8 +17,8 @@ usa Kamal 2 para el deploy a DigitalOcean, en el mismo droplet que TinyLinks
 pero como app aparte. En producción ocupa unos 15 MB de memoria.
 
 Nació como app de Rails y se reescribió en Go en agosto de 2026, sobre la misma
-base de datos y con la misma interfaz. Cómo y por qué está en
-[`docs/go-rewrite-plan.md`](docs/go-rewrite-plan.md).
+base de datos y con la misma interfaz. Lo que quedó de esa historia, y las
+trampas que vale la pena conocer, está en [`docs/gotchas.md`](docs/gotchas.md).
 
 ## Qué hace
 - Muestra tus tiles en `/`, agrupados y repartidos en las columnas que quieras.
