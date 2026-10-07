@@ -9,7 +9,7 @@ fueron separando en la práctica —en TinyLinks guardo un archivo, aquí guardo
 puñado de destinos que uso a diario— así que la saqué a su propia app, con su
 propia base de datos y sus propios usuarios.
 
-Es una aplicación en Go (1.26), casi pura biblioteca estándar: `net/http`,
+Es una aplicación en Go (1.27), casi pura biblioteca estándar: `net/http`,
 `html/template`, `database/sql` y tres dependencias — el driver de SQLite en Go
 puro, bcrypt y un parser de YAML. El frontend es Hotwire (Turbo + Stimulus)
 tal cual, sin bundler. De DB usa SQLite, así que no necesita más que un server;
@@ -41,7 +41,7 @@ El primer usuario que se registra queda como admin y aprobado automáticamente;
 los demás necesitan que un admin los apruebe desde Settings.
 
 ## Instalación
-Con Go 1.26 instalado (`go.mod` fija la versión exacta del toolchain y `go` la
+Con Go 1.27 instalado (`go.mod` fija la versión exacta del toolchain y `go` la
 baja solo si hace falta):
 ```sh
 TINYSTART_SECRET_KEY=$(openssl rand -hex 32) go run ./cmd/tinystart

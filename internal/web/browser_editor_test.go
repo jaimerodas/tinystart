@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+
+	"github.com/chromedp/chromedp"
 )
 
 // There is nothing to create any more — the grid is there from signup, and the
@@ -231,7 +233,7 @@ func TestBrowserAWriteSwapsANodeWithoutReloadingThePage(t *testing.T) {
 	p, user := startPageBrowser(t)
 
 	p.visit("/start/edit")
-	p.eval(`window.__marker = "kept"`, nil)
+	p.eval[chromedp.Void](`window.__marker = "kept"`)
 
 	p.clickOn(newGroupSel(1), "Add group")
 	p.fillInLabelled(newGroupSel(1), "Group name", "Daily")

@@ -5,7 +5,7 @@ organized into groups across columns. Live at https://start.pati.to.
 
 ## Stack
 
-- Go 1.26 (`go.mod` pins the exact toolchain), standard library first:
+- Go 1.27 (`go.mod` pins the exact toolchain), standard library first:
   `net/http` (1.22 method+path patterns), `html/template`, `database/sql`.
 - Three runtime dependencies: `modernc.org/sqlite` (pure Go, so the binary is
   static), `golang.org/x/crypto/bcrypt`, `go.yaml.in/yaml/v3`. `chromedp` is

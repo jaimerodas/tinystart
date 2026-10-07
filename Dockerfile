@@ -8,7 +8,7 @@
 #   docker run -d -p 3996:80 -e TINYSTART_SECRET_KEY=$(openssl rand -hex 32) \
 #     -v tinystart_dev:/data --name tinystart tinystart
 
-# 1.26 rather than a patch release: go.mod's toolchain directive pins the
+# 1.27 rather than a patch release: go.mod's toolchain directive pins the
 # exact compiler. The go command in this image downloads it if the image is
 # behind. That keeps the pin in one place, next to the code.
 # --platform=$BUILDPLATFORM: the build stage runs natively on whatever builds
@@ -16,8 +16,8 @@
 # (the amd64 droplet). Go cross-compiles for free. Without this line, buildx
 # runs the whole Go toolchain under QEMU emulation instead, and a build that
 # takes seconds takes minutes.
-ARG GO_VERSION=1.26
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:${GO_VERSION}-bookworm AS build
+ARG GO_VERSION=1.27
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:${GO_VERSION}-trixie AS build
 ARG TARGETOS TARGETARCH
 
 WORKDIR /src
@@ -43,7 +43,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=
 
 
 # Final stage: the binary and the two things it shells out to or trusts.
-FROM docker.io/library/debian:bookworm-slim
+FROM docker.io/library/debian:trixie-slim
 
 # ca-certificates: the app makes HTTPS calls to Postmark and to tinylinks, and
 # a static Go binary has no system trust store to fall back on without it.

@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
@@ -67,27 +68,16 @@ func sharedBrowser(t *testing.T) context.Context {
 			// throwaway headless browser pointed at localhost. The sandbox
 			// protects nothing here.
 			chromedp.NoSandbox,
-			// chromedp waits 20 seconds for Chrome to announce its DevTools
-			// URL, then gives up. A busy CI machine can hold Chrome's start
-			// past that, and every test then fails with "websocket url
-			// timeout reached". A longer wait costs nothing when Chrome is
-			// healthy.
-			chromedp.WSURLReadTimeout(time.Minute),
 		)
 		if path := chromePath(); path != "" {
 			options = append(options, chromedp.ExecPath(path))
 		}
 
 		allocator, cancelAllocator := chromedp.NewExecAllocator(context.Background(), options...)
-		// WithErrorf drops the error log. chromedp reports every CDP event it
-		// has no handler for as an error, and opening the ? dialog emits a
-		// stream of dom.EventTopLayerElementsUpdated. Nothing an action
-		// returns comes through here — Run answers with its own error — so
-		// the only thing lost is that noise.
-		ctx, cancelBrowser := chromedp.NewContext(allocator, chromedp.WithErrorf(func(string, ...any) {}))
-		// Run with no actions starts the browser, so a machine without Chrome
+		ctx, cancelBrowser := chromedp.NewContext(allocator)
+		// Do with no actions starts the browser, so a machine without Chrome
 		// fails here with a plain message rather than inside the first test.
-		if err := chromedp.Run(ctx); err != nil {
+		if err := chromedp.Do(ctx); err != nil {
 			browserErr = err
 			cancelBrowser()
 			cancelAllocator()
@@ -159,7 +149,7 @@ func newBrowserPage(t *testing.T) *browserPage {
 	// front is not cosmetic in a headless browser. A background tab is not the
 	// focused document, and autofocus — which is how the command bar gets the
 	// caret — is skipped for one.
-	if err := chromedp.Run(ctx, page.BringToFront()); err != nil {
+	if _, err := chromedp.Call(ctx, page.BringToFront, cdp.Empty{}); err != nil {
 		t.Fatalf("opening a tab: %v", err)
 	}
 	return p
@@ -179,26 +169,37 @@ func startPageBrowser(t *testing.T) (*browserPage, *store.User) {
 // listen watches for two things a browser says. Otherwise a test has to
 // guess at them from a timeout: a confirm dialog waiting for an answer, and
 // an exception nobody caught.
+//
+// Each subscription starts before listen returns, so no event is lost. Each
+// loop ends when the tab's context ends.
 func (p *browserPage) listen() {
-	chromedp.ListenTarget(p.ctx, func(event any) {
-		switch e := event.(type) {
-		case *page.EventJavascriptDialogOpening:
+	dialogs := chromedp.Events(p.ctx, page.JavascriptDialogOpening)
+	go func() {
+		for e, err := range dialogs {
+			if err != nil {
+				return
+			}
 			p.mu.Lock()
 			p.confirmSeen = append(p.confirmSeen, e.Message)
 			accept := p.confirmAccept
 			p.mu.Unlock()
-			// In a goroutine: answering is itself a CDP call, and making one
-			// from inside the event handler deadlocks the connection.
-			go func() {
-				//nolint:errcheck // the tab can already be closed. Nothing to do here
-				chromedp.Run(p.ctx, page.HandleJavaScriptDialog(accept))
-			}()
-		case *runtime.EventExceptionThrown:
+			//nolint:errcheck // the tab can already be closed. Nothing to do here
+			chromedp.Call(p.ctx, page.HandleJavaScriptDialog, page.HandleJavaScriptDialogParams{Accept: accept})
+		}
+	}()
+
+	exceptions := chromedp.Events(p.ctx, runtime.ExceptionThrown)
+	go func() {
+		for e, err := range exceptions {
+			if err != nil {
+				return
+			}
+			thrown := &chromedp.ExceptionError{ExceptionDetails: e.ExceptionDetails}
 			p.mu.Lock()
-			p.pageExceptions = append(p.pageExceptions, e.ExceptionDetails.Error())
+			p.pageExceptions = append(p.pageExceptions, thrown.Error())
 			p.mu.Unlock()
 		}
-	})
+	}()
 
 	// Reported at the end rather than as they happen: a test that already
 	// failed is easier to read with the cause underneath it. A test that
@@ -214,9 +215,9 @@ func (p *browserPage) listen() {
 
 // === DRIVING ===
 
-func (p *browserPage) run(actions ...chromedp.Action) {
+func (p *browserPage) run(steps ...chromedp.Action[chromedp.Void]) {
 	p.t.Helper()
-	if err := chromedp.Run(p.ctx, actions...); err != nil {
+	if err := chromedp.Do(p.ctx, steps...); err != nil {
 		p.t.Fatalf("%v", err)
 	}
 }
@@ -264,7 +265,7 @@ func (p *browserPage) signIn(email string) {
 func (p *browserPage) click(selector string) {
 	p.t.Helper()
 	p.assertSelector(selector)
-	p.run(chromedp.Click(selector, chromedp.ByQuery, chromedp.NodeVisible))
+	p.run(chromedp.Click(chromedp.CSS(selector), chromedp.NodeVisible))
 }
 
 // clickOn is Capybara's click_button, scoped: the button, submit input or link
@@ -287,8 +288,8 @@ func (p *browserPage) clickOn(scope, label string) {
 	if selector == "" {
 		p.t.Fatalf("no button named %q in %s", label, scopeDescription(scope))
 	}
-	p.run(chromedp.Click(selector, chromedp.ByQuery, chromedp.NodeVisible))
-	p.eval(`document.querySelectorAll("[data-test-click]").forEach(n => delete n.dataset.testClick)`, nil)
+	p.run(chromedp.Click(chromedp.CSS(selector), chromedp.NodeVisible))
+	p.eval[chromedp.Void](`document.querySelectorAll("[data-test-click]").forEach(n => delete n.dataset.testClick)`)
 }
 
 // fillIn is Capybara's fill_in. It selects the field before typing into it,
@@ -369,19 +370,22 @@ func (p *browserPage) chord(code string, keyCode int64, text string) {
 	if key == "" {
 		key = strings.TrimPrefix(strings.ToLower(code), "key")
 	}
-	p.run(input.DispatchKeyEvent(input.KeyDown).
-		WithModifiers(alt).
-		WithCode(code).
-		WithKey(key).
-		WithText(text).
-		WithWindowsVirtualKeyCode(keyCode).
-		WithNativeVirtualKeyCode(keyCode))
-	p.run(input.DispatchKeyEvent(input.KeyUp).
-		WithModifiers(alt).
-		WithCode(code).
-		WithKey(key).
-		WithWindowsVirtualKeyCode(keyCode).
-		WithNativeVirtualKeyCode(keyCode))
+	down := input.DispatchKeyEventParams{
+		Type:                  kb.KeyDown,
+		Modifiers:             alt,
+		Code:                  code,
+		Key:                   key,
+		Text:                  text,
+		WindowsVirtualKeyCode: keyCode,
+		NativeVirtualKeyCode:  keyCode,
+	}
+	up := down
+	up.Type, up.Text = kb.KeyUp, ""
+	for _, event := range []input.DispatchKeyEventParams{down, up} {
+		if _, err := chromedp.Call(p.ctx, input.DispatchKeyEvent, event); err != nil {
+			p.t.Fatalf("%v", err)
+		}
+	}
 }
 
 // The two chords the page answers to, with what a Mac keyboard puts under
@@ -438,51 +442,42 @@ func (p *browserPage) attachFile(selector, path string) {
 	if err != nil {
 		p.t.Fatalf("resolving %s: %v", path, err)
 	}
-	p.run(chromedp.SetUploadFiles(selector, []string{absolute}, chromedp.ByQuery))
+	p.run(chromedp.SetUploadFiles(chromedp.CSS(selector), []string{absolute}))
 }
 
 // === READING ===
 
-func (p *browserPage) eval(expression string, result any) {
+// eval returns the value of the expression as T. Use chromedp.Void when the
+// value does not matter.
+func (p *browserPage) eval[T any](expression string) T {
 	p.t.Helper()
-	if err := chromedp.Run(p.ctx, chromedp.Evaluate(expression, result)); err != nil {
+	value, err := chromedp.Run(p.ctx, chromedp.Evaluate[T](expression))
+	if err != nil {
 		p.t.Fatalf("evaluating %s: %v", expression, err)
 	}
+	return value
 }
 
 func (p *browserPage) evalString(expression string) string {
 	p.t.Helper()
-	var value string
-	p.eval(expression+" ?? \"\"", &value)
-	return value
+	return p.eval[string](expression + " ?? \"\"")
 }
 
 func (p *browserPage) evalInt(expression string) int {
 	p.t.Helper()
-	var value int
-	p.eval(expression+" ?? 0", &value)
-	return value
+	return p.eval[int](expression + " ?? 0")
 }
 
 func (p *browserPage) evalBool(expression string) bool {
 	p.t.Helper()
-	var value bool
-	p.eval("!!("+expression+")", &value)
-	return value
-}
-
-func (p *browserPage) evalStrings(expression string) []string {
-	p.t.Helper()
-	var values []string
-	p.eval(expression, &values)
-	return values
+	return p.eval[bool]("!!(" + expression + ")")
 }
 
 // texts is every match's visible text, which is what an order assertion on the
 // page is made of.
 func (p *browserPage) texts(selector string) []string {
 	p.t.Helper()
-	return p.evalStrings(fmt.Sprintf(
+	return p.eval[[]string](fmt.Sprintf(
 		`[...document.querySelectorAll(%q)].map(n => n.innerText.trim())`, selector))
 }
 
@@ -622,7 +617,7 @@ func (p *browserPage) focusInsideGrid() bool {
 func (p *browserPage) enterGrid() {
 	p.t.Helper()
 	p.assertSelector("#column_count select")
-	p.eval(`document.querySelector("#column_count select").focus()`, nil)
+	p.eval[chromedp.Void](`document.querySelector("#column_count select").focus()`)
 	p.sendKeys(kb.Tab)
 	p.waitFor(`!!document.activeElement.closest("#start_page_grid")`, "focus to enter the grid")
 }
