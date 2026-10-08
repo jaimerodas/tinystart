@@ -41,7 +41,7 @@ header {
     border: none;
 
     &:hover {
-      background: var(--highlight-color);
+      background: var(--button-bg);
       color: var(--button-fg-color);
       text-decoration: none;
     }

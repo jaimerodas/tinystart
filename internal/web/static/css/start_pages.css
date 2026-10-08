@@ -540,7 +540,7 @@
   flex: 1;
   font-weight: bold;
   color: var(--button-fg-color);
-  background: var(--highlight-color);
+  background: var(--button-bg);
   border: none;
   cursor: pointer;
 }

@@ -34,7 +34,7 @@
   cursor: pointer;
 
   color: var(--button-fg-color);
-  background: var(--highlight-color);
+  background: var(--button-bg);
   transition: 0.2s ease all;
 }
 
@@ -83,7 +83,9 @@
   border-color: var(--danger-color);
 }
 
+/* Its own text colour, not --button-fg-color: that is black for the light
+   accents, and black on the light theme's danger red is 3:1. */
 .action-button.danger:hover {
-  color: var(--button-fg-color);
+  color: light-dark(white, black);
   background: var(--danger-color);
 }

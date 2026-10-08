@@ -230,7 +230,7 @@ input[type=submit] {
   transition: 0.2s ease all;
 
   color: var(--button-fg-color);
-  background: var(--highlight-color);
+  background: var(--button-bg);
   border: none;
 
   cursor: pointer;

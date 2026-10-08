@@ -2,8 +2,11 @@
   color-scheme: light dark;
 
   /* Base accent color - change this one variable to update entire color scheme.
-     Teal is the default; [data-color] further down swaps in another accent. */
+     Teal is the default; [data-color] further down swaps in another accent.
+     --highlight-color is the accent as the app uses it for links, labels,
+     focus rings and borders: the accent's ink, defined with the swatches. */
   --base-accent: var(--accent-teal);
+  --highlight-color: var(--accent-teal-ink);
 
   /* The neutrals take the accent's hue at a very low chroma, so each accent
      tints the whole page a little and is not only a line colour. The
@@ -16,26 +19,12 @@
   --mid-color: light-dark(oklch(from var(--base-accent) 0.42 0.015 h), oklch(from var(--base-accent) 0.8 0.012 h));
   --border-color: light-dark(oklch(from var(--base-accent) 0.86 0.01 h), oklch(from var(--base-accent) 0.42 0.012 h));
 
-  /* The accent as the app uses it: for links, focus rings, borders, and as
-     the fill of a button. The raw accents go from L 0.55 to L 0.82. On white,
-     yellow, teal and orange are too light for text. On the dark background,
-     red and blue are too dark. So this clamps the lightness. It clamps the
-     chroma too, because a dark, saturated orange is outside sRGB and clips to
-     red. The result is at least 5:1 on --bg-color for each accent, and white
-     or black on it is at least 5:1 too.
-     TestBrowserEveryAccentKeepsTextReadable measures this. */
-  --highlight-color: light-dark(
-    oklch(from var(--base-accent) min(l, 0.5) min(c, 0.15) h),
-    oklch(from var(--base-accent) max(l, 0.8) min(c, 0.13) h)
-  );
-  --button-fg-color: light-dark(white, black);
-
-  /* A tint of the raw accent, behind text that keeps its own colour: hovers,
-     the selected row, focus glows. */
+  /* A tint of the swatch, behind text that keeps its own colour: hovers, the
+     selected row. */
   --accent-wash: oklch(from var(--base-accent) l c h / 0.13);
 
   /* Header colors with transparency */
-  --header-bg-color: oklch(from var(--highlight-color) l c h / 0.85);
+  --header-bg-color: oklch(from var(--button-bg) l c h / 0.85);
 
   --header-shadow: light-dark(
     0 0 0.5em rgba(106, 106, 106, 0.05),
@@ -68,45 +57,95 @@
   color-scheme: dark;
 }
 
+/* Each accent twice. The swatch is the colour Settings shows and the tint
+   behind hovers. The ink is for text, rings, borders and most button fills:
+   the most saturated colour inside sRGB that keeps 4.8:1 on the light
+   background or 5.2:1 on the dark one. Each hue reaches the edge of sRGB at a
+   different lightness, so no one formula gives these. They were computed in
+   OKLCH and measured in Chrome (TestBrowserEveryAccentKeepsTextReadable).
+
+   Two choices on top of the computation: yellow's light ink is hue 80, as
+   hue 90 at that lightness is olive; dark green and teal stop at L 0.74 and
+   0.76, as they look neon at 0.80. In the dark theme the swatch is the ink. */
 :root {
-  --accent-red:    light-dark(oklch(0.60 0.24 25),  oklch(0.55 0.24 25));
-  --accent-orange: light-dark(oklch(0.78 0.25 50),  oklch(0.78 0.25 50));
-  --accent-yellow: light-dark(oklch(0.82 0.17 90),  oklch(0.82 0.14 90));
-  --accent-green:  light-dark(oklch(0.60 0.25 135), oklch(0.75 0.25 135));
-  --accent-teal:   light-dark(oklch(0.75 0.17 170), oklch(0.75 0.17 170));
-  --accent-blue:   light-dark(oklch(0.58 0.22 250), oklch(0.58 0.22 250));
-  --accent-purple: light-dark(oklch(0.62 0.21 290), oklch(0.70 0.22 290));
-  --accent-pink:   light-dark(oklch(0.66 0.28 345), oklch(0.72 0.28 345));
+  --accent-red:        light-dark(oklch(0.60 0.24 25),  var(--accent-red-ink));
+  --accent-orange:     light-dark(oklch(0.78 0.25 50),  var(--accent-orange-ink));
+  --accent-yellow:     light-dark(oklch(0.82 0.17 90),  var(--accent-yellow-ink));
+  --accent-green:      light-dark(oklch(0.60 0.25 135), var(--accent-green-ink));
+  --accent-teal:       light-dark(oklch(0.75 0.17 170), var(--accent-teal-ink));
+  --accent-blue:       light-dark(oklch(0.58 0.22 250), var(--accent-blue-ink));
+  --accent-purple:     light-dark(oklch(0.62 0.21 290), var(--accent-purple-ink));
+  --accent-pink:       light-dark(oklch(0.66 0.28 345), var(--accent-pink-ink));
+
+  --accent-red-ink:    light-dark(oklch(0.565 0.222 25),  oklch(0.665 0.215 25));
+  --accent-orange-ink: light-dark(oklch(0.55 0.141 50),   oklch(0.715 0.183 50));
+  --accent-yellow-ink: light-dark(oklch(0.545 0.11 80),   oklch(0.79 0.157 90));
+  --accent-green-ink:  light-dark(oklch(0.53 0.15 135),   oklch(0.74 0.21 135));
+  --accent-teal-ink:   light-dark(oklch(0.525 0.101 170), oklch(0.76 0.146 170));
+  --accent-blue-ink:   light-dark(oklch(0.54 0.148 250),  oklch(0.655 0.18 250));
+  --accent-purple-ink: light-dark(oklch(0.565 0.252 290), oklch(0.655 0.193 290));
+  --accent-pink-ink:   light-dark(oklch(0.57 0.235 345),  oklch(0.67 0.271 345));
 }
 
 [data-color="red"] {
   --base-accent: var(--accent-red);
+  --highlight-color: var(--accent-red-ink);
 }
 
 [data-color="orange"] {
   --base-accent: var(--accent-orange);
+  --highlight-color: var(--accent-orange-ink);
 }
 
 [data-color="yellow"] {
   --base-accent: var(--accent-yellow);
+  --highlight-color: var(--accent-yellow-ink);
 }
 
 [data-color="green"] {
   --base-accent: var(--accent-green);
+  --highlight-color: var(--accent-green-ink);
 }
 
 [data-color="teal"] {
   --base-accent: var(--accent-teal);
+  --highlight-color: var(--accent-teal-ink);
 }
 
 [data-color="blue"] {
   --base-accent: var(--accent-blue);
+  --highlight-color: var(--accent-blue-ink);
 }
 
 [data-color="purple"] {
   --base-accent: var(--accent-purple);
+  --highlight-color: var(--accent-purple-ink);
 }
 
 [data-color="pink"] {
   --base-accent: var(--accent-pink);
+  --highlight-color: var(--accent-pink-ink);
+}
+
+/* A button's fill and label. On white, these four accents are readable as
+   text only once they are darkened to rust, ochre, forest and olive. A button
+   does not have to be: filled with the swatch itself, it carries black text
+   at 5.8:1 (green) to 12:1 (yellow). Teal is here as the default, so the
+   sign-in page gets it too. The other four fill with the ink and white text.
+   In the dark theme every button is the ink with black text. */
+:root,
+[data-color="orange"],
+[data-color="yellow"],
+[data-color="green"],
+[data-color="teal"] {
+  --button-bg: light-dark(var(--base-accent), var(--highlight-color));
+  --button-fg-color: black;
+}
+
+[data-color="red"],
+[data-color="blue"],
+[data-color="purple"],
+[data-color="pink"] {
+  --button-bg: var(--highlight-color);
+  --button-fg-color: light-dark(white, black);
 }
