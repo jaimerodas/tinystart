@@ -13,3 +13,9 @@
 [data-font="literata"] {
   --font-body: "Literata", ui-serif, Georgia, serif;
 }
+
+/* A label that names a typeface is set in it: the picker in Settings. Its
+   data-font sets --font-body on the label alone, whatever the page is in. */
+label[data-font] {
+  font-family: var(--font-body);
+}

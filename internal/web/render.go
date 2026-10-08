@@ -226,10 +226,11 @@ func fontFor(user *store.User) string {
 }
 
 // fontStylesheets is the Google Fonts stylesheet for each of
-// store.ValidFonts. A page links only its reader's typeface. The browser
-// downloads only the font files a page uses, but it fetches each stylesheet
-// it is given, with all the @font-face rules in it. To add a typeface, add it
-// here, to store.ValidFonts, to the Settings choices and to fonts.css.
+// store.ValidFonts. A page links only its reader's typeface, except Settings,
+// which sets each choice in its own. The browser downloads only the font
+// files a page uses, but it fetches each stylesheet it is given, with all the
+// @font-face rules in it. To add a typeface, add it here, to
+// store.ValidFonts, to the Settings choices and to fonts.css.
 var fontStylesheets = map[string]template.URL{
 	"geist":    "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
 	"literata": "https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&display=swap",

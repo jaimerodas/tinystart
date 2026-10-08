@@ -8,6 +8,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -387,6 +388,23 @@ func TestBrowserTypefacePickerSwitchesTheFont(t *testing.T) {
 
 	if got := p.ts.reloadUser(user).FontPreference; got != "literata" {
 		t.Errorf("stored font = %q, want literata", got)
+	}
+}
+
+// In the picker, each choice is set in the typeface it picks, whatever the
+// page itself is in.
+func TestBrowserEachTypefaceChoiceIsSetInItsOwnFont(t *testing.T) {
+	p, _ := startPageBrowser(t)
+
+	p.visit("/settings")
+	for label, want := range map[string]string{"font_geist": "Geist", "font_literata": "Literata"} {
+		got := p.evalString(fmt.Sprintf(`getComputedStyle(document.querySelector('label[for=%q]')).fontFamily`, label))
+		if !strings.HasPrefix(got, want) {
+			t.Errorf("%s is set in %q, want %s first", label, got, want)
+		}
+	}
+	if got := p.evalString(`getComputedStyle(document.body).fontFamily`); !strings.HasPrefix(got, "Geist") {
+		t.Errorf("the page is set in %q, want Geist first", got)
 	}
 }
 

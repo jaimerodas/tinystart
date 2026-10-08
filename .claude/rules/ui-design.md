@@ -21,7 +21,8 @@ re-flag. The design system lives in the code; this points at it.
 - **Type**: Geist by default, Literata if the reader picks it in Settings,
   16px base. The typeface is `data-font` on `<html>`, `--font-body` in
   `fonts.css`, and each page links only its reader's family from Google Fonts
-  (`fontStylesheets` in `render.go`).
+  (`fontStylesheets` in `render.go`). Settings is the exception: it labels the
+  choices Sans-serif and Serif and sets each in its own font, so it links all.
 - One file per concern in `internal/web/static/css/`; `assets.go` links every
   file in the directory, alphabetically, so a new file needs no wiring.
 

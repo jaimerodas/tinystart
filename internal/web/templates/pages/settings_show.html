@@ -1,3 +1,7 @@
+{{/* The typeface picker sets each choice in its own font, so this page links
+every family it offers. The layout already links the reader's. */}}
+{{define "head"}}{{range .Data.Fonts}}{{if ne .Value $.Font}}    <link href="{{fontStylesheet .Value}}" rel="stylesheet">
+{{end}}{{end}}{{end}}
 {{define "content"}}
 <main>
   <nav class="dual-nav">
@@ -64,7 +68,7 @@
         <div class="radio-group">
 {{range .Data.Fonts}}          <div class="radio-field">
             <input id="font_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[font_preference]" />
-            <label for="font_{{.Value}}">{{.Label}}</label>
+            <label for="font_{{.Value}}" data-font="{{.Value}}">{{.Label}}</label>
           </div>
 {{end}}        </div>
         <p class="help-text">Choose the typeface for every page.</p>
