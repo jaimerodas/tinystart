@@ -23,32 +23,6 @@ func TestSettingsRequiresAuthentication(t *testing.T) {
 	ts.get("/settings").assertRedirect("/sign_in")
 }
 
-// Links lead: it is the number worth glancing at, and the one that grows.
-func TestSettingsShowsTheLinkAndGroupCountsLinksFirst(t *testing.T) {
-	ts, user := settingsServer(t)
-	group := ts.newGroup(user.ID, "Work", 1)
-	ts.newItem(user.ID, group.ID, "Example", "https://example.com")
-	ts.newItem(user.ID, group.ID, "Other", "https://example.org")
-
-	ts.get("/settings").
-		assertStatus(http.StatusOK).
-		assertContains(`<span class="stat-value">2</span>`).
-		assertContains(`<span class="stat-label">links</span>`).
-		assertContains(`<span class="stat-value">1</span>`).
-		assertContains(`<span class="stat-label">group</span>`)
-}
-
-// A page with nothing on it still counts, in the plural: "0 links", not "0
-// link".
-func TestSettingsCountsAnEmptyPage(t *testing.T) {
-	ts, _ := settingsServer(t)
-
-	ts.get("/settings").
-		assertContains(`<span class="stat-value">0</span>`).
-		assertContains(`<span class="stat-label">links</span>`).
-		assertContains(`<span class="stat-label">groups</span>`)
-}
-
 // The date is the fact. The relative span is the thing you actually wanted to
 // know, and the machine-readable one is what a reader's tooling gets.
 func TestSettingsSaysMemberSinceThreeWays(t *testing.T) {

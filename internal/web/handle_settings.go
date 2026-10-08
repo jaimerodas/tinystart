@@ -47,17 +47,10 @@ func settingsNav(user *store.User, active string) []settingsNavItem {
 	return items
 }
 
-// settingsShowData is the main Settings page: the two counts above everything
-// else, the account facts, and the two preferences this page owns.
+// settingsShowData is the main Settings page: the account facts and the
+// preferences this page owns.
 type settingsShowData struct {
-	Nav    []settingsNavItem
-	Items  int
-	Groups int
-	// The labels are here rather than worked out in the template because
-	// pluralize's job is to produce "2 links", and the page wants the noun on
-	// its own under the number.
-	ItemsLabel  string
-	GroupsLabel string
+	Nav []settingsNavItem
 
 	// The date three ways, because the row says all three: machine-readable,
 	// written out, and how long ago that was.
@@ -84,19 +77,9 @@ func (s *Server) handleSettings() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := userFrom(r.Context())
 
-		groups, items, err := s.db.StartPageCounts(r.Context(), user.ID)
-		if err != nil {
-			s.serverError(w, r, err)
-			return
-		}
-
 		created := user.CreatedAt.UTC()
 		data := settingsShowData{
-			Nav:         settingsNav(user, "Main"),
-			Items:       items,
-			Groups:      groups,
-			ItemsLabel:  noun(items, "link"),
-			GroupsLabel: noun(groups, "group"),
+			Nav: settingsNav(user, "Main"),
 			// Time#iso8601, which has no fractional part however many
 			// microseconds the column holds.
 			MemberSince: created.Format("2006-01-02T15:04:05Z"),
