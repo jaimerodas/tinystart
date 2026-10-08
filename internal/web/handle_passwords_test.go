@@ -95,7 +95,7 @@ func TestPasswordEditWithAValidToken(t *testing.T) {
 
 	ts.get("/passwords/" + token + "/edit").
 		assertStatus(http.StatusOK).
-		assertContains("<h1>Update your password</h2>").
+		assertContains("<h1>Update your password</h1>").
 		assertContains(`<form action="/passwords/` + token + `"`).
 		assertContains(`<input type="hidden" name="_method" value="put" />`)
 }
