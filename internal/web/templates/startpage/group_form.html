@@ -15,7 +15,7 @@
   {{if .NameError}}<div class="field_with_errors">{{end}}<input class="control" required="required" placeholder="Group name" aria-label="Group name" data-inline-form-target="field" data-pristine="{{.Pristine}}" type="text"{{if .ShowValue}} value="{{.Name}}"{{end}} name="start_page_group[name]" id="start_page_group_name" />{{if .NameError}}</div>{{end}}
 
   <div class="inline-form-actions">
-    <input type="submit" name="commit" value="{{.Submit}}" class="control" data-disable-with="{{.Submit}}" />
+    <button type="submit" name="commit" value="{{.Submit}}" class="control" data-disable-with="{{.Submit}}">{{.Submit}}</button>
     <button type="button" class="control secondary" data-action="click->inline-form#close">Cancel</button>
   </div>
 </form>{{end}}

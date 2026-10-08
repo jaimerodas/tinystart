@@ -20,7 +20,7 @@
     <form class="import-form" enctype="multipart/form-data" action="/settings/import_export" accept-charset="UTF-8" method="post">
       <input accept=".yml,.yaml" aria-label="Start page file to import" type="file" name="file" id="file" />
 
-      <input type="submit" name="commit" value="Import" data-turbo-confirm="This replaces every group and link on your start page. Continue?" data-disable-with="Import" />
+      <button type="submit" name="commit" value="Import" class="action-button" data-turbo-confirm="This replaces every group and link on your start page. Continue?" data-disable-with="Import">Import</button>
 
       <p class="help-text">Importing <b>replaces</b> every group and link on
         your start page with what is in the file. If anything in it is

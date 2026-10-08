@@ -224,19 +224,6 @@
       }
     }
 
-    /* The global rule is a full-width 1em-padded slab, which is right for a
-       form whose submit is the whole point and wrong for one sharing a row.
-       box-sizing and the explicit height keep the 32em media query's padding
-       from growing it. */
-    input[type=submit] {
-      flex: 0 0 auto;
-      box-sizing: border-box;
-      width: auto;
-      height: var(--import-control-height);
-      margin: 0;
-      padding: 0 1.5em;
-    }
-
     /* .help-text is only styled inside .form-group, and this one isn't in one. */
     .help-text {
       flex-basis: 100%;

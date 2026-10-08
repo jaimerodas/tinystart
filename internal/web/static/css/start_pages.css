@@ -462,6 +462,13 @@
     margin: 0;
   }
 
+  /* The label is a flex item, so it is a block, and text-box reaches it.
+     Trimmed to the capitals, flex centres the letters and not the line box,
+     which put them 1px low in Literata. See .action-button in buttons.css. */
+  span {
+    text-box: trim-both cap alphabetic;
+  }
+
   &:hover {
     color: var(--fg-color);
     border-color: var(--highlight-color);
@@ -506,6 +513,15 @@
   border-radius: var(--control-radius);
 }
 
+/* Their labels sat 1px low in Literata, for the reason .action-button's did
+   (buttons.css). A button centres its own content, so trimming the text box
+   to the capitals is all it takes. The submits are <button>s and not inputs
+   because Safari does not trim inside an input. Not on the text fields:
+   there it would shorten the caret. */
+.start-page-grid button.control {
+  text-box: trim-both cap alphabetic;
+}
+
 .start-page-grid input[type="text"].control,
 .start-page-grid input[type="url"].control {
   color: var(--fg-color);
@@ -520,7 +536,7 @@
   }
 }
 
-.start-page-grid input[type="submit"].control {
+.start-page-grid button[type="submit"].control {
   flex: 1;
   font-weight: bold;
   color: var(--button-fg-color);
