@@ -43,10 +43,11 @@
     }
   }
 
-  /* Where you are. The tint and the weight say it as well as the colour. */
+  /* Where you are: the accent's tint and the weight. The text keeps the body
+     colour, because the accent's ink only clears 4.5:1 on the plain page, and
+     on its own tint every accent fell short of it in the light theme. */
   [aria-current="page"] {
     background: oklch(from var(--highlight-color) l c h / 0.1);
-    color: var(--highlight-color);
     font-weight: bold;
   }
 

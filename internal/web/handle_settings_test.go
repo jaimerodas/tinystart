@@ -52,6 +52,16 @@ func TestSettingsShowsTheAccountAsLabelsAndValues(t *testing.T) {
 		assertNotContains("<b>Email:</b>")
 }
 
+// Changing the password is a page of its own in the menu, so the account
+// section does not also link to it.
+func TestTheAccountLeavesThePasswordToTheMenu(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains(`<a href="/settings/password">Password</a>`).
+		assertNotContains("Change password</a>")
+}
+
 // The column count moved to /start/edit, where the groups a shrink can
 // strand are on screen. This page must not quietly continue to write it, or
 // the two controls drift apart.
@@ -338,7 +348,7 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 
 	for _, page := range []struct{ path, current, heading string }{
 		{"/settings", "/settings", "General"},
-		{"/settings/password/edit", "/settings", "Change password"},
+		{"/settings/password", "/settings/password", "Change password"},
 		{"/settings/import_export", "/settings/import_export", "Import &amp; Export"},
 		{"/settings/connections", "/settings/connections", "Connections"},
 		{"/settings/browsers", "/settings/browsers", "Browsers"},
@@ -353,8 +363,6 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 	}
 }
 
-// The action has one name from end to end: the link on General, the
-// heading, the button, and the notice afterwards all say "change password".
 // The first page is General in the menu and in its heading, so the two agree.
 // The browser tab still says Settings, which is where you are.
 func TestTheFirstSettingsPageIsCalledGeneral(t *testing.T) {
@@ -367,10 +375,14 @@ func TestTheFirstSettingsPageIsCalledGeneral(t *testing.T) {
 		assertNotContains(">Main<")
 }
 
+// The page is Password in the menu, and the action on it has one name from
+// end to end: the heading, the button, and the notice afterwards all say
+// "change password".
 func TestPasswordEdit(t *testing.T) {
 	ts, _ := settingsServer(t)
 
-	ts.get("/settings/password/edit").
+	ts.get("/settings/password").
+		assertContains(`<a href="/settings/password" aria-current="page">Password</a>`).
 		assertStatus(http.StatusOK).
 		assertContains("<h1>Change password</h1>").
 		assertContains(`name="user[existing_password]"`).
@@ -435,6 +447,17 @@ func TestPasswordUpdateRefusals(t *testing.T) {
 	}
 }
 
+// A refusal draws the form again at the address it was sent to, and the menu
+// still says where you are.
+func TestARefusedPasswordChangeStaysOnPasswordInTheMenu(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings/password",
+		form("user[existing_password]", "wrong", "user[new_password]", "testtesttest")).
+		assertStatus(http.StatusUnprocessableEntity).
+		assertContains(`<a href="/settings/password" aria-current="page">Password</a>`)
+}
+
 func TestPasswordUpdateRefusesABodyWithNoUserKey(t *testing.T) {
 	ts, _ := settingsServer(t)
 
@@ -444,7 +467,7 @@ func TestPasswordUpdateRefusesABodyWithNoUserKey(t *testing.T) {
 
 func TestPasswordRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
-	ts.get("/settings/password/edit").assertRedirect("/sign_in")
+	ts.get("/settings/password").assertRedirect("/sign_in")
 	ts.send(http.MethodPatch, "/settings/password", form("user[new_password]", "x")).
 		assertRedirect("/sign_in")
 }

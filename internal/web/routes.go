@@ -117,7 +117,9 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	mux.Handle("PATCH /settings", s.requireAuthentication(s.handleSettingsUpdate()))
 	mux.Handle("PUT /settings", s.requireAuthentication(s.handleSettingsUpdate()))
 
-	mux.Handle("GET /settings/password/edit", s.requireAuthentication(s.handleSettingsPasswordEdit()))
+	// One address for the page and its form, so a refusal, which draws the
+	// form again where it was sent, is still on the page the menu marks.
+	mux.Handle("GET /settings/password", s.requireAuthentication(s.handleSettingsPasswordEdit()))
 	mux.Handle("PATCH /settings/password", s.requireAuthentication(s.handleSettingsPasswordUpdate()))
 	mux.Handle("PUT /settings/password", s.requireAuthentication(s.handleSettingsPasswordUpdate()))
 

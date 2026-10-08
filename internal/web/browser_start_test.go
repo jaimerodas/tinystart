@@ -78,7 +78,7 @@ func TestBrowserEveryPageLoadsWithoutAScriptError(t *testing.T) {
 		{"/", ".command-bar"},
 		{"/start/edit", ".editor-toolbar"},
 		{"/settings", "#user-preferences"},
-		{"/settings/password/edit", "form"},
+		{"/settings/password", "form"},
 		{"/settings/import_export", "#import-export"},
 		{"/settings/connections", "#connection-settings"},
 		{"/settings/browsers", "#chrome-extension"},
@@ -426,7 +426,7 @@ func TestBrowserEachTypefaceChoiceIsSetInItsOwnFont(t *testing.T) {
 
 // === SETTINGS PAGES ===
 
-var settingsPages = []string{"/settings", "/settings/password/edit", "/settings/import_export",
+var settingsPages = []string{"/settings", "/settings/password", "/settings/import_export",
 	"/settings/connections", "/settings/browsers", "/settings/admin/users"}
 
 // Prose keeps a reading measure, however wide the column is: no paragraph
@@ -484,7 +484,7 @@ func TestBrowserSettingsPagesStartOneGapUnderTheHeading(t *testing.T) {
 func TestBrowserSettingsTextFieldsShareOneWidth(t *testing.T) {
 	p, _ := startPageBrowser(t)
 	var widths []int
-	for _, path := range []string{"/settings/password/edit", "/settings/connections"} {
+	for _, path := range []string{"/settings/password", "/settings/connections"} {
 		p.visit(path)
 		widths = append(widths, p.evalInt(`Math.round(document.querySelector(
 			"main :is(input[type=password], input[type=url])").getBoundingClientRect().width)`))
@@ -500,7 +500,7 @@ func TestBrowserSettingsTextFieldsShareOneWidth(t *testing.T) {
 // One box shows both fields as text and hides them again.
 func TestBrowserShowPasswordsShowsBothFields(t *testing.T) {
 	p, _ := startPageBrowser(t)
-	p.visit("/settings/password/edit")
+	p.visit("/settings/password")
 	types := `[...document.querySelectorAll("input[name^='user[']")].map(i => i.type).join(" ")`
 
 	p.click(`label[for="show_passwords"]`)
@@ -548,17 +548,18 @@ func TestBrowserSettingsMenuIsASidebarWideAndAMenuNarrow(t *testing.T) {
 
 // === COLOUR ===
 
-// Every accent, in both themes, keeps the 4.5:1 that WCAG AA asks of text: a
-// link on the page, and a button's label on the accent that fills it. The
-// eight accents go from L 0.55 to L 0.82, so no one fixed offset from the
-// accent can do this. The colour has to come from a clamp.
+// Every accent, in both themes, keeps the 4.5:1 that WCAG AA asks of text:
+// accent text on the page and on its own tint, and a button's label on the
+// accent that fills it. The eight accents go from L 0.55 to L 0.82, so no one
+// fixed offset from the accent can do this. The colour has to come from a
+// clamp.
 func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	p, user := startPageBrowser(t)
 	group := p.ts.newGroup(user.ID, "Daily", 1)
 	p.ts.newItem(user.ID, group.ID, "Example", "https://example.com")
 
 	p.visit("/settings")
-	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".user-section h2")
+	failures := p.contrastFailures(`.settings-nav [aria-current="page"]`, ".user-section h2")
 	// The main page saves as it changes, so it has no button to measure.
 	p.visit("/settings/browsers")
 	failures = append(failures, p.contrastFailures(".action-button")...)

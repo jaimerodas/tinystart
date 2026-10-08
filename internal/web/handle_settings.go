@@ -35,6 +35,7 @@ type settingsNavItem struct {
 func settingsNav(user *store.User, path string) []settingsNavItem {
 	items := []settingsNavItem{
 		{Title: "General", Path: "/settings"},
+		{Title: "Password", Path: "/settings/password"},
 		{Title: "Import & Export", Path: "/settings/import_export"},
 		{Title: "Connections", Path: "/settings/connections"},
 		{Title: "Browsers", Path: "/settings/browsers"},
@@ -43,10 +44,6 @@ func settingsNav(user *store.User, path string) []settingsNavItem {
 		items = append(items, settingsNavItem{Title: "Users", Path: "/settings/admin/users"})
 	}
 
-	// The password form has no link of its own. It is reached from General.
-	if strings.HasPrefix(path, "/settings/password") {
-		path = "/settings"
-	}
 	for i := range items {
 		items[i].Current = items[i].Path == path
 	}
@@ -195,7 +192,7 @@ type settingsPasswordData struct {
 	NewInvalid      bool
 }
 
-// handleSettingsPasswordEdit is GET /settings/password/edit.
+// handleSettingsPasswordEdit is GET /settings/password.
 func (s *Server) handleSettingsPasswordEdit() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsPasswordEdit, settingsPasswordData{})
