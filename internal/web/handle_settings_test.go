@@ -76,6 +76,29 @@ func TestSettingsUpdatesThemeAndColor(t *testing.T) {
 		assertContains(`<html data-theme="light" data-color="pink" data-font="geist">`)
 }
 
+// Each group of radios is a fieldset named by its legend, so a screen reader
+// says "Theme" with "Dark" and not only "Dark, 3 of 3". A pick saves at once,
+// so it matters which group it is in. No title is a label without a field.
+func TestSettingsNamesEachGroupOfChoices(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	page := ts.get("/settings").assertNotContains("<label>")
+	for _, name := range []string{"Theme", "Accent color", "Typeface", "Search engine"} {
+		page.assertContains(`<fieldset class="form-group">
+        <legend>` + name + `</legend>`)
+	}
+}
+
+// A swatch shows its colour and says nothing, so the radio behind it carries
+// the colour's name.
+func TestSettingsNamesEachAccentColor(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains(`<input id="color_purple" type="radio" value="purple" aria-label="Purple"`).
+		assertContains(`<input id="color_teal" type="radio" value="teal" checked="checked" aria-label="Teal"`)
+}
+
 // The preferences save as they change, so a save answers in place: a word in
 // the section's heading row, and no redirect or flash to redraw the page
 // under the pointer.

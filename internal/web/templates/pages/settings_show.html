@@ -31,8 +31,8 @@ every family it offers. The layout already links the reader's. */}}
     {{/* Empty until the first save, so a screen reader hears each one. */}}
     <p id="preferences_status" class="save-status" role="status" aria-live="polite"></p>
     <form data-controller="theme auto-submit" data-action="change-&gt;theme#update change-&gt;auto-submit#submit" action="/settings" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" />
-      <div class="form-group">
-        <label>Theme</label>
+      <fieldset class="form-group">
+        <legend>Theme</legend>
         <div class="radio-group">
 {{range .Data.Themes}}          <div class="radio-field">
             <input id="theme_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[theme_preference]" />
@@ -40,21 +40,21 @@ every family it offers. The layout already links the reader's. */}}
           </div>
 {{end}}        </div>
         <p class="help-text">Choose your preferred color scheme. System will follow your device's theme setting.</p>
-      </div>
+      </fieldset>
 
-      <div class="form-group">
-        <label>Accent color</label>
+      <fieldset class="form-group">
+        <legend>Accent color</legend>
         <div class="color-picker">
 {{range .Data.Colors}}            <div class="color-option">
-              <input id="color_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[color_preference]" />
+              <input id="color_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} aria-label="{{.Label}}" name="user[color_preference]" />
               <label data-color="{{.Value}}" style="background: var(--accent-{{.Value}})" for="color_{{.Value}}"></label>
             </div>
 {{end}}        </div>
         <p class="help-text">Choose your preferred accent color for links and interface elements.</p>
-      </div>
+      </fieldset>
 
-      <div class="form-group">
-        <label>Typeface</label>
+      <fieldset class="form-group">
+        <legend>Typeface</legend>
         <div class="radio-group">
 {{range .Data.Fonts}}          <div class="radio-field">
             <input id="font_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[font_preference]" />
@@ -62,10 +62,10 @@ every family it offers. The layout already links the reader's. */}}
           </div>
 {{end}}        </div>
         <p class="help-text">Choose the typeface for every page.</p>
-      </div>
+      </fieldset>
 
-      <div class="form-group">
-        <label>Search engine</label>
+      <fieldset class="form-group">
+        <legend>Search engine</legend>
         <div class="radio-group">
 {{range .Data.Engines}}          <div class="radio-field">
             <input id="search_engine_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[search_engine]" />
@@ -73,7 +73,7 @@ every family it offers. The layout already links the reader's. */}}
           </div>
 {{end}}        </div>
         <p class="help-text">Choose which engine the command bar sends a search to when your query is not a URL.</p>
-      </div>
+      </fieldset>
 </form>  </section>
 
 </main>

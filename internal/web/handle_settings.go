@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jaimerodas/tinystart/internal/store"
 )
@@ -113,7 +114,9 @@ func (s *Server) handleSettings() http.Handler {
 			data.Engines[i].Checked = data.Engines[i].Value == user.SearchEngine
 		}
 		for _, color := range store.ValidColors {
-			data.Colors = append(data.Colors, choice{Value: color, Checked: color == user.ColorPreference})
+			// The swatch has no text, so the label is the radio's aria-label.
+			label := strings.ToUpper(color[:1]) + color[1:]
+			data.Colors = append(data.Colors, choice{Value: color, Label: label, Checked: color == user.ColorPreference})
 		}
 
 		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsShow, data)

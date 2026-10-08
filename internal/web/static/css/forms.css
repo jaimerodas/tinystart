@@ -52,8 +52,18 @@ form {
   .form-group {
     margin: 1.5em 0;
 
-    & > label {
+    /* A group of choices is a fieldset, so a screen reader names each choice
+       with its legend. Without the browser's frame it looks like any other
+       group. */
+    &:is(fieldset) {
+      min-inline-size: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    & > :is(label, legend) {
       display: block;
+      padding: 0;
       margin-bottom: 0.5em;
       font-weight: bold;
     }
