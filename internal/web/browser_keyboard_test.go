@@ -10,6 +10,7 @@
 package web
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -31,6 +32,25 @@ func TestBrowserGridIsOneTabStop(t *testing.T) {
 	p.sendKeys(kb.Tab)
 	if p.focusInsideGrid() {
 		t.Errorf("Tab left focus inside the grid")
+	}
+}
+
+// A row's controls stay faint until the row is in play: 28 tiles with three
+// controls each outweighed the titles. The row the keyboard highlights shows
+// its controls in full, because Enter and Delete act on them.
+func TestBrowserTheHighlightedRowShowsItsControls(t *testing.T) {
+	p, user := startPageBrowser(t)
+	_, gmail, _ := p.tiles(user)
+
+	p.visit("/start/edit")
+	p.enterGrid()
+	p.assertFocusedRow("Work")
+
+	p.waitFor(`getComputedStyle(document.activeElement.querySelector(".edit-button")).opacity === "1"`,
+		"the highlighted row's controls to show in full")
+	resting := p.evalString(fmt.Sprintf(`getComputedStyle(document.querySelector(%q)).opacity`, itemSel(gmail)+" .edit-button"))
+	if resting == "1" {
+		t.Error("a row out of play shows its controls in full")
 	}
 }
 

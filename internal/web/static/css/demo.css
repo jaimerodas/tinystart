@@ -1,10 +1,10 @@
-/* Bordered call-to-action box for the demo start page. Using a border instead of a
-   filled background keeps the text color foreground, maintaining the 4.5:1 contrast
-   ratio the rest of the app relies on. */
+/* The call to action on the demo start page. It sits on the accent wash, the
+   same tint as a hovered link, so the text keeps --fg-color and its contrast,
+   and the Sign in button is the one solid accent on the page. */
 .demo-cta {
-  border: 0.125rem solid var(--highlight-color);
-  border-radius: 0.5em;
-  padding: 1em;
+  background: var(--accent-wash);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
   text-align: center;
 
   p {

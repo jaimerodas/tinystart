@@ -402,7 +402,7 @@ func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	p.ts.newItem(user.ID, group.ID, "Example", "https://example.com")
 
 	p.visit("/settings")
-	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".action-button")
+	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".action-button", ".user-section h2")
 
 	// The start page puts the accent on the group names, and tints the
 	// background behind the tiles.

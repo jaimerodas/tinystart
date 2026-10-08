@@ -20,7 +20,7 @@
 
   .stat-value {
     font-size: 2.5rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1;
     color: var(--fg-color);
   }
@@ -31,15 +31,25 @@
   }
 }
 
+/* Section names are labels, the same as the group names on the start page,
+   so the two pages read as one app. */
+:is(.user-section h2, #import-export h3) {
+  padding-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--highlight-color);
+  border-bottom: 0.0625rem solid var(--border-color);
+}
+
 .user-section {
-  margin: 2em 0;
+  margin: 2.5em 0;
   ul {
     margin: 0;
   }
   h2 {
-    font-weight: 900;
-    margin: 0 0 0.5em;
-    border-bottom: 0.0625rem solid var(--border-color);
+    margin: 0 0 1rem;
   }
 }
 
@@ -148,10 +158,7 @@
   --import-picker-height: 2rem;
 
   h3 {
-    font-weight: 900;
     margin: 2em 0 0.75em;
-    padding-bottom: 0.25em;
-    border-bottom: 0.0625rem solid var(--border-color);
   }
 
   /* One row: the picker takes the space, the submit takes what it needs, and

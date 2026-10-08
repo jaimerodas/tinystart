@@ -297,14 +297,17 @@
   display: flex;
   align-items: center;
   margin: 0 0.5em 0.25em;
-  border-bottom: 0.125rem solid var(--highlight-color);
+  border-bottom: 0.0625rem solid var(--border-color);
   gap: var(--control-gap);
   min-height: var(--control-size);
 }
 
+/* The accent, like the group labels on the start page, but in the name's own
+   case: this is where a group is renamed, so it shows the name as stored. */
 .group-name {
   flex: 1;
   font-weight: 600;
+  color: var(--highlight-color);
   overflow-wrap: break-word;
 }
 
@@ -406,6 +409,20 @@
   .remove-button:hover svg {
     fill: var(--danger-color);
   }
+}
+
+/* A row's controls stay faint until the row is in play: hovered, or focused
+   by the keyboard highlight, which also covers a row that is picked up. With
+   three controls on every tile they outweighed the titles. Opacity, not
+   display or visibility, so nothing moves and a pointer can still find them.
+   TestBrowserTheHighlightedRowShowsItsControls holds the keyboard half. */
+:is(.item-row, .group-header) :is(.drag-handle, .item-actions button) {
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+:is(.item-row, .group-header):is(:hover, :focus-visible, :focus-within) :is(.drag-handle, .item-actions button) {
+  opacity: 1;
 }
 
 /* --- inline add / edit forms ---
