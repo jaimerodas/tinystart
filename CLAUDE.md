@@ -21,8 +21,8 @@ organized into groups across columns. Live at https://start.pati.to.
 ## Commands
 
 ```bash
-TINYSTART_SECRET_KEY=$(openssl rand -hex 32) go run ./cmd/tinystart   # local server on :3000
-go run ./cmd/tinystart set-password you@example.com                     # password from stdin
+bin/dev              # local server on :3000; keeps its secret key in storage/dev_secret_key
+go run ./cmd/tinystart set-password you@example.com   # password from stdin
 ./script/test        # the gate: gofmt, vet, staticcheck, govulncheck, go test -race, browser tests
 kamal deploy         # ship (kamal setup the first time)
 ```

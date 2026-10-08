@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Runs the app on http://localhost:3000, with storage/development.sqlite3.
+#
+# The app needs TINYSTART_SECRET_KEY, and the key signs the session cookie. A
+# new key on each start signs you out on each restart. So this script makes a
+# key one time and keeps it in storage/, which git and Docker ignore.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+key_file=storage/dev_secret_key
+if [ ! -s "$key_file" ]; then
+  (umask 077 && openssl rand -hex 32 > "$key_file")
+fi
+
+export TINYSTART_SECRET_KEY=$(cat "$key_file")
+exec go run ./cmd/tinystart

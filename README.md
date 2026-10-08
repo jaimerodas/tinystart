@@ -44,9 +44,11 @@ los demás necesitan que un admin los apruebe desde Settings.
 Con Go 1.27 instalado (`go.mod` fija la versión exacta del toolchain y `go` la
 baja solo si hace falta):
 ```sh
-TINYSTART_SECRET_KEY=$(openssl rand -hex 32) go run ./cmd/tinystart
+bin/dev
 ```
-y ya está en http://localhost:3000. La base de datos es
+y ya está en http://localhost:3000. La primera vez genera una
+`TINYSTART_SECRET_KEY` y la guarda en `storage/dev_secret_key`, así que
+reiniciar el server no te saca de tu sesión. La base de datos es
 `storage/development.sqlite3` por default: si no existe la crea con el esquema
 completo, y el primer registro queda como admin.
 
