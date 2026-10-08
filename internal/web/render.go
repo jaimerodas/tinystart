@@ -185,7 +185,7 @@ var pageTitles = map[string]string{
 	"users_new":              "New user",
 	"passwords_new":          "Forgot your password?",
 	pageSettingsShow:         "Settings",
-	pageSettingsPasswordEdit: "Password",
+	pageSettingsPasswordEdit: "Change password",
 	pageSettingsConnections:  "Connections",
 	pageSettingsImportExport: "Import & Export",
 	pageSettingsBrowsers:     "Browsers",

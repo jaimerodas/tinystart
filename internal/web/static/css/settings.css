@@ -20,6 +20,13 @@
   }
 }
 
+/* The editor's error list, at the size of the help text here. The editor's
+   rows are denser than any form in Settings. */
+.password-form .form-errors {
+  margin: 0 0 1em;
+  font-size: 0.875rem;
+}
+
 /* The answer to the last save, at the right end of the heading row. It is
    placed over the row rather than in the flow, so its arrival moves nothing
    under the pointer. */

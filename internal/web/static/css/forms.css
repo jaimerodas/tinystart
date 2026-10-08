@@ -194,6 +194,12 @@ textarea {
   outline: medium solid var(--bg-color);
   transition: 0.3s ease outline;
 
+  /* A field a refusal named. The message says what is wrong, and this says
+     which box it is about. */
+  &[aria-invalid="true"] {
+    border-color: var(--danger-color);
+  }
+
   &:focus {
     border-color: var(--highlight-color);
     outline: medium solid var(--highlight-color);
@@ -279,107 +285,8 @@ input[type=submit] {
   }
 }
 
-.form-actions {
-  display: flex;
-  border: 0.0625rem solid var(--border-color);
-  border-radius: 0.5em;
-  font-size: 0.875em;
-
-  & > * {
-    border-right: 0.0625rem solid var(--border-color);
-  }
-
-  & > *:first-child, *:first-child button {
-    border-top-left-radius: 0.5em;
-    border-bottom-left-radius: 0.5em;
-  }
-
-  & > *:last-child, *:last-child button {
-    border-top-right-radius: 0.5em;
-    border-bottom-right-radius: 0.5em;
-    border-right: none;
-  }
-
-  & a, button {
-    color: var(--fg-color);
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: bold;
-    text-align: center;
-    background: var(--bg-color);
-    cursor: pointer;
-    border: none;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 1;
-    padding: 0.5em 0;
-    box-sizing: border-box;
-
-    transition: 0.2s ease-out all;
-
-    &:hover {
-      text-decoration: none;
-      color: var(--fg-color);
-      background-color: var(--bg-highlight-color);
-    }
-
-    &.danger {
-      color: var(--danger-color);
-    }
-
-    & svg {
-      height: 1.5em;
-      margin-right: 0.5em;
-    }
-  }
-  & > form {
-    display: block;
-    width: initial;
-    flex: 1;
-    box-sizing: border-box;
-
-    button {
-      font-family: inherit;
-      font-size: inherit;
-      line-height: inherit;
-
-      background: transparent;
-      width: 100%;
-      border: none;
-      cursor: pointer;
-    }
-  }
-}
-
 @media screen and (max-width: 32em) {
   input[type=submit] {
     padding: 1.5em 1em;
-  }
-  .form-actions {
-    flex-direction: column;
-    & > * {
-      border: none;
-      border-bottom: 0.0625rem solid var(--border-color);
-    }
-
-    & > *:first-child, *:first-child button {
-      border-top-left-radius: 0.5em;
-      border-top-right-radius: 0.5em;
-      border-bottom-left-radius: initial;
-    }
-
-    & > *:last-child, *:last-child button {
-      border-top-right-radius: initial;
-      border-bottom-right-radius: 0.5em;
-      border-bottom-left-radius: 0.5em;
-      border-bottom: none;
-    }
-
-    & a, button {
-      padding: 1em 0;
-    }
   }
 }

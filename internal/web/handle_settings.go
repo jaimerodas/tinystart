@@ -224,7 +224,7 @@ func (s *Server) handleSettingsPasswordUpdate() http.Handler {
 		err := s.db.UpdatePassword(r.Context(), user.ID,
 			r.PostFormValue("user[existing_password]"), r.PostFormValue("user[new_password]"))
 		if err == nil {
-			s.redirect(w, r, "/settings", flashNotice, "Password was successfully changed.")
+			s.redirect(w, r, "/settings", flashNotice, "Password changed.")
 			return
 		}
 

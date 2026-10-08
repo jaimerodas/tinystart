@@ -424,6 +424,24 @@ func TestBrowserEachTypefaceChoiceIsSetInItsOwnFont(t *testing.T) {
 	}
 }
 
+// === CHANGING THE PASSWORD ===
+
+// One box shows both fields as text and hides them again.
+func TestBrowserShowPasswordsShowsBothFields(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	p.visit("/settings/password/edit")
+	types := `[...document.querySelectorAll("input[name^='user[']")].map(i => i.type).join(" ")`
+
+	p.click(`label[for="show_passwords"]`)
+	if got := p.evalString(types); got != "text text" {
+		t.Errorf("shown, the fields are %q, want text text", got)
+	}
+	p.click(`label[for="show_passwords"]`)
+	if got := p.evalString(types); got != "password password" {
+		t.Errorf("hidden again, the fields are %q, want password password", got)
+	}
+}
+
 // === THE SETTINGS MENU ===
 
 // The menu is one <details>. On a wide window the stylesheet holds it open and
@@ -473,6 +491,9 @@ func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	// The main page saves as it changes, so it has no button to measure.
 	p.visit("/settings/browsers")
 	failures = append(failures, p.contrastFailures(".action-button")...)
+	// The small status words beside each account.
+	p.visit("/settings/admin/users")
+	failures = append(failures, p.contrastFailures(".user-status", ".user-admin")...)
 
 	// The start page puts the accent on the group names, and tints the
 	// background behind the tiles.

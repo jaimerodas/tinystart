@@ -326,7 +326,7 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 
 	for _, page := range []struct{ path, current, heading string }{
 		{"/settings", "/settings", "Settings"},
-		{"/settings/password/edit", "/settings", "Password"},
+		{"/settings/password/edit", "/settings", "Change password"},
 		{"/settings/import_export", "/settings/import_export", "Import &amp; Export"},
 		{"/settings/connections", "/settings/connections", "Connections"},
 		{"/settings/browsers", "/settings/browsers", "Browsers"},
@@ -341,13 +341,18 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 	}
 }
 
+// The action has one name from end to end: the link on General, the
+// heading, the button, and the notice afterwards all say "change password".
 func TestPasswordEdit(t *testing.T) {
 	ts, _ := settingsServer(t)
 
 	ts.get("/settings/password/edit").
 		assertStatus(http.StatusOK).
+		assertContains("<h1>Change password</h1>").
 		assertContains(`name="user[existing_password]"`).
-		assertContains(`name="user[new_password]"`)
+		assertContains(`name="user[new_password]"`).
+		assertContains(`<button type="submit" class="action-button">Change password</button>`).
+		assertNotContains("Update User")
 }
 
 func TestPasswordUpdate(t *testing.T) {
@@ -360,7 +365,7 @@ func TestPasswordUpdate(t *testing.T) {
 	if _, err := ts.db.Authenticate(ts.t.Context(), user.Email, "testtesttest"); err != nil {
 		t.Errorf("the new password does not work: %v", err)
 	}
-	ts.get("/settings").assertContains("Password was successfully changed.")
+	ts.get("/settings").assertContains("Password changed.")
 }
 
 // Every refusal re-renders the form with 422 rather than redirecting, because
@@ -388,12 +393,16 @@ func TestPasswordUpdateRefusals(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ts, user := settingsServer(t)
 
-			ts.send(http.MethodPatch, "/settings/password",
+			resp := ts.send(http.MethodPatch, "/settings/password",
 				form("user[existing_password]", test.existing, "user[new_password]", test.password)).
 				assertStatus(http.StatusUnprocessableEntity).
-				assertContains("1 error prohibited this from being saved:").
+				assertContains(`<ul class="form-errors" role="alert">`).
 				assertContains("<li>" + test.message + "</li>").
-				assertContains(`<div class="field_with_errors"><label for="` + test.field + `">`)
+				assertContains(`id="` + test.field + `" aria-invalid="true"`).
+				assertNotContains("prohibited")
+			if n := strings.Count(resp.body, "aria-invalid"); n != 1 {
+				t.Errorf("%d fields are marked invalid, want only %s", n, test.field)
+			}
 
 			if _, err := ts.db.Authenticate(ts.t.Context(), user.Email, testPassword); err != nil {
 				t.Errorf("the old password stopped working after a refusal: %v", err)
