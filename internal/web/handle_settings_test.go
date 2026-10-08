@@ -103,16 +103,17 @@ func TestSettingsUpdatesThemeAndColor(t *testing.T) {
 }
 
 // The typeface picker offers each font, with the stored one checked. A new
-// account starts on Geist.
+// account starts on Geist. The labels name the kind of typeface, not the
+// font: the value is Geist, the reader sees Sans-serif.
 func TestSettingsOffersTheFontChoices(t *testing.T) {
 	ts, _ := settingsServer(t)
 
 	ts.get("/settings").
 		assertContains(`name="user[font_preference]"`).
 		assertContains(`id="font_geist" type="radio" value="geist" checked="checked"`).
-		assertContains(`<label for="font_geist">Geist</label>`).
+		assertContains(`<label for="font_geist">Sans-serif</label>`).
 		assertContains(`id="font_literata" type="radio" value="literata"`).
-		assertContains(`<label for="font_literata">Literata</label>`)
+		assertContains(`<label for="font_literata">Serif</label>`)
 }
 
 func TestSettingsUpdatesTheFont(t *testing.T) {

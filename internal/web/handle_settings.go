@@ -109,8 +109,8 @@ func (s *Server) handleSettings() http.Handler {
 				{Value: "dark", Label: "Dark"},
 			},
 			Fonts: []choice{
-				{Value: "geist", Label: "Geist"},
-				{Value: "literata", Label: "Literata"},
+				{Value: "geist", Label: "Sans-serif"},
+				{Value: "literata", Label: "Serif"},
 			},
 			Engines: []choice{
 				{Value: "duckduckgo", Label: "DuckDuckGo"},
