@@ -11,6 +11,7 @@ package web
 
 import (
 	"net/http"
+	"slices"
 	"testing"
 )
 
@@ -67,5 +68,26 @@ func TestBrowserCommandBarSearchesTheConnectedApp(t *testing.T) {
 
 	if asked := app.askedFor(); len(asked) == 0 || asked[len(asked)-1] != "app" {
 		t.Errorf("the connected app was asked for %v, want the query the bar holds", asked)
+	}
+}
+
+// The row that goes to what was typed sits between the tiles and the connected
+// app's results. Those results arrive half a second later, so it is above them,
+// where they cannot push it down.
+func TestBrowserTheTypedQueryRowSitsBeforeTheConnectedAppsResults(t *testing.T) {
+	p, user := startPageBrowser(t)
+	p.tilesForFiltering(user)
+	app := newFakeApp(t)
+	app.answer(http.StatusOK, `{"links":[{"id":7,"title":"Apple Support","url":"https://support.apple.com"}]}`)
+	p.ts.connect(user, app.URL)
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "app")
+	p.assertText(".command-bar-suggestions", "Apple Support")
+
+	got := p.texts(".command-bar-suggestion .suggestion-title")
+	want := []string{"Apple", "Search DuckDuckGo for “app”", "Apple Support"}
+	if !slices.Equal(got, want) {
+		t.Errorf("rows = %q, want %q", got, want)
 	}
 }

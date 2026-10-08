@@ -580,6 +580,33 @@ func (p *browserPage) waitForDB(describe string, holds func() bool) {
 	}
 }
 
+// assertNavigatedTo waits for the tab to be at the URL. It reads the tab's
+// history and not location: this browser reaches nothing outside the machine,
+// so an address elsewhere ends on an error page whose location is
+// chrome-error://. Its history entry keeps the URL the page asked for.
+//
+// A read can fail while the tab moves to another site: Chrome gives the new
+// site its own process, and the tab is not attached to a page until it has
+// one. So a failed read means "not yet", as a wrong URL does.
+func (p *browserPage) assertNavigatedTo(url string) {
+	p.t.Helper()
+	deadline := time.Now().Add(waitTimeout)
+	at := ""
+	for {
+		history, err := chromedp.Run(p.ctx, chromedp.NavigationEntries())
+		if err == nil {
+			at = history.Entries[history.CurrentIndex].URL
+		}
+		if at == url {
+			return
+		}
+		if time.Now().After(deadline) {
+			p.t.Fatalf("waited %s for the tab to go to %s; it is at %q (last read: %v)", waitTimeout, url, at, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // === FOCUS ===
 //
 // The editor's keyboard model is a roving tab stop, so most of what these

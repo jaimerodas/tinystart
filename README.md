@@ -30,7 +30,11 @@ trampas que vale la pena conocer, está en [`docs/gotchas.md`](docs/gotchas.md).
 - `⌥E` te lleva de la start page al editor y `⌥S` de regreso. `?` abre la lista
   completa de atajos.
 - La barra de comandos filtra tus tiles al instante, por título o por URL, y
-  pone primero los que más abres. Si tienes una conexión
+  pone primero los que más abres. Debajo de los tiles siempre hay una fila que
+  dice qué pasa con lo que escribiste tal cual («Go to prusa3d.com», «Search
+  DuckDuckGo for …»), y con ella le pasas por encima a un tile: «prusa3d.com»
+  aunque tengas un tile de connect.prusa3d.com. La fila resaltada es a donde te
+  lleva Enter. Si tienes una conexión
   configurada, le pregunta también a la otra app y te muestra esos resultados en
   una segunda sección.
 - Tema (claro / oscuro / el del sistema) y color de acento, en Settings.

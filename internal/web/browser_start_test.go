@@ -147,8 +147,10 @@ func TestBrowserCommandBarPutsTheMostVisitedTileFirst(t *testing.T) {
 	p.fillIn(".command-bar input", "a")
 	p.assertText(".command-bar-suggestions", "Apple Music")
 
+	// The last row is not a tile. It searches for what was typed, and it comes
+	// after every tile.
 	got := p.texts(".command-bar-suggestion .suggestion-title")
-	want := []string{"Apple Music", "Amazon Shopping", "Apple"}
+	want := []string{"Apple Music", "Amazon Shopping", "Apple", "Search DuckDuckGo for “a”"}
 	if !slices.Equal(got, want) {
 		t.Errorf("suggestions = %q, want %q", got, want)
 	}
@@ -169,7 +171,69 @@ func TestBrowserCommandBarMatchesTheURL(t *testing.T) {
 
 	p.fillIn(".command-bar input", "https")
 
-	p.assertNoSelector(".command-bar-suggestion")
+	// No tile: the only row is the search for what was typed.
+	got := p.texts(".command-bar-suggestion .suggestion-title")
+	if want := []string{"Search DuckDuckGo for “https”"}; !slices.Equal(got, want) {
+		t.Errorf("rows = %q, want %q", got, want)
+	}
+}
+
+// Matching on the address has a cost: "prusa3d.com" matches a tile for
+// connect.prusa3d.com, and Enter opens the tile. The row after the tiles goes
+// to what was typed instead. The tile stays the default, so it gets no visit.
+func TestBrowserCommandBarCanGoToTheTypedAddressPastAMatchingTile(t *testing.T) {
+	p, user := startPageBrowser(t)
+	group := p.ts.newGroup(user.ID, "Making", 1)
+	item := p.ts.newItem(user.ID, group.ID, "Prusa Connect", "https://connect.prusa3d.com")
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "prusa3d.com")
+
+	p.assertText(".command-bar-suggestion.selected", "Prusa Connect")
+	p.assertText(".command-bar-suggestion", "Go to prusa3d.com")
+
+	p.sendKeys(kb.ArrowDown, kb.Enter)
+
+	p.assertNavigatedTo("https://prusa3d.com/")
+	if got := p.reloadItem(user.ID, item.ID).VisitCount; got != 0 {
+		t.Errorf("visit count = %d, want 0: the tile was not opened", got)
+	}
+}
+
+// With no tile to match, the row is still there, and it is highlighted: the
+// bar always shows where Enter goes.
+func TestBrowserCommandBarSaysWhereEnterGoesWhenNoTileMatches(t *testing.T) {
+	p, user := startPageBrowser(t)
+	p.tilesForFiltering(user)
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "prusa3d.com")
+
+	got := p.texts(".command-bar-suggestion .suggestion-title")
+	if want := []string{"Go to prusa3d.com"}; !slices.Equal(got, want) {
+		t.Errorf("rows = %q, want %q", got, want)
+	}
+	p.assertText(".command-bar-suggestion.selected", "Go to prusa3d.com")
+
+	p.sendKeys(kb.Enter)
+
+	p.assertNavigatedTo("https://prusa3d.com/")
+}
+
+// The same row for text that is not an address: a tile called GitHub must not
+// make a web search for "github" impossible.
+func TestBrowserCommandBarCanSearchForTextThatMatchesATile(t *testing.T) {
+	p, user := startPageBrowser(t)
+	p.tilesForFiltering(user)
+
+	p.visit("/")
+	p.fillIn(".command-bar input", "github")
+
+	p.assertText(".command-bar-suggestion", "Search DuckDuckGo for “github”")
+
+	p.sendKeys(kb.ArrowDown, kb.Enter)
+
+	p.assertNavigatedTo("https://duckduckgo.com/?q=github")
 }
 
 // The signed-out twin of the test above: no account, no tiles from the

@@ -1,6 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 import { trackTileVisit, trackFederatedVisit } from "lib/track_visit"
 
+// Where a query that is not a URL goes. The server validates the choice, and
+// an unknown value falls back to DuckDuckGo.
+const engines = {
+  duckduckgo: { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=" },
+  google: { name: "Google", url: "https://www.google.com/search?q=" },
+  kagi: { name: "Kagi", url: "https://kagi.com/search?q=" },
+}
+
 export default class extends Controller {
   static targets = ["input", "suggestions"]
   // federation: "active" federates to the connected app, "reconnect" says the token was
@@ -142,28 +150,23 @@ export default class extends Controller {
     })
   }
 
+  // Only called with a query, so there is always at least one row: the one
+  // for what was typed. It says what Enter does with the text — "Go to
+  // prusa3d.com" or "Search DuckDuckGo for …" — and it is how to get past a
+  // matching tile: "prusa3d.com" past a tile for connect.prusa3d.com, a search
+  // for "github" past a GitHub tile. It comes before the connected app's
+  // results, which arrive later and so cannot push it down.
+  //
+  // The highlighted row is where Enter goes. The first row starts highlighted:
+  // the best tile, or this row when no tile matches.
   renderSuggestions() {
-    // Build combined results list for keyboard navigation
     this.allResults = [
       ...this.startPageLinks.map(l => ({ ...l, section: 'startPage' })),
+      { section: "typed" },
       ...this.serverLinks.map(l => ({ ...l, section: 'allLinks' }))
     ]
 
-    // Hide if nothing to show
-    if (this.allResults.length === 0 && !this.isSearching) {
-      this.hideSuggestions()
-      return
-    }
-
-    // Auto-select first Start Page result only (not All Links)
-    if (this.selectedIndex === -1 && this.startPageLinks.length > 0) {
-      this.selectedIndex = 0
-    }
-
-    // Make sure that selectedIndex stays within bounds (but allow -1 for no selection)
-    if (this.selectedIndex >= this.allResults.length) {
-      this.selectedIndex = this.allResults.length > 0 ? this.allResults.length - 1 : -1
-    }
+    this.selectedIndex = Math.min(Math.max(this.selectedIndex, 0), this.allResults.length - 1)
 
     let html = ''
 
@@ -180,13 +183,19 @@ export default class extends Controller {
       }).join('')
     }
 
+    const typedIndex = this.startPageLinks.length
+    const typedClass = typedIndex === this.selectedIndex ? "selected" : ""
+    html += `<div class="command-bar-suggestion ${typedClass}" data-index="${typedIndex}">
+      <span class="suggestion-title">${this.escapeHtml(this.typedLabel())}</span>
+    </div>`
+
     // Federated section, named after where its results come from
     if (this.isSearching) {
       html += this.federatedHeader()
       html += '<div class="command-bar-searching">Searching...</div>'
     } else if (this.serverLinks.length > 0) {
       html += this.federatedHeader()
-      const startOffset = this.startPageLinks.length
+      const startOffset = typedIndex + 1
       html += this.serverLinks.map((link, index) => {
         const globalIndex = startOffset + index
         const isSelected = globalIndex === this.selectedIndex
@@ -212,6 +221,11 @@ export default class extends Controller {
         const index = parseInt(el.dataset.index, 10);
         el.addEventListener("click", () => this.selectSuggestion(index, false));
       });
+  }
+
+  typedLabel() {
+    const query = this.currentQuery
+    return this.isValidUrl(query) ? `Go to ${query}` : `Search ${this.engine.name} for “${query}”`
   }
 
   federatedHeader() {
@@ -260,6 +274,10 @@ export default class extends Controller {
 
   selectSuggestion(index, openInNewTab) {
     const link = this.allResults[index];
+    if (link.section === "typed") {
+      this.navigateToUrlOrSearch(this.currentQuery, openInNewTab);
+      return;
+    }
     // Tiles are ours. Everything under "All Links" belongs to the connected app.
     if (link.section === "startPage") {
       trackTileVisit(link.id);
@@ -302,15 +320,12 @@ export default class extends Controller {
     }
   }
 
-  // Server validates the search engine choice; unknown values fall back to DuckDuckGo.
+  get engine() {
+    return engines[this.engineValue] || engines.duckduckgo;
+  }
+
   buildSearchUrl(query) {
-    const bases = {
-      duckduckgo: "https://duckduckgo.com/?q=",
-      google: "https://www.google.com/search?q=",
-      kagi: "https://kagi.com/search?q=",
-    };
-    const base = bases[this.engineValue] || bases.duckduckgo;
-    return base + encodeURIComponent(query.trim());
+    return this.engine.url + encodeURIComponent(query.trim());
   }
 
   clearSearch() {
