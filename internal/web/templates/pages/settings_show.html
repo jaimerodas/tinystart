@@ -26,9 +26,11 @@ every family it offers. The layout already links the reader's. */}}
     </ul>
   </section>
 
-  <section id="user-display" class="user-section">
-    <h2>Display</h2>
-    <form data-controller="theme" data-action="turbo:submit-end-&gt;theme#updateTheme" action="/settings" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" />
+  <section id="user-preferences" class="user-section">
+    <h2>Preferences</h2>
+    {{/* Empty until the first save, so a screen reader hears each one. */}}
+    <p id="preferences_status" class="save-status" role="status" aria-live="polite"></p>
+    <form data-controller="theme auto-submit" data-action="change-&gt;theme#update change-&gt;auto-submit#submit" action="/settings" accept-charset="UTF-8" method="post"><input type="hidden" name="_method" value="patch" />
       <div class="form-group">
         <label>Theme</label>
         <div class="radio-group">
@@ -72,9 +74,10 @@ every family it offers. The layout already links the reader's. */}}
 {{end}}        </div>
         <p class="help-text">Choose which engine the command bar sends a search to when your query is not a URL.</p>
       </div>
-
-      <button type="submit" name="commit" value="Save display preferences" class="action-button" data-disable-with="Save display preferences">Save display preferences</button>
 </form>  </section>
 
 </main>
 {{end}}
+
+{{/* What a save answers with, into #preferences_status. */}}
+{{define "preferences_status"}}<span class="{{.Type}}">{{.Message}}</span>{{end}}

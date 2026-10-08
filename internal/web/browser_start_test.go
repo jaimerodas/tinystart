@@ -75,7 +75,7 @@ func TestBrowserEveryPageLoadsWithoutAScriptError(t *testing.T) {
 	pages := []struct{ path, marker string }{
 		{"/", ".command-bar"},
 		{"/start/edit", ".editor-toolbar"},
-		{"/settings", "#user-display"},
+		{"/settings", "#user-preferences"},
 		{"/settings/password/edit", "form"},
 		{"/settings/import_export", "#import-export"},
 		{"/settings/connections", "#connection-settings"},
@@ -350,10 +350,11 @@ func (p *browserPage) assertVisitRecorded(userID, itemID int64) {
 
 // === THEME ===
 
-// A form like any other stores the preferences, but what they change is two
-// attributes on <html>. The controller writes them from the submit event
-// rather than waiting for a reload, so this is only true in a browser.
-func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
+// There is no save button: picking is saving. What a pick changes is
+// attributes on <html>, which the controller writes as the pick is made, so
+// this is only true in a browser. The save answers in the heading row, and no
+// flash comes back to cover anything.
+func TestBrowserThemePickerSavesAsItChanges(t *testing.T) {
 	p, user := startPageBrowser(t)
 
 	p.visit("/settings")
@@ -366,24 +367,23 @@ func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 	// the label — is what there is to click, for a test as much as for anyone
 	// else.
 	p.click(`label[for="color_purple"]`)
-	p.clickOn("#user-display", "Save display preferences")
 
 	p.waitFor(`document.documentElement.dataset.theme === "dark" &&
 		document.documentElement.dataset.color === "purple"`,
 		"the theme and colour to be written on <html>")
-
-	stored := p.ts.reloadUser(user)
-	if stored.ThemePreference != "dark" || stored.ColorPreference != "purple" {
-		t.Errorf("stored preferences = %q %q, want dark purple",
-			stored.ThemePreference, stored.ColorPreference)
-	}
+	p.waitForDB("the theme and colour to be stored", func() bool {
+		stored := p.ts.reloadUser(user)
+		return stored.ThemePreference == "dark" && stored.ColorPreference == "purple"
+	})
+	p.assertText("#preferences_status", "Saved")
+	p.assertNoSelectorNow(".flash")
 }
 
-// The typeface changes without a reload, like the theme. Two things have to
-// happen in the browser for that. The controller writes data-font on <html>,
-// and Turbo adds the new family's stylesheet to <head> when it renders the
-// page the save redirects to. The test cannot see the font itself, because
-// the test browser cannot reach Google Fonts, so it reads the computed family.
+// The typeface changes without a reload, like the theme. The controller
+// writes data-font on <html>, and the page already links every family it
+// offers, so the new one is there to switch to. The test cannot see the font
+// itself, because the test browser cannot reach Google Fonts, so it reads the
+// computed family.
 func TestBrowserTypefacePickerSwitchesTheFont(t *testing.T) {
 	p, user := startPageBrowser(t)
 
@@ -393,17 +393,16 @@ func TestBrowserTypefacePickerSwitchesTheFont(t *testing.T) {
 	}
 
 	p.click("#font_literata")
-	p.clickOn("#user-display", "Save display preferences")
 
 	p.waitFor(`document.documentElement.dataset.font === "literata"`, "the font to be written on <html>")
-	p.waitFor(`document.querySelector('link[href*="family=Literata"]')`, "the Literata stylesheet in <head>")
+	p.assertPresent(`link[href*="family=Literata"]`)
 	if got := p.evalString(`getComputedStyle(document.body).fontFamily`); !strings.HasPrefix(got, "Literata") {
 		t.Errorf("body font-family = %q, want Literata first", got)
 	}
 
-	if got := p.ts.reloadUser(user).FontPreference; got != "literata" {
-		t.Errorf("stored font = %q, want literata", got)
-	}
+	p.waitForDB("the font to be stored", func() bool {
+		return p.ts.reloadUser(user).FontPreference == "literata"
+	})
 }
 
 // In the picker, each choice is set in the typeface it picks, whatever the
@@ -435,7 +434,10 @@ func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	p.ts.newItem(user.ID, group.ID, "Example", "https://example.com")
 
 	p.visit("/settings")
-	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".action-button", ".user-section h2")
+	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".user-section h2")
+	// The main page saves as it changes, so it has no button to measure.
+	p.visit("/settings/browsers")
+	failures = append(failures, p.contrastFailures(".action-button")...)
 
 	// The start page puts the accent on the group names, and tints the
 	// background behind the tiles.

@@ -152,17 +152,35 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 		font := formValueOr(r, "user[font_preference]", user.FontPreference)
 
 		err := s.db.UpdatePreferences(r.Context(), user.ID, theme, color, engine, font)
-		if err == nil {
-			s.redirect(w, r, "/settings", flashNotice, "Settings updated successfully.")
-			return
-		}
-
 		var invalid store.ValidationError
-		if !errors.As(err, &invalid) {
+		if err != nil && !errors.As(err, &invalid) {
 			s.serverError(w, r, err)
 			return
 		}
-		s.redirect(w, r, "/settings", flashAlert, "Failed to update settings: "+invalid.Error())
+
+		// The form saves on every change, so Turbo gets its answer in place: a
+		// redirect would redraw the page under the pointer. Without Turbo the
+		// write redirects, as every other write here does.
+		if wantsTurboStream(r) {
+			status, answer := http.StatusOK, flashMessage{Type: flashNotice, Message: "Saved"}
+			if err != nil {
+				status, answer = http.StatusUnprocessableEntity,
+					flashMessage{Type: flashAlert, Message: "Failed to update settings: " + invalid.Error()}
+			}
+			html, err := s.renderPartial(pageSettingsShow, "preferences_status", answer)
+			if err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+			s.writeTurboStream(w, status, updateStream("preferences_status", html))
+			return
+		}
+
+		if err != nil {
+			s.redirect(w, r, "/settings", flashAlert, "Failed to update settings: "+invalid.Error())
+			return
+		}
+		s.redirect(w, r, "/settings", flashNotice, "Settings updated successfully.")
 	})
 }
 

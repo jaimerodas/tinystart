@@ -1,6 +1,6 @@
 /* One button shape for Settings, whatever element it happens to be: a link
    (Export, and the approval page while a connection is pending), a form submit
-   (Connect, Save display preferences, Import) or a button_to's button
+   (Connect, Import) or a button_to's button
    (Disconnect). Before this each of those looked like something else — Export
    borrowed .button-link from the start page and read as body text, Disconnect
    was a browser default, and every submit was a full-width slab.

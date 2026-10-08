@@ -76,6 +76,37 @@ func TestSettingsUpdatesThemeAndColor(t *testing.T) {
 		assertContains(`<html data-theme="light" data-color="pink" data-font="geist">`)
 }
 
+// The preferences save as they change, so a save answers in place: a word in
+// the section's heading row, and no redirect or flash to redraw the page
+// under the pointer.
+func TestSettingsSavesAPreferenceInPlace(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.turbo(http.MethodPatch, "/settings", form("user[search_engine]", "kagi")).
+		assertStatus(http.StatusOK).
+		assertContains(`<turbo-stream action="update" target="preferences_status">`).
+		assertContains("Saved")
+
+	if got := ts.reloadUser(user).SearchEngine; got != "kagi" {
+		t.Errorf("search engine = %q, want kagi", got)
+	}
+	ts.get("/settings").assertNotContains("Settings updated successfully.")
+}
+
+// A refusal answers in the same place, and changes nothing.
+func TestSettingsSaysInPlaceWhenAPreferenceIsRefused(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.turbo(http.MethodPatch, "/settings", form("user[theme_preference]", "neon")).
+		assertStatus(http.StatusUnprocessableEntity).
+		assertContains(`<turbo-stream action="update" target="preferences_status">`).
+		assertContains("Failed to update settings: Theme preference neon is not a valid theme")
+
+	if got := ts.reloadUser(user).ThemePreference; got != "system" {
+		t.Errorf("theme = %q, want the refusal to have changed nothing", got)
+	}
+}
+
 // The typeface picker offers each font, with the stored one checked. A new
 // account starts on Geist. The labels name the kind of typeface, not the
 // font: the value is Geist, the reader sees Sans-serif. Each label carries

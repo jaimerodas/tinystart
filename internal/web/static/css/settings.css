@@ -20,6 +20,36 @@
   }
 }
 
+/* The answer to the last save, at the right end of the heading row. It is
+   placed over the row rather than in the flow, so its arrival moves nothing
+   under the pointer. */
+#user-preferences {
+  position: relative;
+}
+
+.save-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mid-color);
+
+  /* Each save swaps in a new span, so a second "Saved" fades in again
+     instead of looking like the first one still sitting there. */
+  span {
+    animation: save-status-in 0.4s ease-out;
+  }
+
+  .alert {
+    color: var(--danger-color);
+  }
+}
+
+@keyframes save-status-in {
+  from { opacity: 0; }
+}
+
 #connection-settings {
   /* Spaced by a gap rather than by paragraph margins: three <p> in a row is
      three 1em margins, which put 40px between lines that belong together. */
