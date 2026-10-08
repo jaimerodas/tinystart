@@ -44,11 +44,12 @@ article {
   text-align: center;
 }
 
+/* A link keeps its colour on hover and gets an underline. A colour change on
+   hover moved one accent or another below 4.5:1. */
 a {
-  color: var(--link-color);
+  color: var(--highlight-color);
   text-decoration: none;
   &:hover {
-    color: var(--link-hover-color);
     text-decoration: underline;
   }
 }

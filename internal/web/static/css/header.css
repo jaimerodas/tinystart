@@ -41,7 +41,7 @@ header {
     border: none;
 
     &:hover {
-      background: var(--header-link-hover-color);
+      background: var(--highlight-color);
       color: var(--button-fg-color);
       text-decoration: none;
     }
@@ -64,11 +64,11 @@ header {
   header :is(a, button) {
     height: auto;
     padding: 0.5em 0;
-    color: var(--link-color);
+    color: var(--highlight-color);
 
     &:hover {
       background: none;
-      color: var(--link-hover-color);
+      color: var(--highlight-color);
       text-decoration: underline;
     }
   }

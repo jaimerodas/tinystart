@@ -176,7 +176,9 @@
     &:focus {
       outline: none;
       border-color: var(--highlight-color);
-      box-shadow: 0 0 0 0.125em rgba(var(--highlight-color), 0.2);
+      /* Relative colour syntax: rgba() cannot hold an oklch() accent, and the
+         browser drops the whole declaration when it tries. */
+      box-shadow: 0 0 0 0.25rem oklch(from var(--highlight-color) l c h / 0.22);
     }
   }
 }

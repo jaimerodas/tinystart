@@ -11,26 +11,27 @@
   --fg-color: light-dark(black, white);
   --mid-color: light-dark(#494949, #c6c6c6);
   --border-color: light-dark(#ccc, #555);
-  --button-fg-color: white;
 
-  --highlight-color: var(--base-accent);
-  --highlight-contrast-color: var(--button-fg-color);
+  /* The accent as the app uses it: for links, focus rings, borders, and as
+     the fill of a button. The raw accents go from L 0.55 to L 0.82. On white,
+     yellow, teal and orange are too light for text. On the dark background,
+     red and blue are too dark. So this clamps the lightness. It clamps the
+     chroma too, because a dark, saturated orange is outside sRGB and clips to
+     red. The result is at least 5:1 on --bg-color for each accent, and white
+     or black on it is at least 5:1 too.
+     TestBrowserEveryAccentKeepsTextReadable measures this. */
+  --highlight-color: light-dark(
+    oklch(from var(--base-accent) min(l, 0.5) min(c, 0.15) h),
+    oklch(from var(--base-accent) max(l, 0.8) min(c, 0.13) h)
+  );
+  --button-fg-color: light-dark(white, black);
 
-  --link-color: light-dark(
-    oklch(from var(--base-accent) calc(l - 0.15) c h),
-    var(--base-accent)
-  );
-  --link-hover-color: light-dark(
-    var(--base-accent),
-    oklch(from var(--base-accent) calc(l - 0.15) c h)
-  );
+  /* A tint of the raw accent, behind text that keeps its own colour: hovers,
+     the selected row, focus glows. */
+  --accent-wash: oklch(from var(--base-accent) l c h / 0.13);
 
   /* Header colors with transparency */
-  --header-bg-color: oklch(from var(--base-accent) l c h / 0.85);
-  --header-link-hover-color: light-dark(
-    oklch(from var(--base-accent) calc(l + 0.1) calc(c + 0.05) h / 0.85),
-    oklch(from var(--base-accent) calc(l + 0.05) calc(c + 0.02) h / 0.85)
-  );
+  --header-bg-color: oklch(from var(--highlight-color) l c h / 0.85);
 
   --header-shadow: light-dark(
     0 0 0.5em rgba(106, 106, 106, 0.05),
@@ -80,22 +81,18 @@
 
 [data-color="orange"] {
   --base-accent: var(--accent-orange);
-  --button-fg-color: black;
 }
 
 [data-color="yellow"] {
   --base-accent: var(--accent-yellow);
-  --button-fg-color: black;
 }
 
 [data-color="green"] {
   --base-accent: var(--accent-green);
-  --button-fg-color: light-dark(white, black);
 }
 
 [data-color="teal"] {
   --base-accent: var(--accent-teal);
-  --button-fg-color: black;
 }
 
 [data-color="blue"] {
@@ -104,10 +101,8 @@
 
 [data-color="purple"] {
   --base-accent: var(--accent-purple);
-  --button-fg-color: light-dark(white, black);
 }
 
 [data-color="pink"] {
   --base-accent: var(--accent-pink);
-  --button-fg-color: light-dark(white, black);
 }

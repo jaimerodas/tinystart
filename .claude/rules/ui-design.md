@@ -7,7 +7,10 @@ re-flag. The design system lives in the code; this points at it.
 
 - **Palette**: `colors.css`, pivoting on `--base-accent` plus native
   `light-dark()`. Theme and colour are `data-theme` / `data-color` on `<html>`;
-  the eight accents are `User::VALID_COLORS`.
+  the eight accents are `User::VALID_COLORS`. Text, rings, borders and button
+  fills use `--highlight-color`, the accent with its lightness clamped so every
+  accent passes AA in both themes (a browser test measures all 16). The raw
+  accent only paints the Settings swatches and `--accent-wash`.
 - **Measurements**: `tokens.css`. `--control-size` (2rem) is every control in the
   start page editor; `--button-height` (2.75rem) is every button in Settings.
 - **Buttons**: `.action-button` in `buttons.css`, with a `.danger` modifier — the

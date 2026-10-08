@@ -28,13 +28,13 @@ form {
       content: "";
       width: 1.5rem;
       height: 1.5rem;
-      border: 0.125rem solid var(--link-color);
+      border: 0.125rem solid var(--highlight-color);
       border-radius: 0.25em;
       box-sizing: border-box;
     }
 
     input[type=checkbox]:checked::before {
-      background: var(--link-color);
+      background: var(--highlight-color);
     }
 
     label {
@@ -87,7 +87,7 @@ form {
       display: block;
       width: 1.5rem;
       height: 1.5rem;
-      border: 0.125rem solid var(--link-color);
+      border: 0.125rem solid var(--highlight-color);
       border-radius: 50%;
       box-sizing: border-box;
       transition: 0.2s ease all;
@@ -256,7 +256,7 @@ input[type=submit] {
     margin-left: 0.5em;
 
     &:hover svg * {
-      fill: var(--link-hover-color);
+      fill: var(--highlight-color);
     }
   }
   svg {

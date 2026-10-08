@@ -7,6 +7,7 @@
 package web
 
 import (
+	"encoding/json"
 	"slices"
 	"strings"
 	"testing"
@@ -360,6 +361,90 @@ func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 		t.Errorf("stored preferences = %q %q, want dark purple",
 			stored.ThemePreference, stored.ColorPreference)
 	}
+}
+
+// === COLOUR ===
+
+// Every accent, in both themes, keeps the 4.5:1 that WCAG AA asks of text: a
+// link on the page, and a button's label on the accent that fills it. The
+// eight accents go from L 0.55 to L 0.82, so no one fixed offset from the
+// accent can do this. The colour has to come from a clamp.
+func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	p.visit("/settings")
+
+	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".action-button")
+	for _, failure := range failures {
+		t.Error(failure)
+	}
+}
+
+// The command bar draws a ring when it has focus. The border changes colour
+// too, but that alone is not enough: on yellow the change is 1.76:1. The ring
+// was in the stylesheet before and never drew, because rgba() cannot hold an
+// oklch() colour, and the browser drops the whole declaration.
+func TestBrowserTheCommandBarShowsItsFocus(t *testing.T) {
+	p, _ := startPageBrowser(t)
+
+	p.waitFor(`document.activeElement.matches(".command-bar input")`, "the command bar to have focus")
+	if got := p.evalString(`getComputedStyle(document.activeElement).boxShadow`); got == "none" {
+		t.Error("the focused command bar has no ring")
+	}
+}
+
+// contrastFailures sets each accent in each theme on <html> and measures each
+// selector's text against the first opaque background behind it. It returns
+// one line for each pair below 4.5:1.
+//
+// A canvas converts each computed colour to sRGB, because the computed value
+// can be oklch() or display-p3, and the contrast formula is for sRGB. The
+// style it adds stops the transitions, so the page shows the new colours at
+// once and not part of the way there.
+func (p *browserPage) contrastFailures(selectors ...string) []string {
+	p.t.Helper()
+	args, err := json.Marshal([]any{store.ValidColors, selectors})
+	if err != nil {
+		p.t.Fatal(err)
+	}
+	return p.eval[[]string](`((colors, selectors) => {
+		const stop = document.createElement("style");
+		stop.textContent = "* { transition: none !important }";
+		document.head.append(stop);
+
+		const canvas = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+		const rgba = css => {
+			canvas.clearRect(0, 0, 1, 1);
+			canvas.fillStyle = css;
+			canvas.fillRect(0, 0, 1, 1);
+			return [...canvas.getImageData(0, 0, 1, 1).data];
+		};
+		const luminance = rgb => {
+			const [r, g, b] = rgb.slice(0, 3).map(v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		};
+		const background = el => {
+			for (; el; el = el.parentElement) {
+				const color = rgba(getComputedStyle(el).backgroundColor);
+				if (color[3] > 0) return color;
+			}
+			return [255, 255, 255, 255];
+		};
+
+		const failures = [];
+		for (const theme of ["light", "dark"]) {
+			for (const color of colors) {
+				document.documentElement.dataset.theme = theme;
+				document.documentElement.dataset.color = color;
+				for (const selector of selectors) {
+					const el = document.querySelector(selector);
+					const [hi, lo] = [luminance(rgba(getComputedStyle(el).color)), luminance(background(el))].sort((a, b) => b - a);
+					const ratio = (hi + 0.05) / (lo + 0.05);
+					if (ratio < 4.5) failures.push(theme + " " + color + " " + selector + ": " + ratio.toFixed(2) + ":1");
+				}
+			}
+		}
+		return failures;
+	})(...` + string(args) + `)`)
 }
 
 // === IMPORT AND EXPORT ===

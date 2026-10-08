@@ -44,9 +44,10 @@ input[type=submit].action-button {
 .action-button:hover,
 input[type=submit].action-button:hover {
   /* Spelled out because the global `a:hover` would otherwise underline it and
-     repaint the text in the link colour. */
+     repaint the text in the link colour. The hover is a ring, not a new fill,
+     so the label keeps the contrast it has at rest. */
   color: var(--button-fg-color);
-  background: var(--link-hover-color);
+  box-shadow: 0 0 0 0.25rem var(--accent-wash);
   text-decoration: none;
 }
 
