@@ -32,11 +32,11 @@ func layoutHTML(t *testing.T, layout string, v view) string {
 // on <html> fall back to the logged-out defaults — hence data-turbo="false".
 // The DELETE arrives as a POST carrying _method, which is what button_to wrote.
 func TestTheApplicationLayoutsMenu(t *testing.T) {
-	user := &store.User{ID: 1, ThemePreference: "dark", ColorPreference: "purple"}
-	html := layoutHTML(t, layoutApplication, view{User: user, Theme: "dark", Color: "purple"})
+	user := &store.User{ID: 1, ThemePreference: "dark", ColorPreference: "purple", FontPreference: "literata"}
+	html := layoutHTML(t, layoutApplication, view{User: user, Theme: "dark", Color: "purple", Font: "literata"})
 
 	for _, want := range []string{
-		`<html data-theme="dark" data-color="purple">`,
+		`<html data-theme="dark" data-color="purple" data-font="literata">`,
 		`<a class="main-menu-link" href="/">Start</a>`,
 		`<form data-turbo="false" class="button_to" method="post" action="/session">`,
 		`<input type="hidden" name="_method" value="delete" />`,
@@ -51,13 +51,48 @@ func TestTheApplicationLayoutsMenu(t *testing.T) {
 // Signed out there is no menu. The only thing it offers is the way back to
 // the start page, and there is nothing to go back to.
 func TestTheApplicationLayoutHasNoMenuWhenSignedOut(t *testing.T) {
-	html := layoutHTML(t, layoutApplication, view{Theme: "system", Color: "teal"})
+	html := layoutHTML(t, layoutApplication, view{Theme: themeFor(nil), Color: colorFor(nil), Font: fontFor(nil)})
 
 	if strings.Contains(html, "<header>") {
 		t.Error("the application layout drew a menu for an anonymous visitor")
 	}
-	if !strings.Contains(html, `<html data-theme="system" data-color="teal">`) {
-		t.Error("the logged-out defaults are not system and teal")
+	if !strings.Contains(html, `<html data-theme="system" data-color="teal" data-font="geist">`) {
+		t.Error("the logged-out defaults are not system, teal and geist")
+	}
+}
+
+// A page links the stylesheet of one typeface: the reader's. The browser only
+// downloads the font files a page uses, but it fetches every stylesheet it is
+// given, and each family's @font-face rules come with it. The sign-in pages
+// have no reader yet, so they get the default.
+func TestEveryLayoutLinksOnlyTheChosenTypeface(t *testing.T) {
+	for _, test := range []struct {
+		layout     string
+		font       string
+		want, skip string
+	}{
+		{layoutApplication, "literata", "family=Literata", "family=Geist"},
+		{layoutStart, "literata", "family=Literata", "family=Geist"},
+		{layoutStart, "geist", "family=Geist", "family=Literata"},
+		{layoutSession, fontFor(nil), "family=Geist", "family=Literata"},
+	} {
+		html := layoutHTML(t, test.layout, view{Font: test.font})
+		if !strings.Contains(html, `<link href="https://fonts.googleapis.com/css2?`+test.want) {
+			t.Errorf("%s with %q does not link %s", test.layout, test.font, test.want)
+		}
+		if strings.Contains(html, test.skip) {
+			t.Errorf("%s with %q also links %s", test.layout, test.font, test.skip)
+		}
+	}
+}
+
+// Each typeface a reader can pick has a stylesheet to link. One missing here
+// would leave that reader on the fallback font with no error anywhere.
+func TestEveryValidFontHasAStylesheet(t *testing.T) {
+	for _, font := range store.ValidFonts {
+		if _, ok := fontStylesheets[font]; !ok {
+			t.Errorf("no stylesheet for %q", font)
+		}
 	}
 }
 

@@ -48,8 +48,8 @@ func TestMigrateProducesTheRailsSchema(t *testing.T) {
 // Rails recorded every migration it ran, and a database Go creates has to
 // carry all eleven, so it is indistinguishable from the database Rails left
 // behind. Migrate also reads this table to decide which files in migrations/
-// are pending, and by now one of them has run: schema_migrations carries that
-// version too.
+// are pending, and by now two of them have run: schema_migrations carries
+// those versions too.
 func TestMigrateRecordsEveryMigrationVersion(t *testing.T) {
 	db := newTestDB(t)
 
@@ -64,12 +64,12 @@ func TestMigrateRecordsEveryMigrationVersion(t *testing.T) {
 		}
 	}
 
-	want := append(slices.Clone(railsMigrations), "20260827180000")
+	want := append(slices.Clone(railsMigrations), "20260827180000", "20261008020307")
 	slices.Sort(want)
 	assertEqualStrings(t, versions, want)
 
-	if len(want) != 12 {
-		t.Errorf("%d versions, want the eleven in db/migrate plus the one migration added since", len(want))
+	if len(want) != 13 {
+		t.Errorf("%d versions, want the eleven in db/migrate plus the two migrations added since", len(want))
 	}
 }
 
@@ -120,7 +120,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("appliedVersions: %v", err)
 	}
-	want := len(railsMigrations) + 1
+	want := len(railsMigrations) + 2
 	if len(versions) != want {
 		t.Errorf("%d versions after two migrations, want %d", len(versions), want)
 	}

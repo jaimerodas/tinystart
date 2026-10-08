@@ -15,7 +15,10 @@ re-flag. The design system lives in the code; this points at it.
   start page editor; `--button-height` (2.75rem) is every button in Settings.
 - **Buttons**: `.action-button` in `buttons.css`, with a `.danger` modifier — the
   only button shape in Settings. `.button-link` is the start page header's.
-- **Type**: SN Pro, 16px base (`application.css`).
+- **Type**: Geist by default, Literata if the reader picks it in Settings,
+  16px base. The typeface is `data-font` on `<html>`, `--font-body` in
+  `fonts.css`, and each page links only its reader's family from Google Fonts
+  (`fontStylesheets` in `render.go`).
 - One file per concern in `internal/web/static/css/`; `assets.go` links every
   file in the directory, alphabetically, so a new file needs no wiring.
 

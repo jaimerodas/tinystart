@@ -1,0 +1,15 @@
+/* The typeface is data-font on <html>, like the theme and the colour. Geist
+   is the default, so it also covers the sign-in pages, which have no
+   attributes at all. Each family has a fallback stack of its own kind, so a
+   page that is still waiting for Google Fonts does not jump from serif to sans.
+
+   The layout links only the reader's family (fontStylesheets in render.go). To
+   add a typeface, add a line here and an entry there. */
+:root,
+[data-font="geist"] {
+  --font-body: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font="literata"] {
+  --font-body: "Literata", ui-serif, Georgia, serif;
+}

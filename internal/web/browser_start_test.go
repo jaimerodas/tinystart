@@ -363,6 +363,33 @@ func TestBrowserThemePickerWritesOnTheHTMLElement(t *testing.T) {
 	}
 }
 
+// The typeface changes without a reload, like the theme. Two things have to
+// happen in the browser for that. The controller writes data-font on <html>,
+// and Turbo adds the new family's stylesheet to <head> when it renders the
+// page the save redirects to. The test cannot see the font itself, because
+// the test browser cannot reach Google Fonts, so it reads the computed family.
+func TestBrowserTypefacePickerSwitchesTheFont(t *testing.T) {
+	p, user := startPageBrowser(t)
+
+	p.visit("/settings")
+	if got := p.evalString(`document.documentElement.dataset.font`); got != "geist" {
+		t.Errorf("font = %q, want the default geist", got)
+	}
+
+	p.click("#font_literata")
+	p.clickOn("#user-display", "Save display preferences")
+
+	p.waitFor(`document.documentElement.dataset.font === "literata"`, "the font to be written on <html>")
+	p.waitFor(`document.querySelector('link[href*="family=Literata"]')`, "the Literata stylesheet in <head>")
+	if got := p.evalString(`getComputedStyle(document.body).fontFamily`); !strings.HasPrefix(got, "Literata") {
+		t.Errorf("body font-family = %q, want Literata first", got)
+	}
+
+	if got := p.ts.reloadUser(user).FontPreference; got != "literata" {
+		t.Errorf("stored font = %q, want literata", got)
+	}
+}
+
 // === COLOUR ===
 
 // Every accent, in both themes, keeps the 4.5:1 that WCAG AA asks of text: a

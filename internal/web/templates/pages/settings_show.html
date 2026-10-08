@@ -60,6 +60,17 @@
       </div>
 
       <div class="form-group">
+        <label>Typeface</label>
+        <div class="radio-group">
+{{range .Data.Fonts}}          <div class="radio-field">
+            <input id="font_{{.Value}}" type="radio" value="{{.Value}}"{{if .Checked}} checked="checked"{{end}} name="user[font_preference]" />
+            <label for="font_{{.Value}}">{{.Label}}</label>
+          </div>
+{{end}}        </div>
+        <p class="help-text">Choose the typeface for every page.</p>
+      </div>
+
+      <div class="form-group">
         <label>Search engine</label>
         <div class="radio-group">
 {{range .Data.Engines}}          <div class="radio-field">

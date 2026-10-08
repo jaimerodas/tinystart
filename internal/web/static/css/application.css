@@ -10,7 +10,7 @@
  */
 
 body {
-  font-family: "SN Pro", sans-serif;
+  font-family: var(--font-body);
   font-optical-sizing: auto;
   font-size: 16px;
   font-weight: 400;

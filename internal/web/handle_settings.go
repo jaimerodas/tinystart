@@ -67,6 +67,7 @@ type settingsShowData struct {
 
 	Themes  []choice
 	Colors  []choice
+	Fonts   []choice
 	Engines []choice
 }
 
@@ -107,6 +108,10 @@ func (s *Server) handleSettings() http.Handler {
 				{Value: "light", Label: "Light"},
 				{Value: "dark", Label: "Dark"},
 			},
+			Fonts: []choice{
+				{Value: "geist", Label: "Geist"},
+				{Value: "literata", Label: "Literata"},
+			},
 			Engines: []choice{
 				{Value: "duckduckgo", Label: "DuckDuckGo"},
 				{Value: "google", Label: "Google"},
@@ -115,6 +120,9 @@ func (s *Server) handleSettings() http.Handler {
 		}
 		for i := range data.Themes {
 			data.Themes[i].Checked = data.Themes[i].Value == user.ThemePreference
+		}
+		for i := range data.Fonts {
+			data.Fonts[i].Checked = data.Fonts[i].Value == user.FontPreference
 		}
 		for i := range data.Engines {
 			data.Engines[i].Checked = data.Engines[i].Value == user.SearchEngine
@@ -127,8 +135,8 @@ func (s *Server) handleSettings() http.Handler {
 	})
 }
 
-// handleSettingsUpdate is PATCH /settings: the theme, the accent color and
-// the search engine, and nothing else.
+// handleSettingsUpdate is PATCH /settings: the theme, the accent color, the
+// font and the search engine, and nothing else.
 //
 // The column count is deliberately not accepted here, however it is spelled in
 // the body. It belongs to the editor, where a refused shrink can answer on
@@ -145,7 +153,7 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 		// params.require(:user) answers 400 for a body with no user key at
 		// all, rather than treating it as an empty one.
 		if !r.PostForm.Has("user[theme_preference]") && !r.PostForm.Has("user[color_preference]") &&
-			!r.PostForm.Has("user[search_engine]") {
+			!r.PostForm.Has("user[search_engine]") && !r.PostForm.Has("user[font_preference]") {
 			s.serveErrorPage(w, http.StatusBadRequest, "/400.html")
 			return
 		}
@@ -156,8 +164,9 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 		theme := formValueOr(r, "user[theme_preference]", user.ThemePreference)
 		color := formValueOr(r, "user[color_preference]", user.ColorPreference)
 		engine := formValueOr(r, "user[search_engine]", user.SearchEngine)
+		font := formValueOr(r, "user[font_preference]", user.FontPreference)
 
-		err := s.db.UpdatePreferences(r.Context(), user.ID, theme, color, engine)
+		err := s.db.UpdatePreferences(r.Context(), user.ID, theme, color, engine, font)
 		if err == nil {
 			s.redirect(w, r, "/settings", flashNotice, "Settings updated successfully.")
 			return

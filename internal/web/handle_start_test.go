@@ -277,7 +277,7 @@ func TestStartPageTellsTheCommandBarAboutFederation(t *testing.T) {
 // a user who picked Google in Settings gets Google here.
 func TestStartPageTellsTheCommandBarTheUsersSearchEngine(t *testing.T) {
 	ts, user := startPageServer(t)
-	if err := ts.db.UpdatePreferences(t.Context(), user.ID, user.ThemePreference, user.ColorPreference, "google"); err != nil {
+	if err := ts.db.UpdatePreferences(t.Context(), user.ID, user.ThemePreference, user.ColorPreference, "google", user.FontPreference); err != nil {
 		t.Fatalf("setting the search engine: %v", err)
 	}
 

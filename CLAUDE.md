@@ -106,8 +106,9 @@ explained at the place it lives. This is the list, not the reasoning.
   `htmlComment` exists for the one that matters.
 - **CSS**: one file per concern in `internal/web/static/css/`. Every file is
   linked, alphabetically, so a new file needs no wiring. The palette pivots on
-  `--base-accent` in `colors.css` plus native `light-dark()`, and theme and
-  color are `data-theme` / `data-color` on `<html>`. Measurements live in
+  `--base-accent` in `colors.css` plus native `light-dark()`, and theme,
+  color and typeface are `data-theme` / `data-color` / `data-font` on
+  `<html>`. Measurements live in
   `tokens.css`. `.action-button` in `buttons.css` is the one button shape in
   Settings, with a `.danger` modifier.
 - **Tests**: table-driven `testing`. `httptest` stands in for the outside

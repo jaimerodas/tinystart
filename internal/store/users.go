@@ -24,20 +24,22 @@ type User struct {
 	ThemePreference string
 	ColorPreference string
 	SearchEngine    string
+	FontPreference  string
 	Columns         int
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
-// ValidThemes, ValidColors and ValidSearchEngines are what the preferences
-// can be set to. The colors are User::VALID_COLORS, and the order is the
-// order the palette is drawn in. Grey is not among them: it was dropped and
-// migrated to teal. DuckDuckGo is first because it is the default a new
-// account starts with.
+// ValidThemes, ValidColors, ValidSearchEngines and ValidFonts are what the
+// preferences can be set to. The colors are User::VALID_COLORS, and the order
+// is the order the palette is drawn in. Grey is not among them: it was dropped
+// and migrated to teal. DuckDuckGo and Geist are first because they are the
+// defaults a new account starts with.
 var (
 	ValidThemes        = []string{"system", "light", "dark"}
 	ValidColors        = []string{"red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"}
 	ValidSearchEngines = []string{"duckduckgo", "google", "kagi"}
+	ValidFonts         = []string{"geist", "literata"}
 )
 
 // MaxColumns is the widest grid the editor offers. The narrowest is one, which
@@ -80,7 +82,7 @@ const maxPasswordLength = 72
 // userColumns is the select list every user query shares, in a fixed order so
 // that scanUser can be shared with it.
 const userColumns = `id, email, password_digest, admin, approved,
-	theme_preference, color_preference, search_engine, "columns", created_at, updated_at`
+	theme_preference, color_preference, search_engine, font_preference, "columns", created_at, updated_at`
 
 // CreateUser signs someone up. It strips and downcases the email first, so
 // "  Me@Example.COM " and "me@example.com" are the same account, and
@@ -153,6 +155,7 @@ func (db *DB) CreateUser(ctx context.Context, email, password string) (*User, er
 			ThemePreference: "system",
 			ColorPreference: "teal",
 			SearchEngine:    "duckduckgo",
+			FontPreference:  "geist",
 			Columns:         1,
 			CreatedAt:       now,
 			UpdatedAt:       now,
@@ -236,11 +239,11 @@ func (db *DB) AllUsers(ctx context.Context) ([]User, error) {
 	return users, rows.Err()
 }
 
-// UpdatePreferences sets the theme, the color and the search engine, which
-// are the things Settings can change about a user. The column count is not
-// among them on purpose: it is the editor's, so that the page that shows the
-// groups it names can answer a refusal.
-func (db *DB) UpdatePreferences(ctx context.Context, userID int64, theme, color, searchEngine string) error {
+// UpdatePreferences sets the theme, the color, the search engine and the
+// font, which are the things Settings can change about a user. The column
+// count is not among them on purpose: it is the editor's, so that the page
+// that shows the groups it names can answer a refusal.
+func (db *DB) UpdatePreferences(ctx context.Context, userID int64, theme, color, searchEngine, font string) error {
 	var fields []FieldError
 	if !slices.Contains(ValidThemes, theme) {
 		fields = append(fields, FieldError{"theme_preference", theme + " is not a valid theme"})
@@ -251,13 +254,16 @@ func (db *DB) UpdatePreferences(ctx context.Context, userID int64, theme, color,
 	if !slices.Contains(ValidSearchEngines, searchEngine) {
 		fields = append(fields, FieldError{"search_engine", searchEngine + " is not a valid search engine"})
 	}
+	if !slices.Contains(ValidFonts, font) {
+		fields = append(fields, FieldError{"font_preference", font + " is not a valid font"})
+	}
 	if err := invalid(fields...); err != nil {
 		return err
 	}
 
 	return db.update(ctx, `UPDATE users SET theme_preference = ?, color_preference = ?,
-		search_engine = ?, updated_at = ? WHERE id = ?`,
-		theme, color, searchEngine, railsTime(utcNow()), userID)
+		search_engine = ?, font_preference = ?, updated_at = ? WHERE id = ?`,
+		theme, color, searchEngine, font, railsTime(utcNow()), userID)
 }
 
 // UpdateColumns widens or narrows the grid.
@@ -459,7 +465,7 @@ func toSentence(items []string) string {
 func scanUser(row scanner) (*User, error) {
 	var user User
 	err := row.Scan(&user.ID, &user.Email, &user.PasswordDigest, &user.Admin, &user.Approved,
-		&user.ThemePreference, &user.ColorPreference, &user.SearchEngine, &user.Columns,
+		&user.ThemePreference, &user.ColorPreference, &user.SearchEngine, &user.FontPreference, &user.Columns,
 		(*railsTime)(&user.CreatedAt), (*railsTime)(&user.UpdatedAt))
 	if err != nil {
 		return nil, notFound(err)

@@ -42,9 +42,9 @@ var railsMigrations = []string{
 //
 // Every real database already has the tables, because Rails already ran in
 // production. On such a database, Migrate applies nothing but the pending
-// files in migrations/. There are none today. On an empty file, it lays down
-// schema.sql. It writes the eleven Rails versions into schema_migrations and
-// the environment row into ar_internal_metadata. The result is
+// files in migrations/. On an empty file, it lays down schema.sql. It writes
+// the eleven Rails versions into schema_migrations and the environment row
+// into ar_internal_metadata, then applies migrations/ on top. The result is
 // indistinguishable from a database Rails set up itself.
 func (db *DB) Migrate(ctx context.Context) error {
 	installed, err := db.schemaInstalled(ctx)
@@ -112,8 +112,8 @@ func (db *DB) installSchema(ctx context.Context) error {
 }
 
 // applyPendingMigrations runs every file in migrations/ whose version is not
-// already recorded, in filename order. There are none yet. migrations/README.md
-// describes the convention for adding one.
+// already recorded, in filename order. migrations/README.md describes the
+// convention for adding one.
 func (db *DB) applyPendingMigrations(ctx context.Context) error {
 	names, err := fs.Glob(migrationFiles, "migrations/*.sql")
 	if err != nil {

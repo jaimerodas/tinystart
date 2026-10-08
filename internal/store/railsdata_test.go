@@ -146,10 +146,15 @@ func TestOpensACopyOfTheDevelopmentDatabase(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Close() })
 
-	// Migrating an existing database changes nothing.
-	before := totalChanges(t, db)
+	// The copy can be behind: a migration added since the last bin/dev is
+	// pending in it, and the first run applies it. After that, migrating the
+	// existing database changes nothing.
 	if err := db.Migrate(t.Context()); err != nil {
 		t.Fatalf("Migrate: %v", err)
+	}
+	before := totalChanges(t, db)
+	if err := db.Migrate(t.Context()); err != nil {
+		t.Fatalf("second Migrate: %v", err)
 	}
 	if after := totalChanges(t, db); after != before {
 		t.Errorf("%d rows were written to an existing database", after-before)

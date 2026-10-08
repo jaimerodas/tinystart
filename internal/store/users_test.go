@@ -116,6 +116,9 @@ func TestCreateUserDefaults(t *testing.T) {
 	if stored.SearchEngine != "duckduckgo" {
 		t.Errorf("search engine = %q, want duckduckgo", stored.SearchEngine)
 	}
+	if stored.FontPreference != "geist" {
+		t.Errorf("font = %q, want geist", stored.FontPreference)
+	}
 	if stored.PasswordDigest == "password123" || stored.PasswordDigest == "" {
 		t.Errorf("password_digest = %q, want a hash", stored.PasswordDigest)
 	}
@@ -196,18 +199,23 @@ func TestUpdatePreferences(t *testing.T) {
 		theme        string
 		color        string
 		searchEngine string
+		font         string
 		want         []string
 	}{
-		{"a theme it does not know", "neon", "teal", "duckduckgo", []string{"Theme preference neon is not a valid theme"}},
-		{"a colour it does not know", "dark", "chartreuse", "duckduckgo", []string{"Color preference chartreuse is not a valid color"}},
+		{"a theme it does not know", "neon", "teal", "duckduckgo", "geist", []string{"Theme preference neon is not a valid theme"}},
+		{"a colour it does not know", "dark", "chartreuse", "duckduckgo", "geist", []string{"Color preference chartreuse is not a valid color"}},
 		// Grey left the palette and everyone holding it was migrated to teal.
 		// Nothing can put it back.
-		{"grey, which left the palette", "dark", "gray", "duckduckgo", []string{"Color preference gray is not a valid color"}},
-		{"a search engine it does not know", "dark", "teal", "bing", []string{"Search engine bing is not a valid search engine"}},
-		{"all three wrong", "neon", "gray", "bing", []string{
+		{"grey, which left the palette", "dark", "gray", "duckduckgo", "geist", []string{"Color preference gray is not a valid color"}},
+		{"a search engine it does not know", "dark", "teal", "bing", "geist", []string{"Search engine bing is not a valid search engine"}},
+		// SN Pro was the only typeface before the setting existed. Nothing can
+		// pick it now.
+		{"a font it does not know", "dark", "teal", "duckduckgo", "sn-pro", []string{"Font preference sn-pro is not a valid font"}},
+		{"all four wrong", "neon", "gray", "bing", "sn-pro", []string{
 			"Theme preference neon is not a valid theme",
 			"Color preference gray is not a valid color",
 			"Search engine bing is not a valid search engine",
+			"Font preference sn-pro is not a valid font",
 		}},
 	}
 
@@ -216,20 +224,22 @@ func TestUpdatePreferences(t *testing.T) {
 			db := newTestDB(t)
 			user := newUser(t, db, "test@example.com")
 
-			err := db.UpdatePreferences(t.Context(), user.ID, test.theme, test.color, test.searchEngine)
+			err := db.UpdatePreferences(t.Context(), user.ID, test.theme, test.color, test.searchEngine, test.font)
 			assertInvalid(t, err, test.want...)
 		})
 	}
 
-	t.Run("every listed theme, colour and search engine is accepted", func(t *testing.T) {
+	t.Run("every listed theme, colour, search engine and font is accepted", func(t *testing.T) {
 		db := newTestDB(t)
 		user := newUser(t, db, "test@example.com")
 
 		for _, theme := range ValidThemes {
 			for _, color := range ValidColors {
 				for _, engine := range ValidSearchEngines {
-					if err := db.UpdatePreferences(t.Context(), user.ID, theme, color, engine); err != nil {
-						t.Fatalf("UpdatePreferences(%q, %q, %q): %v", theme, color, engine, err)
+					for _, font := range ValidFonts {
+						if err := db.UpdatePreferences(t.Context(), user.ID, theme, color, engine, font); err != nil {
+							t.Fatalf("UpdatePreferences(%q, %q, %q, %q): %v", theme, color, engine, font, err)
+						}
 					}
 				}
 			}
@@ -239,9 +249,10 @@ func TestUpdatePreferences(t *testing.T) {
 		if err != nil {
 			t.Fatalf("UserByID: %v", err)
 		}
-		if stored.ThemePreference != "dark" || stored.ColorPreference != "pink" || stored.SearchEngine != "kagi" {
-			t.Errorf("stored %q/%q/%q, want dark/pink/kagi",
-				stored.ThemePreference, stored.ColorPreference, stored.SearchEngine)
+		if stored.ThemePreference != "dark" || stored.ColorPreference != "pink" ||
+			stored.SearchEngine != "kagi" || stored.FontPreference != "literata" {
+			t.Errorf("stored %q/%q/%q/%q, want dark/pink/kagi/literata",
+				stored.ThemePreference, stored.ColorPreference, stored.SearchEngine, stored.FontPreference)
 		}
 	})
 }

@@ -99,7 +99,68 @@ func TestSettingsUpdatesThemeAndColor(t *testing.T) {
 	}
 	ts.get("/settings").
 		assertContains("Settings updated successfully.").
-		assertContains(`<html data-theme="light" data-color="pink">`)
+		assertContains(`<html data-theme="light" data-color="pink" data-font="geist">`)
+}
+
+// The typeface picker offers each font, with the stored one checked. A new
+// account starts on Geist.
+func TestSettingsOffersTheFontChoices(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains(`name="user[font_preference]"`).
+		assertContains(`id="font_geist" type="radio" value="geist" checked="checked"`).
+		assertContains(`<label for="font_geist">Geist</label>`).
+		assertContains(`id="font_literata" type="radio" value="literata"`).
+		assertContains(`<label for="font_literata">Literata</label>`)
+}
+
+func TestSettingsUpdatesTheFont(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[font_preference]", "literata")).
+		assertRedirect("/settings")
+
+	if got := ts.reloadUser(user).FontPreference; got != "literata" {
+		t.Errorf("font = %q, want literata", got)
+	}
+	ts.get("/settings").
+		assertContains("Settings updated successfully.").
+		assertContains(`data-font="literata"`).
+		assertContains(`family=Literata`)
+}
+
+func TestSettingsRefusesAnInvalidFont(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[font_preference]", "comic-sans")).
+		assertRedirect("/settings")
+
+	if got := ts.reloadUser(user).FontPreference; got != "geist" {
+		t.Errorf("font = %q, want the refusal to have changed nothing", got)
+	}
+	ts.get("/settings").
+		assertContains("Failed to update settings: Font preference comic-sans is not a valid font")
+}
+
+// A theme-only submission keeps the stored font, the same as it keeps the
+// search engine.
+func TestSettingsLeavesTheFontAloneWhenNotSent(t *testing.T) {
+	ts, user := settingsServer(t)
+	ts.send(http.MethodPatch, "/settings", form("user[font_preference]", "literata"))
+
+	ts.send(http.MethodPatch, "/settings", form("user[theme_preference]", "dark"))
+
+	if got := ts.reloadUser(user).FontPreference; got != "literata" {
+		t.Errorf("font = %q, want the stored literata", got)
+	}
+}
+
+func TestSettingsAcceptsABodyWithOnlyAFont(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.send(http.MethodPatch, "/settings", form("user[font_preference]", "literata")).
+		assertStatus(http.StatusSeeOther)
 }
 
 // A field the form did not send keeps what is stored. The theme form posts

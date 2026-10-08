@@ -90,6 +90,8 @@ func templateFuncs(assets *assetSet) template.FuncMap {
 		"importmapTags":  assets.importmapTags,
 		// icon is ApplicationHelper#icon.
 		"icon": assets.icon,
+		// fontStylesheet is the Google Fonts stylesheet for one typeface.
+		"fontStylesheet": func(font string) template.URL { return fontStylesheets[font] },
 		// title composes <title>: the page's own name and the app's, or just
 		// the app's. Rails did it with safe_join and select(&:present?).
 		"title": func(name string) string {
@@ -129,6 +131,7 @@ type view struct {
 	Title string
 	Theme string
 	Color string
+	Font  string
 	Flash []flashMessage
 	User  *store.User
 	Data  any
@@ -152,6 +155,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, layo
 		Title: pageTitles[page],
 		Theme: themeFor(user),
 		Color: colorFor(user),
+		Font:  fontFor(user),
 		Flash: s.takeFlash(w, r),
 		User:  user,
 		Data:  data,
@@ -211,6 +215,24 @@ func colorFor(user *store.User) string {
 		return "teal"
 	}
 	return user.ColorPreference
+}
+
+// fontFor is the same for the typeface, which came after Rails.
+func fontFor(user *store.User) string {
+	if user == nil {
+		return "geist"
+	}
+	return user.FontPreference
+}
+
+// fontStylesheets is the Google Fonts stylesheet for each of
+// store.ValidFonts. A page links only its reader's typeface. The browser
+// downloads only the font files a page uses, but it fetches each stylesheet
+// it is given, with all the @font-face rules in it. To add a typeface, add it
+// here, to store.ValidFonts, to the Settings choices and to fonts.css.
+var fontStylesheets = map[string]template.URL{
+	"geist":    "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap",
+	"literata": "https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&display=swap",
 }
 
 // serverError is the one place this app turns an unexpected failure into a
