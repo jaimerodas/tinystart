@@ -1,6 +1,13 @@
+/* Capped so that three columns of short titles stay close together. Full
+   width spread them 448px apart at 1440px. A grid of four or more columns
+   needs the room, so it keeps the whole window. */
 .start-page {
   width: 100%;
-  max-width: calc(100% - 2em);
+  max-width: min(76rem, 100% - 2em);
+
+  &:has(.start-page-grid:is([data-columns="4"], [data-columns="5"], [data-columns="6"])) {
+    max-width: calc(100% - 2em);
+  }
 }
 
 .start-page-header {
@@ -57,15 +64,21 @@
 .start-page-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 2rem 3rem;
   margin: 2em 0 3.5em;
 
+  /* A label, not a heading: smaller than the links under it, and set apart
+     from them by case, tracking and the accent. The tiles are what you read;
+     the name only says where a group starts. */
   section > h2 {
-    margin: 0 1rem 0.5em;
-    font-size: 1em;
-    font-weight: bold;
-    color: var(--fg-color);
-    border-bottom: 0.125rem solid var(--highlight-color);
+    margin: 0 1rem 0.5rem;
+    padding-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--highlight-color);
+    border-bottom: 0.0625rem solid var(--border-color);
   }
 
   ul {
@@ -87,15 +100,15 @@
   }
 
   li a {
-    font-size: 1.125em;
+    font-size: 1.0625rem;
     color: var(--fg-color);
     display: block;
     padding: 0.25rem 1rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
 
     &:hover {
       text-decoration: none;
-      background-color: var(--bg-highlight-color);
+      background-color: var(--accent-wash);
     }
   }
 
@@ -134,10 +147,12 @@
   }
 }
 
+/* More space between groups than between the tiles in a group, so the
+   spacing alone says which tiles belong together. */
 .start-page-column {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2.25rem;
 
   h3 {
     font-size: 0.75em;
@@ -160,18 +175,38 @@
 
 .command-bar {
   position: relative;
-  margin-bottom: 2em;
+  margin-bottom: 2.5rem;
+
+  /* A magnifier, so the box reads as search before anyone types. It is drawn
+     in CSS as a mask, so it takes --mid-color in both themes, and the markup
+     the controller reads stays as it is. */
+  &::before {
+    content: "";
+    position: absolute;
+    left: 1.125rem;
+    top: 50%;
+    translate: 0 -50%;
+    width: 1.125rem;
+    height: 1.125rem;
+    background: var(--mid-color);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m15.5 15.5 5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+    pointer-events: none;
+  }
 
   input {
     width: 100%;
-    padding: 0.75em 1em;
-    border: 0.125rem solid var(--border-color);
-    border-radius: 0.5em;
-    font-size: 1.125em;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 0.0625rem solid var(--border-color);
+    border-radius: 0.75rem;
+    font-size: 1.0625rem;
     background: var(--bg-color);
     color: var(--fg-color);
     box-sizing: border-box;
     transition: none;
+
+    &::placeholder {
+      color: var(--mid-color);
+    }
 
     &:focus {
       outline: none;
@@ -183,33 +218,38 @@
   }
 }
 
+/* A panel that floats over the grid: a shadow and spacing separate the rows,
+   not rules between them. */
 .command-bar-suggestions {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   background: var(--bg-color);
-  border: 0.125rem solid var(--border-color);
-  border-radius: 0.5em;
-  margin-top: 0.25em;
+  border: 0.0625rem solid var(--border-color);
+  border-radius: 0.75rem;
+  margin-top: 0.5rem;
+  padding: 0.375rem;
+  box-shadow: 0 1.125rem 2.5rem -0.75rem oklch(0 0 0 / 0.25);
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
   display: none;
 }
 
+/* The title wraps if it has to, and the URL stays on one line and ends in an
+   ellipsis. A long URL used to take a second line on its own. */
 .command-bar-suggestion {
-  padding: 0.75em 1em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
   cursor: pointer;
-  border-bottom: 0.125rem solid var(--border-color);
-
-  &:last-child {
-    border-bottom: none;
-  }
 
   &:hover,
   &.selected {
-    background: var(--bg-highlight-color);
+    background: var(--accent-wash);
   }
 }
 
@@ -219,23 +259,29 @@
 }
 
 .suggestion-url {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 0.875em;
   color: var(--mid-color);
 }
 
+/* The same label as a group name on the page. Uppercase is CSS, so a test
+   that reads innerText sees "FROM 127.0.0.1". */
 .command-bar-section-header {
-  padding: 0.5em 1em;
-  font-size: 0.75em;
-  font-weight: 600;
+  padding: 0.75rem 0.75rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--mid-color);
-  background: var(--bg-highlight-color);
-  border-bottom: 0.125rem solid var(--border-color);
 }
 
 .command-bar-searching,
 .command-bar-notice {
-  padding: 0.75em 1em;
+  padding: 0.625rem 0.75rem;
   color: var(--mid-color);
   font-style: italic;
 }

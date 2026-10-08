@@ -397,10 +397,17 @@ func TestBrowserTypefacePickerSwitchesTheFont(t *testing.T) {
 // eight accents go from L 0.55 to L 0.82, so no one fixed offset from the
 // accent can do this. The colour has to come from a clamp.
 func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
-	p, _ := startPageBrowser(t)
-	p.visit("/settings")
+	p, user := startPageBrowser(t)
+	group := p.ts.newGroup(user.ID, "Daily", 1)
+	p.ts.newItem(user.ID, group.ID, "Example", "https://example.com")
 
+	p.visit("/settings")
 	failures := p.contrastFailures(`a[href="/settings/password/edit"]`, ".action-button")
+
+	// The start page puts the accent on the group names, and tints the
+	// background behind the tiles.
+	p.visit("/")
+	failures = append(failures, p.contrastFailures(".start-page-grid section > h2")...)
 	for _, failure := range failures {
 		t.Error(failure)
 	}

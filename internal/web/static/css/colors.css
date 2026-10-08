@@ -5,12 +5,16 @@
      Teal is the default; [data-color] further down swaps in another accent. */
   --base-accent: var(--accent-teal);
 
-  --bg-color: light-dark(white, color(display-p3 0.091 0.091 0.091));
-  --bg-highlight-color: light-dark(#eee, #4d4d4d);
-  --bg-notification-color: light-dark(white, #222);
-  --fg-color: light-dark(black, white);
-  --mid-color: light-dark(#494949, #c6c6c6);
-  --border-color: light-dark(#ccc, #555);
+  /* The neutrals take the accent's hue at a very low chroma, so each accent
+     tints the whole page a little and is not only a line colour. The
+     lightness is close to the old greys. Text is not pure black or white:
+     that is what made the dark theme glare. */
+  --bg-color: light-dark(oklch(from var(--base-accent) 0.985 0.004 h), oklch(from var(--base-accent) 0.205 0.008 h));
+  --bg-highlight-color: light-dark(oklch(from var(--base-accent) 0.945 0.01 h), oklch(from var(--base-accent) 0.38 0.012 h));
+  --bg-notification-color: light-dark(oklch(from var(--base-accent) 0.995 0.002 h), oklch(from var(--base-accent) 0.25 0.01 h));
+  --fg-color: light-dark(oklch(from var(--base-accent) 0.22 0.012 h), oklch(from var(--base-accent) 0.94 0.006 h));
+  --mid-color: light-dark(oklch(from var(--base-accent) 0.42 0.015 h), oklch(from var(--base-accent) 0.8 0.012 h));
+  --border-color: light-dark(oklch(from var(--base-accent) 0.86 0.01 h), oklch(from var(--base-accent) 0.42 0.012 h));
 
   /* The accent as the app uses it: for links, focus rings, borders, and as
      the fill of a button. The raw accents go from L 0.55 to L 0.82. On white,
