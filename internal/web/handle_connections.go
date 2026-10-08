@@ -42,7 +42,6 @@ type pendingGrant struct {
 // Pending and Connected is set; when neither is, the form is shown, with
 // LastError above it if the last token was turned down.
 type connectionsData struct {
-	Nav       []settingsNavItem
 	Pending   *pendingGrant
 	Connected *connectedView
 	LastError string
@@ -61,8 +60,6 @@ type connectedView struct {
 // handleConnections is GET /settings/connections.
 func (s *Server) handleConnections() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := userFrom(r.Context())
-
 		connection, err := s.currentConnection(r)
 		if err != nil {
 			s.serverError(w, r, err)
@@ -70,7 +67,6 @@ func (s *Server) handleConnections() http.Handler {
 		}
 
 		data := connectionsData{
-			Nav:     settingsNav(user, "Connections"),
 			Pending: s.pendingGrant(w, r),
 			BaseURL: defaultBaseURL,
 		}

@@ -24,10 +24,10 @@ func TestExtensionIsOfferedOnBrowsersOnly(t *testing.T) {
 
 	ts.get("/settings/browsers").
 		assertStatus(http.StatusOK).
-		assertContains(`<a class="active" href="/settings/browsers">Browsers</a>`).
+		assertContains(`<a href="/settings/browsers" aria-current="page">Browsers</a>`).
 		assertContains(`href="/settings/extension.zip">Download the extension</a>`)
 	ts.get("/settings").
-		assertContains(`<a class="" href="/settings/browsers">Browsers</a>`).
+		assertContains(`<a href="/settings/browsers">Browsers</a>`).
 		assertNotContains("/settings/extension.zip")
 }
 

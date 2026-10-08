@@ -19,19 +19,20 @@ const (
 	pageSettingsUsers        = "settings_users"
 )
 
-// settingsNavItem is one tab of the row every Settings page carries.
-// SettingsHelper built it with content_tag. Here it is data, so the template
-// has no decisions left to make.
+// settingsNavItem is one link in the menu every Settings page carries. It is
+// data, so the layout has no decisions left to make.
 type settingsNavItem struct {
-	Title string
-	Path  string
-	Class string
+	Title   string
+	Path    string
+	Current bool
 }
 
-// settingsNav is SettingsHelper#settings_secondary_nav. The Users tab is only
-// built for an admin — absent, not disabled, because someone who cannot reach
-// the page has no reason to know it is there.
-func settingsNav(user *store.User, active string) []settingsNavItem {
+// settingsNav is that menu, for the page at path. render builds it for every
+// page in the application layout, so no handler has to pass it along.
+//
+// The Users link is only built for an admin. It is absent, not disabled,
+// because someone who cannot reach the page has no reason to know it is there.
+func settingsNav(user *store.User, path string) []settingsNavItem {
 	items := []settingsNavItem{
 		{Title: "Main", Path: "/settings"},
 		{Title: "Import & Export", Path: "/settings/import_export"},
@@ -42,10 +43,12 @@ func settingsNav(user *store.User, active string) []settingsNavItem {
 		items = append(items, settingsNavItem{Title: "Users", Path: "/settings/admin/users"})
 	}
 
+	// The password form has no link of its own. It is reached from Main.
+	if strings.HasPrefix(path, "/settings/password") {
+		path = "/settings"
+	}
 	for i := range items {
-		if items[i].Title == active {
-			items[i].Class = "active"
-		}
+		items[i].Current = items[i].Path == path
 	}
 	return items
 }
@@ -53,8 +56,6 @@ func settingsNav(user *store.User, active string) []settingsNavItem {
 // settingsShowData is the main Settings page: the account facts and the
 // preferences this page owns.
 type settingsShowData struct {
-	Nav []settingsNavItem
-
 	// The date three ways, because the row says all three: machine-readable,
 	// written out, and how long ago that was.
 	MemberSince     string
@@ -82,7 +83,6 @@ func (s *Server) handleSettings() http.Handler {
 
 		created := user.CreatedAt.UTC()
 		data := settingsShowData{
-			Nav: settingsNav(user, "Main"),
 			// Time#iso8601, which has no fractional part however many
 			// microseconds the column holds.
 			MemberSince: created.Format("2006-01-02T15:04:05Z"),
@@ -190,7 +190,6 @@ func (s *Server) handleSettingsUpdate() http.Handler {
 // settingsPasswordData is the change-password form: the errors above it, and
 // which of the two fields to outline.
 type settingsPasswordData struct {
-	Nav             []settingsNavItem
 	Errors          []string
 	ExistingInvalid bool
 	NewInvalid      bool
@@ -199,8 +198,7 @@ type settingsPasswordData struct {
 // handleSettingsPasswordEdit is GET /settings/password/edit.
 func (s *Server) handleSettingsPasswordEdit() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsPasswordEdit,
-			settingsPasswordData{Nav: settingsNav(userFrom(r.Context()), "Main")})
+		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsPasswordEdit, settingsPasswordData{})
 	})
 }
 
@@ -238,7 +236,6 @@ func (s *Server) handleSettingsPasswordUpdate() http.Handler {
 
 		s.render(w, r, http.StatusUnprocessableEntity, layoutApplication, pageSettingsPasswordEdit,
 			settingsPasswordData{
-				Nav:             settingsNav(user, "Main"),
 				Errors:          invalid.FullMessages(),
 				ExistingInvalid: invalid.On("existing_password"),
 				NewInvalid:      invalid.On("new_password"),

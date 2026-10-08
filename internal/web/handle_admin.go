@@ -15,7 +15,6 @@ import (
 
 // adminUsersData is the list.
 type adminUsersData struct {
-	Nav   []settingsNavItem
 	Users []adminUserView
 }
 
@@ -69,7 +68,7 @@ func (s *Server) handleAdminUsers() http.Handler {
 			return
 		}
 
-		data := adminUsersData{Nav: settingsNav(viewer, "Users")}
+		var data adminUsersData
 		for _, user := range users {
 			data.Users = append(data.Users, newAdminUserView(user, viewer))
 		}

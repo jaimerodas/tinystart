@@ -9,16 +9,10 @@ import (
 	"strings"
 )
 
-// browsersData is the page, which has nothing on it but the nav.
-type browsersData struct {
-	Nav []settingsNavItem
-}
-
-// handleBrowsers is GET /settings/browsers.
+// handleBrowsers is GET /settings/browsers. The page has no data.
 func (s *Server) handleBrowsers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsBrowsers,
-			browsersData{Nav: settingsNav(userFrom(r.Context()), "Browsers")})
+		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsBrowsers, nil)
 	})
 }
 

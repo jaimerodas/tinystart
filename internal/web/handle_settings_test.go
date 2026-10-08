@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -312,6 +313,32 @@ func TestSettingsNavOffersUsersToAdminsOnly(t *testing.T) {
 
 	ts.signIn(plain.Email)
 	ts.get("/settings").assertNotContains(`href="/settings/admin/users"`)
+}
+
+// Every Settings page shares one menu, and it marks the page you are on once,
+// as the current page, so a screen reader says so too. The password page
+// belongs to Main, where its link is. Each page names itself in a heading of
+// its own.
+func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
+	ts := newTestServer(t)
+	admin := ts.createUser("admin@example.com")
+	ts.signIn(admin.Email)
+
+	for _, page := range []struct{ path, current, heading string }{
+		{"/settings", "/settings", "Settings"},
+		{"/settings/password/edit", "/settings", "Password"},
+		{"/settings/import_export", "/settings/import_export", "Import &amp; Export"},
+		{"/settings/connections", "/settings/connections", "Connections"},
+		{"/settings/browsers", "/settings/browsers", "Browsers"},
+		{"/settings/admin/users", "/settings/admin/users", "Users"},
+	} {
+		resp := ts.get(page.path).
+			assertContains(`<a href="` + page.current + `" aria-current="page">`).
+			assertContains("<h1>" + page.heading + "</h1>")
+		if n := strings.Count(resp.body, `aria-current`); n != 1 {
+			t.Errorf("%s marks %d links as current, want 1", page.path, n)
+		}
+	}
 }
 
 func TestPasswordEdit(t *testing.T) {

@@ -54,6 +54,11 @@ Templates live in `internal/web/templates/`.
 | `pages/settings_users`, `shared/admin_user` | `/settings/admin/users` |
 | `pages/sessions_new`, `users_new`, `passwords_*` | `/sign_in`, `/sign_up`, `/passwords/…` |
 
+Every Settings page shares one menu, drawn by `layouts/application` from
+`settingsNav` in `handle_settings.go`. It is a single `<details>`: a sidebar
+on a wide window, where `nav.css` holds it open with `::details-content` and
+hides the summary, and a "Menu" to open on a narrow one. No script either way.
+
 ## Visual Standards
 
 - Minimum contrast ratio: 4.5:1 (WCAG AA)

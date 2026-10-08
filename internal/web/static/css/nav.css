@@ -1,75 +1,110 @@
-.dual-nav {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 0.0625rem solid var(--border-color);
-  margin-bottom: 2em;
+/* The Settings menu: one <details>, in application.html. On a narrow window
+   it is a menu that opens above the page. On a wide one the page becomes two
+   columns, and the menu is a sidebar: held open, with its summary hidden.
+   TestBrowserSettingsMenuIsASidebarWideAndAMenuNarrow holds both. */
+.settings-nav {
+  margin: 1rem 1rem 0;
 
-  .breadcrumbs {
-    margin: 0;
-    font-size: 1.5em;
-  }
-}
-
-.secondary-nav {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 1em;
-
-  a {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-
+  summary {
+    padding: 0.375rem 0.75rem;
+    border: 0.0625rem solid var(--border-color);
+    border-radius: var(--control-radius);
     font-weight: bold;
-    text-align: center;
+    cursor: pointer;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Every entry is the same row, link or button. */
+  :is(a, button) {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    border: none;
+    border-radius: var(--control-radius);
+    background: none;
+    color: var(--fg-color);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
 
     &:hover {
+      background: var(--bg-highlight-color);
       text-decoration: none;
     }
 
-    &.active {
-      color: var(--fg-color);
-      text-decoration: underline;
-      text-decoration-thickness: 0.125em;
+    &:focus-visible {
+      outline: 0.125rem solid var(--highlight-color);
     }
   }
-}
 
-.breadcrumbs {
-  list-style: none;
-  padding: 0;
-
-  li {
-    display: inline-block;
-    font-weight: 700;
+  /* Where you are. The tint and the weight say it as well as the colour. */
+  [aria-current="page"] {
+    background: oklch(from var(--highlight-color) l c h / 0.1);
+    color: var(--highlight-color);
+    font-weight: bold;
   }
 
-  a {
-    font-weight: normal;
+  /* The way out of Settings, set apart from the pages in it. */
+  .settings-nav-start {
+    margin: 0.5rem 0;
+    color: var(--mid-color);
   }
 
-  li a::after {
-    content: "/";
-    display: inline-block;
-    padding: 0 0 0 0.25em;
-    color: var(--fg-color);
+  form {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 0.0625rem solid var(--border-color);
   }
 }
 
-@media screen and (min-width: 36em) {
-  .dual-nav {
-    flex-direction: row;
-  }
+/* Each Settings page's own name. `article h1` is the other layouts' centred
+   hero; this one heads the column, level with the menu beside it. */
+.settings-nav ~ article main > h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.5em;
+  text-align: start;
+}
 
-  .secondary-nav {
-    align-items: center;
+@media screen and (min-width: 48em) {
+  body:has(> .settings-nav) {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 48rem);
     justify-content: center;
+    align-items: start;
+    column-gap: 3rem;
+    padding: 1.5rem 1rem;
+
+    & > article,
+    & > article main {
+      margin: 0;
+    }
+
+    & > article > .flash {
+      margin: 0 0 1.5rem;
+    }
+  }
+
+  .settings-nav {
+    margin: 0;
+
+    summary {
+      display: none;
+    }
+
+    /* A closed <details> keeps its content out of the page. This lets it
+       back in, so the sidebar needs no `open` and no script. */
+    details::details-content {
+      content-visibility: visible;
+    }
+
+    .settings-nav-start {
+      margin-top: 0;
+    }
   }
 }

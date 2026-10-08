@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 	"github.com/jaimerodas/tinystart/internal/store"
 )
@@ -420,6 +422,39 @@ func TestBrowserEachTypefaceChoiceIsSetInItsOwnFont(t *testing.T) {
 	if got := p.evalString(`getComputedStyle(document.body).fontFamily`); !strings.HasPrefix(got, "Geist") {
 		t.Errorf("the page is set in %q, want Geist first", got)
 	}
+}
+
+// === THE SETTINGS MENU ===
+
+// The menu is one <details>. On a wide window the stylesheet holds it open and
+// hides its summary, which makes it a sidebar. That is ::details-content's
+// work, and without it the links would hide behind a summary nobody can see,
+// on every Settings page, with nothing to say so. On a narrow window it is a
+// menu that opens.
+func TestBrowserSettingsMenuIsASidebarWideAndAMenuNarrow(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	p.visit("/settings/connections")
+	const shown = `(selector => document.querySelector(selector).checkVisibility({ checkVisibilityCSS: true }))`
+	link := `".settings-nav a[href='/settings/browsers']"`
+
+	if !p.evalBool(shown+`(`+link+`)`) || p.evalBool(shown+`(".settings-nav summary")`) {
+		t.Error("on a wide window the links are not in view, or the summary is")
+	}
+	if !p.evalBool(`document.querySelector(".settings-nav").getBoundingClientRect().right <=
+		document.querySelector("main").getBoundingClientRect().left`) {
+		t.Error("on a wide window the menu is not beside the page")
+	}
+
+	if _, err := chromedp.Call(p.ctx, emulation.SetDeviceMetricsOverride,
+		emulation.SetDeviceMetricsOverrideParams{Width: 600, Height: 900, DeviceScaleFactor: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if p.evalBool(shown+`(`+link+`)`) || !p.evalBool(shown+`(".settings-nav summary")`) {
+		t.Error("on a narrow window the links are in view before the menu opens, or the summary is not")
+	}
+	p.click(".settings-nav summary")
+	p.click(".settings-nav a[href='/settings/browsers']")
+	p.assertSelector("#chrome-extension")
 }
 
 // === COLOUR ===

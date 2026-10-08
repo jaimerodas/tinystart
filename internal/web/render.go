@@ -135,6 +135,9 @@ type view struct {
 	Flash []flashMessage
 	User  *store.User
 	Data  any
+
+	// Nav is the Settings menu, which only the application layout draws.
+	Nav []settingsNavItem
 }
 
 // render writes one page.
@@ -159,6 +162,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, layo
 		Flash: s.takeFlash(w, r),
 		User:  user,
 		Data:  data,
+	}
+	if layout == layoutApplication && user != nil {
+		v.Nav = settingsNav(user, r.URL.Path)
 	}
 
 	var body bytes.Buffer

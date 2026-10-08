@@ -37,7 +37,8 @@ func TestTheApplicationLayoutsMenu(t *testing.T) {
 
 	for _, want := range []string{
 		`<html data-theme="dark" data-color="purple" data-font="literata">`,
-		`<a class="main-menu-link" href="/">Start</a>`,
+		`<nav class="settings-nav" aria-label="Settings">`,
+		`<a class="settings-nav-start" href="/">`,
 		`<form data-turbo="false" class="button_to" method="post" action="/session">`,
 		`<input type="hidden" name="_method" value="delete" />`,
 		`<button type="submit">Log out</button>`,
@@ -53,7 +54,7 @@ func TestTheApplicationLayoutsMenu(t *testing.T) {
 func TestTheApplicationLayoutHasNoMenuWhenSignedOut(t *testing.T) {
 	html := layoutHTML(t, layoutApplication, view{Theme: themeFor(nil), Color: colorFor(nil), Font: fontFor(nil)})
 
-	if strings.Contains(html, "<header>") {
+	if strings.Contains(html, "settings-nav") {
 		t.Error("the application layout drew a menu for an anonymous visitor")
 	}
 	if !strings.Contains(html, `<html data-theme="system" data-color="teal" data-font="geist">`) {
@@ -101,7 +102,7 @@ func TestEveryValidFontHasAStylesheet(t *testing.T) {
 func TestTheStartLayoutIsChromeFree(t *testing.T) {
 	html := layoutHTML(t, layoutStart, view{Theme: "light", Color: "red"})
 
-	if strings.Contains(html, "main-menu-link") {
+	if strings.Contains(html, "settings-nav") {
 		t.Error("the start layout drew the settings menu")
 	}
 	if !strings.Contains(html, "    <article>\n      ") {

@@ -17,12 +17,20 @@
   </head>
 
   <body>
-{{if .User}}      <header>
-        <nav>
-          <a class="main-menu-link" href="/">Start</a>
-          <form data-turbo="false" class="button_to" method="post" action="/session"><input type="hidden" name="_method" value="delete" /><button type="submit">Log out</button></form>
-        </nav>
-      </header>
+{{/*
+  The Settings menu. One <details>: a sidebar on a wide window, where nav.css
+  holds it open and hides the summary, and a menu to open on a narrow one.
+*/}}
+{{if .User}}    <nav class="settings-nav" aria-label="Settings">
+      <details>
+        <summary>Menu</summary>
+        <a class="settings-nav-start" href="/"><span aria-hidden="true">←</span> Start</a>
+        <ul>
+{{range .Nav}}          <li><a href="{{.Path}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a></li>
+{{end}}        </ul>
+        <form data-turbo="false" class="button_to" method="post" action="/session"><input type="hidden" name="_method" value="delete" /><button type="submit">Log out</button></form>
+      </details>
+    </nav>
 {{end}}
     <article>
 {{range .Flash}}      {{template "flash" .}}

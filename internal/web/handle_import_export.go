@@ -21,16 +21,10 @@ import (
 // business being read into memory.
 const maxImportBytes = 512 * 1024
 
-// importExportData is the page, which has nothing on it but the nav.
-type importExportData struct {
-	Nav []settingsNavItem
-}
-
-// handleImportExport is GET /settings/import_export.
+// handleImportExport is GET /settings/import_export. The page has no data.
 func (s *Server) handleImportExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsImportExport,
-			importExportData{Nav: settingsNav(userFrom(r.Context()), "Import & Export")})
+		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsImportExport, nil)
 	})
 }
 
