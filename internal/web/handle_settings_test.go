@@ -36,8 +36,20 @@ func TestSettingsSaysMemberSinceThreeWays(t *testing.T) {
 	created := user.CreatedAt.UTC()
 	ts.get("/settings").
 		assertContains(`<time datetime="` + created.Format("2006-01-02T15:04:05Z") + `">`).
-		assertContains(">\n          " + strconv.Itoa(created.Day()) + " " + created.Month().String() + " " + strconv.Itoa(created.Year())).
+		assertContains(">" + strconv.Itoa(created.Day()) + " " + created.Month().String() + " " + strconv.Itoa(created.Year()) + "</time>").
 		assertContains("(about 1 year ago)")
+}
+
+// The account's facts are labels and values, not a bulleted list with bold
+// labels in it.
+func TestSettingsShowsTheAccountAsLabelsAndValues(t *testing.T) {
+	ts, user := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains("<dt>Email</dt>").
+		assertContains("<dd>" + user.Email + "</dd>").
+		assertContains("<dt>Member since</dt>").
+		assertNotContains("<b>Email:</b>")
 }
 
 // The column count moved to /start/edit, where the groups a shrink can

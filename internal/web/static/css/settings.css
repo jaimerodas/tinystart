@@ -1,3 +1,46 @@
+/* What every Settings page shares, so the pages read as one set: the page's
+   name, one gap under it, prose at a reading measure, and text fields as wide
+   as an address rather than as the column. */
+.settings-nav ~ article main {
+  /* `article h1` is the other layouts' centred hero. This one heads the
+     column, level with the menu beside it. */
+  & > h1 {
+    margin: 0 0 2rem;
+    font-size: 1.5em;
+    text-align: start;
+  }
+
+  /* Whatever comes first brings no margin of its own, so the gap is the
+     heading's alone. */
+  & > h1 + *,
+  & > h1 + * > :first-child {
+    margin-top: 0;
+  }
+
+  p {
+    max-width: 65ch;
+  }
+
+  :is(input[type=text], input[type=url], input[type=password], input[type=email]) {
+    max-width: 32rem;
+  }
+}
+
+.account-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 2rem;
+  margin: 0 0 1rem;
+
+  dt {
+    color: var(--mid-color);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
 /* Section names are labels, the same as the group names on the start page,
    so the two pages read as one app. */
 :is(.user-section h2, #import-export h3) {
@@ -60,7 +103,10 @@
 #connection-settings {
   /* Spaced by a gap rather than by paragraph margins: three <p> in a row is
      three 1em margins, which put 40px between lines that belong together. */
+  /* As wide as the address field it takes the place of. */
   .connection-status {
+    box-sizing: border-box;
+    max-width: 32rem;
     margin: 1em 0;
     padding: 1em;
     border: 0.0625rem solid var(--border-color);

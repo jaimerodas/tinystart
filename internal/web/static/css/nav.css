@@ -63,14 +63,6 @@
   }
 }
 
-/* Each Settings page's own name. `article h1` is the other layouts' centred
-   hero; this one heads the column, level with the menu beside it. */
-.settings-nav ~ article main > h1 {
-  margin: 0 0 1.5rem;
-  font-size: 1.5em;
-  text-align: start;
-}
-
 @media screen and (min-width: 48em) {
   body:has(> .settings-nav) {
     display: grid;

@@ -1,4 +1,4 @@
-/* Shared row-style list for management pages (Shares, Sessions, CLI Tokens, Users) */
+/* Row-style list for a management page: the Users list. */
 .item-list {
   margin: 1em 0;
   padding: 0;
@@ -12,6 +12,8 @@
     padding: 0.75em 0;
     border-bottom: 0.0625rem solid var(--border-color);
     &:last-child { border-bottom: none; }
+    /* No border above the first row, so no room to leave for one. */
+    &:first-child { padding-top: 0; }
 
     @media screen and (min-width: 36em) {
       flex-direction: row;

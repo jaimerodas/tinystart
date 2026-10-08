@@ -8,17 +8,13 @@ every family it offers. The layout already links the reader's. */}}
 
   <section id="user-details" class="user-section">
     <h2>Account</h2>
-    <ul>
-      <li><b>Email:</b> {{.User.Email}}</li>
-      <li>
-        <b>Member since:</b>
-        <time datetime="{{.Data.MemberSince}}">
-          {{.Data.MemberSinceDate}}
-        </time>
-        ({{.Data.MemberSinceAgo}} ago)
-      </li>
-      <li><a href="/settings/password/edit">Change password</a></li>
-    </ul>
+    <dl class="account-facts">
+      <dt>Email</dt>
+      <dd>{{.User.Email}}</dd>
+      <dt>Member since</dt>
+      <dd><time datetime="{{.Data.MemberSince}}">{{.Data.MemberSinceDate}}</time> ({{.Data.MemberSinceAgo}} ago)</dd>
+    </dl>
+    <p><a href="/settings/password/edit">Change password</a></p>
   </section>
 
   <section id="user-preferences" class="user-section">

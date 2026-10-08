@@ -424,6 +424,77 @@ func TestBrowserEachTypefaceChoiceIsSetInItsOwnFont(t *testing.T) {
 	}
 }
 
+// === SETTINGS PAGES ===
+
+var settingsPages = []string{"/settings", "/settings/password/edit", "/settings/import_export",
+	"/settings/connections", "/settings/browsers", "/settings/admin/users"}
+
+// Prose keeps a reading measure, however wide the column is: no paragraph
+// is wider than 66 characters of its own font.
+func TestBrowserSettingsProseKeepsAReadingMeasure(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	for _, path := range settingsPages {
+		p.visit(path)
+		wide := p.evalString(`[...document.querySelectorAll("main p")].filter(para => {
+			const probe = document.createElement("span");
+			probe.style.cssText = "position: absolute; visibility: hidden; width: 66ch";
+			para.append(probe);
+			const limit = probe.offsetWidth;
+			probe.remove();
+			return para.getBoundingClientRect().width > limit + 1;
+		}).map(para => para.textContent.trim().slice(0, 30)).join(" | ")`)
+		if wide != "" {
+			t.Errorf("%s has paragraphs wider than 66 characters: %s", path, wide)
+		}
+	}
+}
+
+// Every page starts the same distance under its heading, whatever comes
+// first: a section name, a paragraph, a field or a list. The distance is to
+// the first text, which is what the eye measures.
+func TestBrowserSettingsPagesStartOneGapUnderTheHeading(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	gaps := map[string]int{}
+	for _, path := range settingsPages {
+		p.visit(path)
+		gaps[path] = p.evalInt(`(() => {
+			const h1 = document.querySelector("main > h1");
+			const walker = document.createTreeWalker(document.querySelector("main"), NodeFilter.SHOW_TEXT);
+			let node, past = false;
+			while ((node = walker.nextNode())) {
+				if (h1.contains(node)) { past = true; continue; }
+				if (past && node.textContent.trim()) break;
+			}
+			const range = document.createRange();
+			range.selectNodeContents(node);
+			return Math.round(range.getBoundingClientRect().top - h1.getBoundingClientRect().bottom);
+		})()`)
+	}
+	low, high := 1<<30, 0
+	for _, gap := range gaps {
+		low, high = min(low, gap), max(high, gap)
+	}
+	if high-low > 4 {
+		t.Errorf("the gaps under the headings are %v, want them within 4px of each other", gaps)
+	}
+}
+
+// A text field is as wide as an address needs, the same on every page, and
+// not the width of the column.
+func TestBrowserSettingsTextFieldsShareOneWidth(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	var widths []int
+	for _, path := range []string{"/settings/password/edit", "/settings/connections"} {
+		p.visit(path)
+		widths = append(widths, p.evalInt(`Math.round(document.querySelector(
+			"main :is(input[type=password], input[type=url])").getBoundingClientRect().width)`))
+	}
+	column := p.evalInt(`Math.round(document.querySelector("main").getBoundingClientRect().width)`)
+	if widths[0] != widths[1] || widths[0] >= column {
+		t.Errorf("text fields are %v wide in a %dpx column, want one width narrower than it", widths, column)
+	}
+}
+
 // === CHANGING THE PASSWORD ===
 
 // One box shows both fields as text and hides them again.
