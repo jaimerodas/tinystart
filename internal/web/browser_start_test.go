@@ -448,6 +448,24 @@ func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	}
 }
 
+// Red text is an error or a refusal, and it has to be as readable as any
+// other. The alert banner is the hardest place for it: its tint is the same
+// red, which brings the background toward the text in both themes.
+func TestBrowserTheDangerRedKeepsTextReadable(t *testing.T) {
+	p := newBrowserPage(t)
+	user := p.ts.createApprovedUser("one@example.com")
+
+	p.visit("/sign_in")
+	p.fillIn("#email", user.Email)
+	p.fillIn("#password", "the wrong one")
+	p.click(`input[value="Sign in"]`)
+	p.assertSelector(".flash.alert")
+
+	for _, failure := range p.contrastFailures(".flash.alert p") {
+		t.Error(failure)
+	}
+}
+
 // The command bar draws a ring when it has focus. The border changes colour
 // too, but that alone is not enough: on yellow the change is 1.76:1. The ring
 // was in the stylesheet before and never drew, because rgba() cannot hold an
@@ -491,12 +509,18 @@ func (p *browserPage) contrastFailures(selectors ...string) []string {
 			const [r, g, b] = rgb.slice(0, 3).map(v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 		};
+		// Painted the way the browser paints it: every ancestor's background,
+		// from the outermost in, over white. A translucent tint, like the
+		// alert banner's, is then measured as the colour it really shows.
 		const background = el => {
-			for (; el; el = el.parentElement) {
-				const color = rgba(getComputedStyle(el).backgroundColor);
-				if (color[3] > 0) return color;
+			const layers = [];
+			for (; el; el = el.parentElement) layers.unshift(getComputedStyle(el).backgroundColor);
+			canvas.clearRect(0, 0, 1, 1);
+			for (const layer of ["white", ...layers]) {
+				canvas.fillStyle = layer;
+				canvas.fillRect(0, 0, 1, 1);
 			}
-			return [255, 255, 255, 255];
+			return [...canvas.getImageData(0, 0, 1, 1).data];
 		};
 
 		const failures = [];

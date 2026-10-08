@@ -43,7 +43,10 @@
     inset 0 0.0625em 0 0 rgba(255,255,255, 0.25)
   );
 
-  --danger-color: light-dark(rgb(180, 9, 9), rgb(231, 47, 47));
+  /* Red text has to keep 4.5:1 on the alert banner, whose tint is this same
+     red. In the dark theme that takes a lighter red than looks "pure".
+     TestBrowserTheDangerRedKeepsTextReadable measures it. */
+  --danger-color: light-dark(rgb(180, 9, 9), rgb(242, 90, 90));
   --positive-color: light-dark(color(display-p3 0.145 0.655 0.029), color(display-p3 0.23 0.786 0.104));
 }
 
