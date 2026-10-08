@@ -14,6 +14,7 @@ const (
 	pageSettingsPasswordEdit = "settings_password_edit"
 	pageSettingsConnections  = "settings_connections"
 	pageSettingsImportExport = "settings_import_export"
+	pageSettingsBrowsers     = "settings_browsers"
 	pageSettingsUsers        = "settings_users"
 )
 
@@ -34,6 +35,7 @@ func settingsNav(user *store.User, active string) []settingsNavItem {
 		{Title: "Main", Path: "/settings"},
 		{Title: "Import & Export", Path: "/settings/import_export"},
 		{Title: "Connections", Path: "/settings/connections"},
+		{Title: "Browsers", Path: "/settings/browsers"},
 	}
 	if user.Admin {
 		items = append(items, settingsNavItem{Title: "Users", Path: "/settings/admin/users"})

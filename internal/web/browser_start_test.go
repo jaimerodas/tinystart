@@ -65,6 +65,7 @@ func TestBrowserEveryPageLoadsWithoutAScriptError(t *testing.T) {
 		{"/settings/password/edit", "form"},
 		{"/settings/import_export", "#import-export"},
 		{"/settings/connections", "#connection-settings"},
+		{"/settings/browsers", "#chrome-extension"},
 		{"/settings/admin/users", "#users-list"},
 	}
 	for _, each := range pages {

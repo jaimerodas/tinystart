@@ -182,6 +182,7 @@ var pageTitles = map[string]string{
 	pageSettingsPasswordEdit: "Password",
 	pageSettingsConnections:  "Connections",
 	pageSettingsImportExport: "Import & Export",
+	pageSettingsBrowsers:     "Browsers",
 	pageSettingsUsers:        "Users",
 }
 

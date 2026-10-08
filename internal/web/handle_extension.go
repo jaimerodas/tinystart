@@ -9,6 +9,19 @@ import (
 	"strings"
 )
 
+// browsersData is the page, which has nothing on it but the nav.
+type browsersData struct {
+	Nav []settingsNavItem
+}
+
+// handleBrowsers is GET /settings/browsers.
+func (s *Server) handleBrowsers() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsBrowsers,
+			browsersData{Nav: settingsNav(userFrom(r.Context()), "Browsers")})
+	})
+}
+
 // handleExtension is GET /settings/extension.zip: the Chrome extension in
 // internal/web/static/chrome/, zipped up for the user to load unpacked.
 func (s *Server) handleExtension() http.Handler {

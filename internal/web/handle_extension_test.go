@@ -13,7 +13,22 @@ import (
 
 func TestExtensionRequiresAuthentication(t *testing.T) {
 	ts := newTestServer(t)
+	ts.get("/settings/browsers").assertRedirect("/sign_in")
 	ts.get("/settings/extension.zip").assertRedirect("/sign_in")
+}
+
+// The extension is installed once, so it has its own page. The main Settings
+// page keeps only what a reader comes back to change.
+func TestExtensionIsOfferedOnBrowsersOnly(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings/browsers").
+		assertStatus(http.StatusOK).
+		assertContains(`<a class="active" href="/settings/browsers">Browsers</a>`).
+		assertContains(`href="/settings/extension.zip">Download the extension</a>`)
+	ts.get("/settings").
+		assertContains(`<a class="" href="/settings/browsers">Browsers</a>`).
+		assertNotContains("/settings/extension.zip")
 }
 
 func TestExtensionZip(t *testing.T) {
