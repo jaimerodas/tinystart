@@ -31,6 +31,17 @@ func TestExtensionIsOfferedOnBrowsersOnly(t *testing.T) {
 		assertNotContains("/settings/extension.zip")
 }
 
+// Installing is a sequence, and the download is its first step, so the
+// button is the first item in the numbered list.
+func TestTheDownloadIsTheFirstInstallStep(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings/browsers").
+		assertContains(`<ol class="install-steps">
+      <li><a class="action-button" data-turbo="false" href="/settings/extension.zip">Download the extension</a></li>
+      <li>Unzip the downloaded file.</li>`)
+}
+
 func TestExtensionZip(t *testing.T) {
 	ts, _ := settingsServer(t)
 

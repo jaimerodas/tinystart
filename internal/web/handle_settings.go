@@ -34,7 +34,7 @@ type settingsNavItem struct {
 // because someone who cannot reach the page has no reason to know it is there.
 func settingsNav(user *store.User, path string) []settingsNavItem {
 	items := []settingsNavItem{
-		{Title: "Main", Path: "/settings"},
+		{Title: "General", Path: "/settings"},
 		{Title: "Import & Export", Path: "/settings/import_export"},
 		{Title: "Connections", Path: "/settings/connections"},
 		{Title: "Browsers", Path: "/settings/browsers"},
@@ -43,7 +43,7 @@ func settingsNav(user *store.User, path string) []settingsNavItem {
 		items = append(items, settingsNavItem{Title: "Users", Path: "/settings/admin/users"})
 	}
 
-	// The password form has no link of its own. It is reached from Main.
+	// The password form has no link of its own. It is reached from General.
 	if strings.HasPrefix(path, "/settings/password") {
 		path = "/settings"
 	}

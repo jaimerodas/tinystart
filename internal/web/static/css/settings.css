@@ -26,6 +26,18 @@
   }
 }
 
+/* Installing really is a sequence, so the steps are numbered. The first one
+   is the download button. The rest are spaced to match it, so the four read
+   as one list, and the numbers start at the paragraph's left edge. */
+.install-steps {
+  margin: 1rem 0 0;
+  padding-left: 1.25em;
+
+  li + li {
+    margin-top: 0.5rem;
+  }
+}
+
 .account-facts {
   display: grid;
   grid-template-columns: max-content 1fr;

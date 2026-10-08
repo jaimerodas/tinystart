@@ -337,7 +337,7 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 	ts.signIn(admin.Email)
 
 	for _, page := range []struct{ path, current, heading string }{
-		{"/settings", "/settings", "Settings"},
+		{"/settings", "/settings", "General"},
 		{"/settings/password/edit", "/settings", "Change password"},
 		{"/settings/import_export", "/settings/import_export", "Import &amp; Export"},
 		{"/settings/connections", "/settings/connections", "Connections"},
@@ -355,6 +355,18 @@ func TestSettingsMenuMarksTheCurrentPage(t *testing.T) {
 
 // The action has one name from end to end: the link on General, the
 // heading, the button, and the notice afterwards all say "change password".
+// The first page is General in the menu and in its heading, so the two agree.
+// The browser tab still says Settings, which is where you are.
+func TestTheFirstSettingsPageIsCalledGeneral(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings").
+		assertContains(`<a href="/settings" aria-current="page">General</a>`).
+		assertContains("<h1>General</h1>").
+		assertContains("<title>Settings - TinyStart</title>").
+		assertNotContains(">Main<")
+}
+
 func TestPasswordEdit(t *testing.T) {
 	ts, _ := settingsServer(t)
 

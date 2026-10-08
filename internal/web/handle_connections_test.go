@@ -119,6 +119,17 @@ func TestConnectionsOffersTheFormWhenNeverConnected(t *testing.T) {
 		assertNotContains("connection-status connected")
 }
 
+// The page says what connecting gets you and where you approve it, in the
+// reader's terms. How the token comes back is not the reader's concern.
+func TestConnectionsSaysWhatConnectingDoes(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings/connections").
+		assertContains("Search your tinylinks account from the command bar, next to your tiles.").
+		assertContains("You approve the connection on tinylinks.").
+		assertNotContains("hands back a token")
+}
+
 // The three lines are three tiers: the state, the token's facts, a footnote.
 func TestConnectionsShowsAHealthyConnection(t *testing.T) {
 	ts, user := settingsServer(t)
