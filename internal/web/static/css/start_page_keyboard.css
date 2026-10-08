@@ -110,15 +110,10 @@
 
 /* The region itself is unstyled on purpose: it is on the page from the start
    and empty until a move fails, so all of its box has to come from the message
-   inside it. Anything here would leave a gap above the grid at rest. */
+   inside it. Anything here would leave a gap above the grid at rest. The box
+   is the flash's, in flash.css. */
 .start-page-notice-error {
   margin: 0 0 1em;
-  padding: 0.75em 1em;
-  border: 0.0625rem solid var(--danger-color);
-  border-radius: var(--control-radius);
-  background-color: oklch(from var(--danger-color) l c h / 0.1);
-  color: var(--danger-color);
-  font-size: 0.875em;
 }
 
 /* The drag transforms exist to make a move readable; for anyone who has asked

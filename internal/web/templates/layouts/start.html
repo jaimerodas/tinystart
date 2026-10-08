@@ -17,10 +17,9 @@
   </head>
 
   <body>
-{{range .Flash}}      {{template "flash" .}}
-{{end}}
     <article>
-      {{template "content" .}}
+{{range .Flash}}      {{template "flash" .}}
+{{end}}      {{template "content" .}}
     </article>
   </body>
 </html>

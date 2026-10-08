@@ -4,9 +4,17 @@
 
   min-height: 100vh;
   display: flex;
+  /* A column, so a flash stacks above the form instead of beside it. */
+  flex-direction: column;
 
   align-items: center;
   justify-content: center;
+
+  /* As wide as the form below it. */
+  & > .flash {
+    width: calc(100% - 4rem);
+    max-width: 30rem;
+  }
 
   & > article {
     width: calc(100% - 4em);

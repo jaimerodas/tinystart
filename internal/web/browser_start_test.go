@@ -31,15 +31,13 @@ func TestBrowserSignInThroughTheForm(t *testing.T) {
 	p.fillIn("#password", "the wrong one")
 	p.click(`input[value="Sign in"]`)
 
-	p.assertText(".flash-card", "Try another email address or password")
+	p.assertText(".flash", "Try another email address or password")
 	if got := p.currentPath(); got != "/sign_in" {
 		t.Errorf("path = %q, want to still be on the form", got)
 	}
-	// The flash is a full-screen overlay while it is up, so a second attempt
-	// starts by getting it out of the way. That is the whole of what the
-	// flash controller does.
-	p.dismissFlash()
 
+	// The flash sits in the page, not over it, so the second attempt does not
+	// have to get it out of the way first.
 	p.fillIn("#email", user.Email)
 	p.fillIn("#password", testPassword)
 	p.click(`input[value="Sign in"]`)
@@ -48,6 +46,22 @@ func TestBrowserSignInThroughTheForm(t *testing.T) {
 	if got := p.currentPath(); got != "/" {
 		t.Errorf("path = %q, want /", got)
 	}
+}
+
+// Nothing takes the flash away on a timer: an error that leaves by itself can
+// leave before it is read. Its own button closes it.
+func TestBrowserTheFlashClosesWithItsButton(t *testing.T) {
+	p := newBrowserPage(t)
+	user := p.ts.createApprovedUser("one@example.com")
+
+	p.visit("/sign_in")
+	p.fillIn("#email", user.Email)
+	p.fillIn("#password", "the wrong one")
+	p.click(`input[value="Sign in"]`)
+	p.assertSelector(".flash")
+
+	p.clickOn(".flash", "Dismiss")
+	p.assertNoSelector(".flash")
 }
 
 // Every page, opened in a browser, with nothing thrown. The harness fails a
@@ -516,7 +530,7 @@ func TestBrowserImportAsksBeforeItReplacesThePage(t *testing.T) {
 	p.onConfirm(true)
 	p.clickOn("", "Import")
 
-	p.assertText(".flash-card", "Imported 6 links")
+	p.assertText(".flash", "Imported 6 links")
 	if asked := p.waitForConfirm(1); !strings.Contains(asked[0], "replaces every group and link") {
 		t.Errorf("the confirm asked %q", asked[0])
 	}

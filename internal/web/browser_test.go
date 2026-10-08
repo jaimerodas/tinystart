@@ -425,15 +425,6 @@ func (p *browserPage) waitForConfirm(count int) []string {
 	}
 }
 
-// dismissFlash clicks the flash away. Not decoration: the overlay is
-// position: fixed with inset: 0, so while it is up it is what every click on
-// the page lands on.
-func (p *browserPage) dismissFlash() {
-	p.t.Helper()
-	p.click(".flash-overlay")
-	p.assertNoSelector(".flash-overlay")
-}
-
 // attachFile is Capybara's attach_file: the path goes to the file input over
 // CDP, because a real file picker cannot be driven from the page.
 func (p *browserPage) attachFile(selector, path string) {

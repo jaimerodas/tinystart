@@ -17,8 +17,6 @@
   </head>
 
   <body>
-{{range .Flash}}      {{template "flash" .}}
-{{end}}
 {{if .User}}      <header>
         <nav>
           <a class="main-menu-link" href="/">Start</a>
@@ -26,7 +24,9 @@
         </nav>
       </header>
 {{end}}
-    <article>{{template "content" .}}</article>
+    <article>
+{{range .Flash}}      {{template "flash" .}}
+{{end}}{{template "content" .}}</article>
   </body>
 </html>
 {{end}}

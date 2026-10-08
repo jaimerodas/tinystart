@@ -1,9 +1,7 @@
-{{define "flash"}}<div class="flash-overlay"
-     data-controller="flash"
-     data-action="click->flash#dismiss keydown.esc@window->flash#dismiss">
-  <div class="flash-card {{.Type}}" role="status" aria-live="polite">
-    {{if eq .Type "notice"}}{{icon "approved"}}{{end}}
-    <p>{{.Message}}</p>
-  </div>
+{{/* The flash controller says how a screen reader gets to hear this. */}}
+{{define "flash"}}<div class="flash {{.Type}}" role="status" aria-live="polite" data-controller="flash">
+  {{if eq .Type "notice"}}{{icon "approved"}}{{end}}
+  <p data-flash-target="message">{{.Message}}</p>
+  <button type="button" class="flash-dismiss" aria-label="Dismiss" data-action="flash#dismiss">{{icon "close"}}</button>
 </div>
 {{end}}

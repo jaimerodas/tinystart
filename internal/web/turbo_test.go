@@ -61,7 +61,7 @@ func TestRenderPartial(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rendering the flash partial: %v", err)
 	}
-	if !strings.Contains(string(html), `<div class="flash-card alert"`) {
+	if !strings.Contains(string(html), `<div class="flash alert"`) {
 		t.Errorf("partial = %q", html)
 	}
 

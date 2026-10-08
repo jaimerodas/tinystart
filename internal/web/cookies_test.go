@@ -127,22 +127,25 @@ func TestTheFlashIsShownOnceAndThenGone(t *testing.T) {
 	ts.get("/sign_in").assertNotContains("Try another email address or password.")
 }
 
-// A notice carries the tick, an alert does not. The class on the card carries
-// the difference in color, and the icon carries it in a screenshot without
-// color.
+// A notice carries the tick, an alert does not. The class on the banner
+// carries the difference in color, and the icon carries it in a screenshot
+// without color. Both can be closed.
 func TestNoticeAndAlertRenderDifferently(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("one@example.com")
+	const tick = `viewBox="0 0 20.2832 19.9316"` // approved.svg
 
 	ts.post("/passwords", form("email", "one@example.com"))
 	ts.get("/sign_in").
-		assertContains(`<div class="flash-card notice" role="status" aria-live="polite">`).
-		assertContains(`<svg aria-hidden="true" focusable="false"`)
+		assertContains(`<div class="flash notice" role="status" aria-live="polite" data-controller="flash">`).
+		assertContains(tick).
+		assertContains(`aria-label="Dismiss"`)
 
 	ts.post("/sign_in", form("email", "one@example.com", "password", "wrong"))
 	ts.get("/sign_in").
-		assertContains(`<div class="flash-card alert" role="status" aria-live="polite">`).
-		assertNotContains(`<svg aria-hidden="true" focusable="false"`)
+		assertContains(`<div class="flash alert" role="status" aria-live="polite" data-controller="flash">`).
+		assertNotContains(tick).
+		assertContains(`aria-label="Dismiss"`)
 }
 
 // The same thing end to end. The round trip above makes sure that the

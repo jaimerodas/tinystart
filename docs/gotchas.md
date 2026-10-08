@@ -71,8 +71,6 @@ before you write a new test:
   the drag events with a real `DataTransfer`.
 - `innerText` is what was rendered. The command bar's section headers are
   uppercase in CSS, so a test asserts on `FROM 127.0.0.1`.
-- The flash covers the whole page while it is up. Call `dismissFlash` before
-  the next click.
 - The colour radios are `opacity: 0` behind their swatches. Click the label.
 - Ask about visibility with `checkVisibility({ checkVisibilityCSS: true })`.
   Without the option, `visibility: hidden` counts as visible.

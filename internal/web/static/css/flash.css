@@ -1,119 +1,78 @@
-.flash-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
+/* The flash: what the last request did, at the top of the page it came back
+   to. It sits in the flow, so it covers nothing, and nothing takes it away on
+   a timer — an error that leaves by itself can leave before it is read.
 
+   The editor's refused move is the same kind of message said in place, so it
+   shares the box. Its margin stays its own, in start_page_keyboard.css. */
+:is(.flash, .start-page-notice-error) {
+  padding: 0.75em 1em;
+  border: 0.0625rem solid var(--notice-color);
+  border-radius: var(--control-radius);
+  background-color: oklch(from var(--notice-color) l c h / 0.1);
+  font-size: 0.875em;
+}
+
+.flash {
+  --notice-color: var(--highlight-color);
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  /* The width of the Settings column, in rem because the box's own font is
+     smaller than the column's. */
+  max-width: 48rem;
+  margin: 1.5rem auto 0;
+  /* The close button brings its own room, so the box only adds a little
+     around it. */
+  padding-block: 0.375rem;
+  padding-inline-end: 0.375rem;
+
+  p {
+    flex: 1;
+    margin: 0;
+  }
+
+  /* The tick on a notice. */
+  & > svg {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: var(--highlight-color);
+  }
+}
+
+:is(.flash.alert, .start-page-notice-error) {
+  --notice-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+.flash-dismiss {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(0.5rem);
-  -webkit-backdrop-filter: blur(0.5rem);
-
-  animation: flash-overlay-in 200ms ease-out both;
+  flex: none;
+  width: var(--control-size);
+  height: var(--control-size);
+  padding: 0;
+  border: none;
+  border-radius: var(--control-radius);
+  background: none;
+  color: inherit;
   cursor: pointer;
-}
 
-.flash-overlay.dismissing {
-  animation: flash-overlay-out 200ms ease-in both;
-}
-
-.flash-card {
-  max-width: 32rem;
-  width: 100%;
-
-  padding: 2rem 2.5rem;
-
-  background: var(--bg-notification-color);
-  color: var(--fg-color);
-  border: solid var(--border-color) 0.0625rem;
-  border-radius: 0.75rem;
-  box-shadow:
-    rgba(0, 0, 0, 0.25) 0 1.25rem 2.5rem -0.5rem,
-    rgba(0, 0, 0, 0.15) 0 0.5rem 1rem -0.25rem;
-
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  font-size: 1.125rem;
-  line-height: 1.4;
-
-  animation: flash-card-in 280ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-  cursor: default;
-}
-
-.flash-overlay.dismissing .flash-card {
-  animation: flash-card-out 200ms ease-in both;
-}
-
-.flash-card p {
-  margin: 0;
-  flex: 1;
-}
-
-.flash-card svg {
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-}
-
-.flash-card.notice svg {
-  fill: var(--positive-color);
-}
-
-.flash-card.alert {
-  border-color: var(--danger-color);
-}
-
-.flash-card.alert::before {
-  content: "";
-  width: 0.375rem;
-  align-self: stretch;
-  background: var(--danger-color);
-  border-radius: 0.25rem;
-  flex-shrink: 0;
-}
-
-@keyframes flash-overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes flash-overlay-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes flash-card-in {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(0.5rem);
+  svg {
+    width: 0.625rem;
+    height: 0.625rem;
+    fill: currentColor;
   }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
 
-@keyframes flash-card-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
+  &:hover {
+    background-color: oklch(from var(--notice-color) l c h / 0.15);
   }
-  to {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .flash-overlay,
-  .flash-overlay.dismissing,
-  .flash-card,
-  .flash-overlay.dismissing .flash-card {
-    animation-duration: 1ms;
+  &:focus-visible {
+    outline: 0.125rem solid var(--notice-color);
+    outline-offset: 0.125rem;
   }
 }
