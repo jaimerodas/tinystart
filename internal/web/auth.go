@@ -43,9 +43,10 @@ func sessionFrom(ctx context.Context) *store.Session {
 // place means none of them can forget to.
 //
 // A cookie that does not pass verification, names a session that has expired,
-// or names a user who has since been deleted is simply not signed in. There is
-// nothing to tell the visitor in any of those cases, and the one useful side
-// effect — dropping the dead cookie — happens the next time they sign in.
+// or names a user who has since been deleted or blocked is simply not signed
+// in. There is nothing to tell the visitor in any of those cases, and the one
+// useful side effect — dropping the dead cookie — happens the next time they
+// sign in.
 func (s *Server) resumeSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, user := s.currentSession(r)
@@ -76,7 +77,10 @@ func (s *Server) currentSession(r *http.Request) (*store.Session, *store.User) {
 		return nil, nil
 	}
 	user, err := s.db.UserByID(r.Context(), session.UserID)
-	if err != nil {
+	// The sign-in form checks Approved, and so does this. ToggleApproved
+	// deletes the sessions of a user it blocks. But accounts blocked before
+	// it did that can still have a session.
+	if err != nil || !user.Approved {
 		return nil, nil
 	}
 	return session, user

@@ -263,6 +263,25 @@ func (ts *testServer) sessionCookie() string {
 	return ""
 }
 
+// holdSessionFor gives the client a session for user without the sign-in
+// form, which refuses a blocked user.
+func (ts *testServer) holdSessionFor(user *store.User) {
+	ts.t.Helper()
+	session, err := ts.db.CreateSession(context.Background(), user.ID, "Test Agent", "127.0.0.1", time.Time{})
+	if err != nil {
+		ts.t.Fatalf("creating a session for %s: %v", user.Email, err)
+	}
+	base, err := url.Parse(ts.http.URL)
+	if err != nil {
+		ts.t.Fatalf("parsing the server URL: %v", err)
+	}
+	ts.client.Jar.SetCookies(base, []*http.Cookie{{
+		Name:  sessionCookie,
+		Value: ts.app.signValue(sessionCookie, strconv.FormatInt(session.ID, 10)),
+		Path:  "/",
+	}})
+}
+
 // currentSessionID is the row id inside that cookie. Reading it is also a
 // check on the cookie's shape: the value is the id and a signature over it,
 // both base64url, and nothing else.

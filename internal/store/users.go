@@ -404,6 +404,10 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 // list does. It is a toggle rather than a setter because the button is one
 // button. Reading the current value in the same transaction that writes it
 // keeps two admins who click at once from cancelling each other out.
+//
+// It also deletes the user's sessions, so a block signs them out at once.
+// That is correct in both directions: a blocked user cannot sign in, so an
+// approval has no live sessions to lose.
 func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 	err := db.tx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx,
@@ -412,7 +416,11 @@ func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 		if err != nil {
 			return err
 		}
-		return mustHaveChanged(result)
+		if err := mustHaveChanged(result); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, userID)
+		return err
 	})
 	if err != nil {
 		return nil, err

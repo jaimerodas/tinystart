@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -424,6 +425,38 @@ func TestToggleApproved(t *testing.T) {
 	}
 	if again.Approved {
 		t.Errorf("approved = true after the second toggle")
+	}
+}
+
+// A block signs the user out everywhere. Approval again does not bring the
+// old sessions back. The sessions of other users stay.
+func TestBlockingEndsTheUsersSessions(t *testing.T) {
+	db := newTestDB(t)
+	first := newUser(t, db, "first@example.com")
+	second := newUser(t, db, "second@example.com")
+	if _, err := db.ToggleApproved(t.Context(), second.ID); err != nil {
+		t.Fatalf("approving: %v", err)
+	}
+	theirs, err := db.CreateSession(t.Context(), second.ID, "Test Agent", "127.0.0.1", time.Time{})
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	others, err := db.CreateSession(t.Context(), first.ID, "Test Agent", "127.0.0.1", time.Time{})
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	if _, err := db.ToggleApproved(t.Context(), second.ID); err != nil {
+		t.Fatalf("blocking: %v", err)
+	}
+	if _, err := db.ToggleApproved(t.Context(), second.ID); err != nil {
+		t.Fatalf("approving again: %v", err)
+	}
+
+	_, err = db.ActiveSession(t.Context(), theirs.ID)
+	assertNotFound(t, err)
+	if _, err := db.ActiveSession(t.Context(), others.ID); err != nil {
+		t.Errorf("another user's session: %v", err)
 	}
 }
 

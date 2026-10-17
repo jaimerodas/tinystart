@@ -94,6 +94,22 @@ func TestAnUnapprovedUserCannotSignIn(t *testing.T) {
 	ts.get("/sign_in").assertContains("Try another email address or password.")
 }
 
+// The gate also applies after sign-in. A session does not make a blocked user
+// signed in. Accounts that were blocked before a block ended sessions can
+// still have one.
+func TestABlockedUserIsNotSignedInByTheirSession(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("first@example.com")
+	approved := ts.createApprovedUser("approved@example.com")
+	blocked := ts.createUser("blocked@example.com")
+
+	ts.holdSessionFor(approved)
+	ts.get(ts.protectedPath()).assertStatus(http.StatusOK)
+
+	ts.holdSessionFor(blocked)
+	ts.get(ts.protectedPath()).assertRedirect("/sign_in")
+}
+
 func TestAnApprovedUserCanSignIn(t *testing.T) {
 	ts := newTestServer(t)
 	ts.createUser("first@example.com")
