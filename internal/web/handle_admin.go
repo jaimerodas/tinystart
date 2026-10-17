@@ -8,7 +8,7 @@ import (
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// Settings → Users: the admin list, and the two things an admin can do from
+// Settings → Users: the admin list, and the three things an admin can do from
 // it. Everything here is behind adminOnly, which redirects rather than
 // refusing — someone who is not an admin has no reason to be told the section
 // exists.
@@ -36,6 +36,9 @@ type adminUserView struct {
 	// themselves out of the only account that can unblock anyone.
 	CanToggle   bool
 	ToggleLabel string
+	// CanDelete is what store.DeleteUser accepts: a blocked account that is
+	// not an admin. To delete someone, block them first.
+	CanDelete bool
 }
 
 func newAdminUserView(user store.User, viewer *store.User) adminUserView {
@@ -48,6 +51,7 @@ func newAdminUserView(user store.User, viewer *store.User) adminUserView {
 		CanReset:    user.ID != viewer.ID,
 		CanToggle:   !(user.Approved && user.Admin),
 		ToggleLabel: "Approve",
+		CanDelete:   !user.Approved && !user.Admin,
 	}
 	if user.Approved {
 		view.Status = "approved"
@@ -139,6 +143,29 @@ func (s *Server) handleAdminUserPasswordReset() http.Handler {
 			return
 		}
 		s.redirect(w, r, "/settings/admin/users", flashNotice, "Password reset instructions sent")
+	})
+}
+
+// handleAdminUserDestroy is DELETE /settings/admin/users/{id}. The store
+// refuses everyone the list draws no Delete button for, and that refusal is a
+// 404, the same as an id that addresses nobody. The person gets no mail.
+func (s *Server) handleAdminUserDestroy() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, ok := pathID(r)
+		if !ok {
+			s.notFound(w)
+			return
+		}
+
+		if err := s.db.DeleteUser(r.Context(), id); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				s.notFound(w)
+				return
+			}
+			s.serverError(w, r, err)
+			return
+		}
+		s.redirect(w, r, "/settings/admin/users", flashNotice, "User deleted")
 	})
 }
 

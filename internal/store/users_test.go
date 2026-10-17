@@ -460,6 +460,61 @@ func TestBlockingEndsTheUsersSessions(t *testing.T) {
 	}
 }
 
+// The foreign keys are on, so DeleteUser fails if it leaves a group, a
+// session or a connection. Its success is the proof that they are gone.
+func TestDeleteUserTakesEverythingTheyOwn(t *testing.T) {
+	db := newTestDB(t)
+	keep := newUser(t, db, "first@example.com")
+	gone := newUser(t, db, "second@example.com")
+	for _, user := range []*User{keep, gone} {
+		group := newGroup(t, db, user.ID, "Work", 1)
+		newItem(t, db, user.ID, group.ID, "Mail", "https://mail.example.com")
+		if _, err := db.CreateSession(t.Context(), user.ID, "Test Agent", "127.0.0.1", time.Time{}); err != nil {
+			t.Fatalf("CreateSession: %v", err)
+		}
+		if _, err := db.ReplaceConnection(t.Context(), user.ID, "https://links.example.com", "token", "read", time.Time{}); err != nil {
+			t.Fatalf("ReplaceConnection: %v", err)
+		}
+	}
+
+	if err := db.DeleteUser(t.Context(), gone.ID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+
+	_, err := db.UserByID(t.Context(), gone.ID)
+	assertNotFound(t, err)
+	groups, err := db.GroupsInColumn(t.Context(), keep.ID, 1)
+	if err != nil || len(groups) != 1 {
+		t.Fatalf("the other user's groups = %v, %v; want one", groups, err)
+	}
+	items, err := db.ItemsInGroup(t.Context(), groups[0].ID)
+	if err != nil || len(items) != 1 {
+		t.Errorf("the other user's items = %v, %v; want one", items, err)
+	}
+	if _, err := db.ConnectionForUser(t.Context(), keep.ID); err != nil {
+		t.Errorf("the other user's connection: %v", err)
+	}
+}
+
+// Only a blocked account that is not an admin can go. Anything else answers
+// ErrNotFound, the same as an id that addresses nobody.
+func TestDeleteUserRefusesApprovedUsersAndAdmins(t *testing.T) {
+	db := newTestDB(t)
+	admin := newUser(t, db, "admin@example.com")
+	approved := newUser(t, db, "approved@example.com")
+	if _, err := db.ToggleApproved(t.Context(), approved.ID); err != nil {
+		t.Fatalf("approving: %v", err)
+	}
+
+	for _, user := range []*User{admin, approved} {
+		assertNotFound(t, db.DeleteUser(t.Context(), user.ID))
+		if _, err := db.UserByID(t.Context(), user.ID); err != nil {
+			t.Errorf("%s: %v", user.Email, err)
+		}
+	}
+	assertNotFound(t, db.DeleteUser(t.Context(), 9999))
+}
+
 func TestAnyUsersAndAllUsers(t *testing.T) {
 	db := newTestDB(t)
 

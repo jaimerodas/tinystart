@@ -1,8 +1,10 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -41,6 +43,7 @@ func TestAdminSectionSendsEverybodyElseHome(t *testing.T) {
 	ts.get("/settings/admin/users").assertRedirect("/")
 	ts.post(approvePath(users.waiting.ID), nil).assertRedirect("/")
 	ts.post(resetPath(users.waiting.ID), nil).assertRedirect("/")
+	ts.post(deletePath(users.waiting.ID), deleteForm()).assertRedirect("/")
 
 	if ts.reloadUser(users.waiting).Approved {
 		t.Error("a non-admin's POST approved somebody")
@@ -73,7 +76,8 @@ func TestAdminUsersListsEverybodyNewestFirst(t *testing.T) {
 
 // The toggle is hidden for an approved admin. Otherwise, that admin can
 // block themselves out of the only account that can unblock anyone. The
-// reset button is hidden for your own row.
+// reset button is hidden for your own row. Delete shows only on a blocked
+// account that is not an admin.
 func TestAdminUsersHidesTheActionsThatMakeNoSense(t *testing.T) {
 	ts, users := adminServer(t)
 
@@ -82,7 +86,36 @@ func TestAdminUsersHidesTheActionsThatMakeNoSense(t *testing.T) {
 	resp.assertNotContains(approvePath(users.admin.ID)).
 		assertNotContains(resetPath(users.admin.ID)).
 		assertContains(approvePath(users.waiting.ID)).
-		assertContains(resetPath(users.waiting.ID))
+		assertContains(resetPath(users.waiting.ID)).
+		assertContains(deleteAction(users.waiting.ID)).
+		assertNotContains(deleteAction(users.approved.ID)).
+		assertNotContains(deleteAction(users.admin.ID))
+}
+
+func TestAdminDeletesABlockedUser(t *testing.T) {
+	ts, users := adminServer(t)
+
+	ts.post(deletePath(users.waiting.ID), deleteForm()).assertRedirect("/settings/admin/users")
+
+	ts.get("/settings/admin/users").
+		assertContains("User deleted").
+		assertNotContains(users.waiting.Email)
+	if _, err := ts.db.UserByID(t.Context(), users.waiting.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("UserByID after the delete: %v, want ErrNotFound", err)
+	}
+}
+
+// The list draws no Delete for these rows, and a request made by hand gets
+// the 404 an unknown id gets.
+func TestAdminCannotDeleteAnApprovedUserOrAnAdmin(t *testing.T) {
+	ts, users := adminServer(t)
+
+	ts.post(deletePath(users.approved.ID), deleteForm()).assertStatus(http.StatusNotFound)
+	ts.post(deletePath(users.admin.ID), deleteForm()).assertStatus(http.StatusNotFound)
+
+	// reloadUser fails the test if the account is gone.
+	ts.reloadUser(users.approved)
+	ts.reloadUser(users.admin)
 }
 
 // One button, and the label says which way it goes.
@@ -206,11 +239,28 @@ func TestAdminActionsOnSomebodyWhoIsNotThere(t *testing.T) {
 
 	ts.post(approvePath(9999), nil).assertStatus(http.StatusNotFound)
 	ts.post(resetPath(9999), nil).assertStatus(http.StatusNotFound)
+	ts.post(deletePath(9999), deleteForm()).assertStatus(http.StatusNotFound)
 	ts.post("/settings/admin/users/nobody/approve", nil).assertStatus(http.StatusNotFound)
 }
 
 func approvePath(id int64) string {
 	return fmt.Sprintf("/settings/admin/users/%d/approve", id)
+}
+
+func deletePath(id int64) string {
+	return fmt.Sprintf("/settings/admin/users/%d", id)
+}
+
+// deleteAction is the form's attribute. The bare path is a prefix of the
+// other two actions on the same row.
+func deleteAction(id int64) string {
+	return `action="` + deletePath(id) + `"`
+}
+
+// deleteForm is what the button's form sends: a POST that the method
+// override makes a DELETE.
+func deleteForm() url.Values {
+	return form("_method", "delete")
 }
 
 func resetPath(id int64) string {

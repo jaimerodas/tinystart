@@ -17,7 +17,8 @@
 {{if .CanReset}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/password_reset"><button type="submit">Reset password</button></form>
 {{else}}    
 {{end}}{{if .CanToggle}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/approve"><button type="submit">{{.ToggleLabel}}</button></form>
-{{else}}    
+{{else}}
+{{end}}{{if .CanDelete}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}"><input type="hidden" name="_method" value="delete" /><button class="danger" data-turbo-confirm="Delete {{.Email}} and their start page? You cannot undo this." type="submit">Delete</button></form>
 {{end}}  </div>
 </li>
 {{end}}

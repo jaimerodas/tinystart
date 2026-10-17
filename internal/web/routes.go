@@ -148,6 +148,8 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 		s.requireAuthentication(s.adminOnly(s.handleAdminUserApprove())))
 	mux.Handle("POST /settings/admin/users/{id}/password_reset",
 		s.requireAuthentication(s.adminOnly(s.handleAdminUserPasswordReset())))
+	mux.Handle("DELETE /settings/admin/users/{id}",
+		s.requireAuthentication(s.adminOnly(s.handleAdminUserDestroy())))
 
 	// Anything else, GET /start included.
 	mux.Handle("/", s.handleNotFound())

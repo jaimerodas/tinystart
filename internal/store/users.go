@@ -400,9 +400,8 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 		string(digest), railsTime(utcNow()), userID)
 }
 
-// ToggleApproved flips the approval switch, which is the one thing the admin
-// list does. It is a toggle rather than a setter because the button is one
-// button. Reading the current value in the same transaction that writes it
+// ToggleApproved flips the approval switch. It is a toggle rather than a
+// setter because the button is one button. Reading the current value in the same transaction that writes it
 // keeps two admins who click at once from cancelling each other out.
 //
 // It also deletes the user's sessions, so a block signs them out at once.
@@ -426,6 +425,40 @@ func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 		return nil, err
 	}
 	return db.UserByID(ctx, userID)
+}
+
+// DeleteUser deletes a blocked account and everything it owns. It refuses an
+// approved user or an admin with ErrNotFound. Thus a request made by hand
+// cannot do what the admin list does not offer, and an admin is never removed.
+//
+// The foreign keys are on and have no ON DELETE CASCADE, so the order is the
+// order `dependent: :destroy` used: the tiles before their groups, and every
+// child before the user.
+func (db *DB) DeleteUser(ctx context.Context, userID int64) error {
+	return db.tx(ctx, func(tx *sql.Tx) error {
+		deletable, err := exists(ctx, tx,
+			`SELECT 1 FROM users WHERE id = ? AND NOT approved AND NOT admin`, userID)
+		if err != nil {
+			return err
+		}
+		if !deletable {
+			return ErrNotFound
+		}
+
+		for _, query := range []string{
+			`DELETE FROM start_page_items WHERE start_page_group_id IN
+			 (SELECT id FROM start_page_groups WHERE user_id = ?)`,
+			`DELETE FROM start_page_groups WHERE user_id = ?`,
+			`DELETE FROM sessions WHERE user_id = ?`,
+			`DELETE FROM connections WHERE user_id = ?`,
+			`DELETE FROM users WHERE id = ?`,
+		} {
+			if _, err := tx.ExecContext(ctx, query, userID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // passwordErrors is has_secure_password's own two validations.

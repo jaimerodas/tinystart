@@ -8,6 +8,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -563,9 +564,11 @@ func TestBrowserEveryAccentKeepsTextReadable(t *testing.T) {
 	// The main page saves as it changes, so it has no button to measure.
 	p.visit("/settings/browsers")
 	failures = append(failures, p.contrastFailures(".action-button")...)
-	// The small status words beside each account.
+	// The small status words beside each account, and the red Delete that a
+	// blocked account gets.
+	p.ts.createUser("blocked@example.com")
 	p.visit("/settings/admin/users")
-	failures = append(failures, p.contrastFailures(".user-status", ".user-admin")...)
+	failures = append(failures, p.contrastFailures(".user-status", ".user-admin", ".item-actions button.danger")...)
 
 	// The start page puts the accent on the group names, and tints the
 	// background behind the tiles.
@@ -726,4 +729,25 @@ func TestBrowserTheExportLinkOptsOutOfTurbo(t *testing.T) {
 
 	p.visit("/settings/import_export")
 	p.assertSelector(`a[href="/settings/export"][data-turbo="false"]`)
+}
+
+// === THE ADMIN LIST ===
+
+// The handler test sends the DELETE itself. The client half is left: the
+// confirm, and the hidden _method that makes Turbo's POST a DELETE.
+func TestBrowserAdminDeletesABlockedAccount(t *testing.T) {
+	p, _ := startPageBrowser(t)
+	blocked := p.ts.createUser("blocked@example.com")
+
+	p.visit("/settings/admin/users")
+	p.onConfirm(true)
+	p.clickOn("", "Delete")
+
+	p.assertText(".flash", "User deleted")
+	if asked := p.waitForConfirm(1); !strings.Contains(asked[0], "blocked@example.com") {
+		t.Errorf("the confirm asked %q", asked[0])
+	}
+	if _, err := p.ts.db.UserByID(t.Context(), blocked.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("UserByID after the delete: %v, want ErrNotFound", err)
+	}
 }
