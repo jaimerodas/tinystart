@@ -402,6 +402,33 @@ func TestResetPassword(t *testing.T) {
 	}
 }
 
+// Someone resets a password when they lose it, or when they think that
+// somebody else has it. So a reset signs them out everywhere. The sessions of
+// other users stay.
+func TestResetPasswordEndsTheUsersSessions(t *testing.T) {
+	db := newTestDB(t)
+	first := newUser(t, db, "first@example.com")
+	second := newUser(t, db, "second@example.com")
+	theirs, err := db.CreateSession(t.Context(), second.ID, "Test Agent", "127.0.0.1", time.Time{})
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	others, err := db.CreateSession(t.Context(), first.ID, "Test Agent", "127.0.0.1", time.Time{})
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	if err := db.ResetPassword(t.Context(), second.ID, "newpassword"); err != nil {
+		t.Fatalf("ResetPassword: %v", err)
+	}
+
+	_, err = db.ActiveSession(t.Context(), theirs.ID)
+	assertNotFound(t, err)
+	if _, err := db.ActiveSession(t.Context(), others.ID); err != nil {
+		t.Errorf("another user's session: %v", err)
+	}
+}
+
 func TestToggleApproved(t *testing.T) {
 	db := newTestDB(t)
 	newUser(t, db, "first@example.com")

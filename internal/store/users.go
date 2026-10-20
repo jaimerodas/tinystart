@@ -387,6 +387,10 @@ func (db *DB) UpdatePassword(ctx context.Context, userID int64, existingPassword
 // PasswordsController#update was a plain save, so only has_secure_password's
 // own validations ran there — the same asymmetry, kept rather than tidied.
 // Tidying it refuses a password the deployed app accepts.
+//
+// It also deletes the user's sessions. Someone resets a password when they
+// lose it, or when they think somebody else has it. In the second case,
+// every browser that is signed in can be the other person's.
 func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword string) error {
 	if fields := passwordErrors(newPassword); len(fields) > 0 {
 		return invalid(fields...)
@@ -396,8 +400,19 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 	if err != nil {
 		return err
 	}
-	return db.update(ctx, `UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
-		string(digest), railsTime(utcNow()), userID)
+	return db.tx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx,
+			`UPDATE users SET password_digest = ?, updated_at = ? WHERE id = ?`,
+			string(digest), railsTime(utcNow()), userID)
+		if err != nil {
+			return err
+		}
+		if err := mustHaveChanged(result); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, userID)
+		return err
+	})
 }
 
 // ToggleApproved flips the approval switch. It is a toggle rather than a
