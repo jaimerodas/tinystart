@@ -105,6 +105,18 @@ func TestAdminDeletesABlockedUser(t *testing.T) {
 	}
 }
 
+// The same refusal as Delete: a request made by hand cannot block an approved
+// admin, and that includes you.
+func TestAdminCannotBlockAnApprovedAdmin(t *testing.T) {
+	ts, users := adminServer(t)
+
+	ts.post(approvePath(users.admin.ID), nil).assertStatus(http.StatusNotFound)
+
+	if !ts.reloadUser(users.admin).Approved {
+		t.Error("the admin was blocked")
+	}
+}
+
 // The list draws no Delete for these rows, and a request made by hand gets
 // the 404 an unknown id gets.
 func TestAdminCannotDeleteAnApprovedUserOrAnAdmin(t *testing.T) {

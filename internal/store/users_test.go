@@ -428,6 +428,22 @@ func TestToggleApproved(t *testing.T) {
 	}
 }
 
+// The admin list draws no toggle for an approved admin, and the store refuses
+// one too. A request made by hand then cannot block the only account that can
+// unblock anyone.
+func TestToggleApprovedRefusesAnApprovedAdmin(t *testing.T) {
+	db := newTestDB(t)
+	admin := newUser(t, db, "admin@example.com")
+
+	_, err := db.ToggleApproved(t.Context(), admin.ID)
+	assertNotFound(t, err)
+
+	reloaded, err := db.UserByID(t.Context(), admin.ID)
+	if err != nil || !reloaded.Approved {
+		t.Errorf("the admin after the refusal = %+v, %v; want still approved", reloaded, err)
+	}
+}
+
 // A block signs the user out everywhere. Approval again does not bring the
 // old sessions back. The sessions of other users stay.
 func TestBlockingEndsTheUsersSessions(t *testing.T) {

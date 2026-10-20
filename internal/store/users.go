@@ -407,10 +407,15 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 // It also deletes the user's sessions, so a block signs them out at once.
 // That is correct in both directions: a blocked user cannot sign in, so an
 // approval has no live sessions to lose.
+//
+// It refuses an approved admin with ErrNotFound, as DeleteUser refuses what
+// it cannot delete. The admin list draws no toggle for that row. A request
+// made by hand must not lock out the only account that can unblock anyone.
 func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 	err := db.tx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx,
-			`UPDATE users SET approved = NOT approved, updated_at = ? WHERE id = ?`,
+			`UPDATE users SET approved = NOT approved, updated_at = ?
+			 WHERE id = ? AND NOT (approved AND admin)`,
 			railsTime(utcNow()), userID)
 		if err != nil {
 			return err

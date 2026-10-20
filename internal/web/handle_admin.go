@@ -32,8 +32,8 @@ type adminUserView struct {
 	// from the admin list is not a thing anybody meant to do. The password
 	// page is one click away.
 	CanReset bool
-	// CanToggle is false for an approved admin, so they cannot block
-	// themselves out of the only account that can unblock anyone.
+	// CanToggle is what store.ToggleApproved accepts: anyone but an approved
+	// admin, who must not block the only account that can unblock anyone.
 	CanToggle   bool
 	ToggleLabel string
 	// CanDelete is what store.DeleteUser accepts: a blocked account that is
