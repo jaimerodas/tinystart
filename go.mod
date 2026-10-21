@@ -5,7 +5,7 @@ go 1.27.0
 // Pinned to a patch release, not just 1.27, because govulncheck in
 // script/test reports every standard library CVE the toolchain is behind on.
 // Bumping this line is how those get fixed.
-toolchain go1.27.2
+toolchain go1.27.3
 
 // Development tools, pinned here so `go run` uses a known version and nothing
 // has to be installed globally. Neither one is linked into the binary.
