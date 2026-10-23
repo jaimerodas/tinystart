@@ -23,7 +23,7 @@ require (
 	// Test-only. chromedp drives the browser suite in
 	// internal/web/browser_*_test.go, which is behind //go:build browser. The
 	// app does not import it, so the binary does not link it.
-	github.com/chromedp/cdproto v0.158.0
+	github.com/chromedp/cdproto v0.158.3
 	github.com/chromedp/chromedp v0.21.0
 	// The maintained continuation of gopkg.in/yaml.v3. It reads and writes the
 	// start page interchange format.
