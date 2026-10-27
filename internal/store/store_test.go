@@ -37,13 +37,26 @@ func newTestDB(t *testing.T) *DB {
 	return db
 }
 
-// newUser signs someone up with a three-column grid, which is what the Rails
+// newUser makes someone with a three-column grid, which is what the Rails
 // fixtures gave users(:one) and users(:two). The group and tile tests need
 // somewhere to move things to.
+//
+// The first user signs up and is the admin. Everyone after that accepts an
+// invitation and is then blocked, which is the state the tests were written
+// against: before invitations, a second sign-up waited unapproved.
 func newUser(t *testing.T, db *DB, email string) *User {
 	t.Helper()
 
 	user, err := db.CreateUser(t.Context(), email, "password123")
+	if errors.Is(err, ErrConflict) {
+		user, err = db.InviteUser(t.Context(), email)
+		if err == nil {
+			user, err = db.AcceptInvitation(t.Context(), user.ID, "password123")
+		}
+		if err == nil {
+			user, err = db.ToggleApproved(t.Context(), user.ID)
+		}
+	}
 	if err != nil {
 		t.Fatalf("creating %s: %v", email, err)
 	}

@@ -4,14 +4,13 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/jaimerodas/tinystart/internal/postmark"
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// Settings → Users: the admin list, and the three things an admin can do from
-// it. Everything here is behind adminOnly, which redirects rather than
-// refusing — someone who is not an admin has no reason to be told the section
-// exists.
+// Settings → Users: the admin list, the invitation form, and what an admin can
+// do to each row. Everything here is behind adminOnly, which redirects rather
+// than refusing — someone who is not an admin has no reason to be told the
+// section exists.
 
 // adminUsersData is the list.
 type adminUsersData struct {
@@ -30,14 +29,18 @@ type adminUserView struct {
 	StatusLabel string
 	// CanReset is false for your own row. Sending yourself reset instructions
 	// from the admin list is not a thing anybody meant to do. The password
-	// page is one click away.
-	CanReset bool
+	// page is one click away. For an invitation, the same button sends the
+	// invitation again, and ResetLabel says so.
+	CanReset   bool
+	ResetLabel string
 	// CanToggle is what store.ToggleApproved accepts: anyone but an approved
-	// admin, who must not block the only account that can unblock anyone.
+	// admin, who must not block the only account that can unblock anyone,
+	// and an invitation, which accepting approves.
 	CanToggle   bool
 	ToggleLabel string
-	// CanDelete is what store.DeleteUser accepts: a blocked account that is
-	// not an admin. To delete someone, block them first.
+	// CanDelete is what store.DeleteUser accepts: an account that is not
+	// approved and not an admin. To delete someone, block them first. To take
+	// an invitation back, delete it.
 	CanDelete bool
 }
 
@@ -49,11 +52,17 @@ func newAdminUserView(user store.User, viewer *store.User) adminUserView {
 		Status:      "blocked",
 		StatusLabel: "Blocked",
 		CanReset:    user.ID != viewer.ID,
-		CanToggle:   !(user.Approved && user.Admin),
-		ToggleLabel: "Approve",
+		ResetLabel:  "Reset password",
+		CanToggle:   !(user.Approved && user.Admin) && !user.Invited(),
+		ToggleLabel: "Unblock",
 		CanDelete:   !user.Approved && !user.Admin,
 	}
-	if user.Approved {
+	switch {
+	case user.Invited():
+		view.Status = "invited"
+		view.StatusLabel = "Invited"
+		view.ResetLabel = "Resend invitation"
+	case user.Approved:
 		view.Status = "approved"
 		view.StatusLabel = "Approved"
 		view.ToggleLabel = "Block"
@@ -81,11 +90,14 @@ func (s *Server) handleAdminUsers() http.Handler {
 	})
 }
 
-// handleAdminUserApprove is POST /settings/admin/users/{id}/approve.
+// handleAdminUserApprove is POST /settings/admin/users/{id}/approve: block or
+// unblock.
 //
 // A toggle rather than two actions, because it is one button. The label says
 // which way it will go. The store reads and writes the flag in one
 // transaction, so two admins clicking at once cannot cancel each other out.
+// Neither way sends mail. People arrive through an invitation, so unblocking
+// someone is not a welcome.
 func (s *Server) handleAdminUserApprove() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := pathID(r)
@@ -94,8 +106,7 @@ func (s *Server) handleAdminUserApprove() http.Handler {
 			return
 		}
 
-		user, err := s.db.ToggleApproved(r.Context(), id)
-		if err != nil {
+		if _, err := s.db.ToggleApproved(r.Context(), id); err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				s.notFound(w)
 				return
@@ -103,20 +114,41 @@ func (s *Server) handleAdminUserApprove() http.Handler {
 			s.serverError(w, r, err)
 			return
 		}
-		// The toggle already landed, so a mail failure here is logged and
-		// swallowed rather than shown — it would misreport the toggle itself.
-		if user.Approved {
-			if err := s.sendAccountApproved(r, user); err != nil {
-				s.log.ErrorContext(r.Context(), "sending account-approved mail", "error", err, "user_id", user.ID)
-			}
-		}
 		s.redirect(w, r, "/settings/admin/users", "", "")
+	})
+}
+
+// handleAdminUserInvite is POST /settings/admin/users: add the address as an
+// open invitation, and mail it the link.
+func (s *Server) handleAdminUserInvite() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := s.db.InviteUser(r.Context(), r.PostFormValue("email"))
+		var invalid store.ValidationError
+		if errors.As(err, &invalid) {
+			s.redirect(w, r, "/settings/admin/users", flashAlert, invalid.Error())
+			return
+		}
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+
+		// The invitation is saved, so a 500 would misreport it. The admin is
+		// told instead, and the row has the button that sends it again.
+		if err := s.sendInvitation(r, user); err != nil {
+			s.log.ErrorContext(r.Context(), "sending invitation", "error", err, "user_id", user.ID)
+			s.redirect(w, r, "/settings/admin/users", flashAlert,
+				"The invitation to "+user.Email+" did not send. Try Resend invitation.")
+			return
+		}
+		s.redirect(w, r, "/settings/admin/users", flashNotice, "Invitation sent to "+user.Email)
 	})
 }
 
 // handleAdminUserPasswordReset is POST
 // /settings/admin/users/{id}/password_reset: the same mail the forgotten-
 // password form sends, for the case where somebody asks an admin instead.
+// For an open invitation, that mail is the invitation again.
 func (s *Server) handleAdminUserPasswordReset() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := pathID(r)
@@ -142,7 +174,11 @@ func (s *Server) handleAdminUserPasswordReset() http.Handler {
 			s.serverError(w, r, err)
 			return
 		}
-		s.redirect(w, r, "/settings/admin/users", flashNotice, "Password reset instructions sent")
+		notice := "Password reset instructions sent"
+		if user.Invited() {
+			notice = "Invitation sent to " + user.Email
+		}
+		s.redirect(w, r, "/settings/admin/users", flashNotice, notice)
 	})
 }
 
@@ -166,28 +202,5 @@ func (s *Server) handleAdminUserDestroy() http.Handler {
 			return
 		}
 		s.redirect(w, r, "/settings/admin/users", flashNotice, "User deleted")
-	})
-}
-
-// sendAccountApproved tells a user their account is approved and links back
-// to the app. Shaped like sendPasswordReset: both bodies, one send.
-func (s *Server) sendAccountApproved(r *http.Request, user *store.User) error {
-	data := struct{ URL string }{s.baseURL(r) + "/"}
-	html, err := s.renderMail("account_approved.html", data)
-	if err != nil {
-		return err
-	}
-	text, err := s.renderMail("account_approved.txt", data)
-	if err != nil {
-		return err
-	}
-
-	return s.mailer.Send(r.Context(), postmark.Message{
-		From:          s.cfg.MailFrom,
-		To:            user.Email,
-		Subject:       "Your TinyStart account is approved",
-		TextBody:      text,
-		HTMLBody:      html,
-		MessageStream: postmark.StreamOutbound,
 	})
 }

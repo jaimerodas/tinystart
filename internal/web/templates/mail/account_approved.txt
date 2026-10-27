@@ -1,7 +1,0 @@
-{{define "account_approved.txt"}}An admin approved your TinyStart account. You can now sign in and set up your start page:
-{{.URL}}
-
---
-You received this email because this address was used to sign up for TinyStart at {{.URL}}
-
-{{end}}

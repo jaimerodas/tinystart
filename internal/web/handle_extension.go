@@ -9,10 +9,13 @@ import (
 	"strings"
 )
 
-// handleBrowsers is GET /settings/browsers. The page has no data.
+// handleBrowsers is GET /settings/browsers. Its only data is the app's
+// address, which the Safari steps tell the reader to type in as the
+// homepage.
 func (s *Server) handleBrowsers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsBrowsers, nil)
+		s.render(w, r, http.StatusOK, layoutApplication, pageSettingsBrowsers,
+			struct{ URL string }{s.baseURL(r) + "/"})
 	})
 }
 

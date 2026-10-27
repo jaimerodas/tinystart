@@ -103,10 +103,11 @@ func TestBrowserEveryPageLoadsWithoutAScriptError(t *testing.T) {
 func TestBrowserThePagesForVisitorsLoadWithoutAScriptError(t *testing.T) {
 	p := newBrowserPage(t)
 	p.ts.createApprovedUser("one@example.com")
+	invited := p.ts.inviteUser("new@example.com")
 
 	for _, each := range []struct{ path, marker string }{
 		{"/sign_in", "#login form"},
-		{"/sign_up", "form"},
+		{"/invitations/" + p.ts.app.invitationToken(invited), "form"},
 		{"/passwords/new", "form"},
 		{"/", ".demo-cta"},
 	} {

@@ -106,14 +106,15 @@ func TestSignInIsRateLimited(t *testing.T) {
 func TestSignUpIsRateLimited(t *testing.T) {
 	ts := newTestServer(t)
 
-	for i := range signUpLimit {
-		ts.post("/sign_up", form(
-			"user[email]", string(rune('a'+i))+"@example.com",
-			"user[password]", "password",
-		)).assertStatus(http.StatusSeeOther)
+	// Refused sign-ups, so the install stays empty and the form stays open.
+	for range signUpLimit {
+		ts.post("/sign_up", form("user[email]", "", "user[password]", "")).
+			assertStatus(http.StatusUnprocessableEntity)
 	}
 
+	// /sign_in sends an empty install on to /sign_up, so the alert shows
+	// there.
 	ts.post("/sign_up", form("user[email]", "z@example.com", "user[password]", "password")).
 		assertRedirect("/sign_in")
-	ts.get("/sign_in").assertContains("Try again later.")
+	ts.get("/sign_up").assertContains("Try again later.")
 }

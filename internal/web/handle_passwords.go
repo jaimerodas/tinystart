@@ -110,23 +110,34 @@ func (s *Server) handlePasswordUpdate() http.Handler {
 // mailer. This sends both, as ActionMailer did: the text part is what a
 // client that will not render HTML shows, and a mail with only an HTML part
 // scores badly with every spam filter there is.
+//
+// An open invitation has no password to reset, so it gets the invitation
+// again. Its link may have run out, and an expired link sends people to the
+// forgot-password form.
 func (s *Server) sendPasswordReset(r *http.Request, user *store.User) error {
+	if user.Invited() {
+		return s.sendInvitation(r, user)
+	}
 	url := s.baseURL(r) + "/passwords/" + s.passwordResetToken(user) + "/edit"
+	return s.sendMail(r, user.Email, "Reset your password", "password_reset", struct{ URL string }{url})
+}
 
-	data := struct{ URL string }{url}
-	html, err := s.renderMail("password_reset.html", data)
+// sendMail renders the HTML and the text body of the mail template name, and
+// sends both in one message.
+func (s *Server) sendMail(r *http.Request, to, subject, name string, data any) error {
+	html, err := s.renderMail(name+".html", data)
 	if err != nil {
 		return err
 	}
-	text, err := s.renderMail("password_reset.txt", data)
+	text, err := s.renderMail(name+".txt", data)
 	if err != nil {
 		return err
 	}
 
 	return s.mailer.Send(r.Context(), postmark.Message{
 		From:          s.cfg.MailFrom,
-		To:            user.Email,
-		Subject:       "Reset your password",
+		To:            to,
+		Subject:       subject,
 		TextBody:      text,
 		HTMLBody:      html,
 		MessageStream: postmark.StreamOutbound,

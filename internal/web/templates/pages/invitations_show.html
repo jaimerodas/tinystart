@@ -1,0 +1,11 @@
+{{define "content"}}<article>
+  <h1>Welcome to TinyStart</h1>
+
+  <form action="/invitations/{{.Data.Token}}" accept-charset="UTF-8" method="post">
+    <input readonly="readonly" autocomplete="username" value="{{.Data.Email}}" type="email" name="email" id="email" /><br>
+    <input required="required" autofocus="autofocus" autocomplete="new-password" placeholder="Choose a password" maxlength="72" size="72" type="password" name="password" id="password" /><br>
+    <input required="required" autocomplete="new-password" placeholder="Repeat the password" maxlength="72" size="72" type="password" name="password_confirmation" id="password_confirmation" /><br>
+    <input type="submit" name="commit" value="Set password" data-disable-with="Set password" />
+  </form>
+</article>
+{{end}}

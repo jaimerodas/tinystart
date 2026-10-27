@@ -1,0 +1,9 @@
+{{define "invitation_accepted.txt"}}{{.Email}} accepted your invitation and chose a password. They can sign in to TinyStart now.
+
+Users:
+{{.URL}}
+
+--
+You received this email because you are an admin of TinyStart at {{.Base}}
+
+{{end}}

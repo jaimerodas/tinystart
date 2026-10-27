@@ -42,6 +42,17 @@ func TestTheDownloadIsTheFirstInstallStep(t *testing.T) {
       <li>Unzip the downloaded file.</li>`)
 }
 
+// Safari can open a homepage in each new window and tab with no extension.
+// The steps name this app's own address, the one to paste in.
+func TestBrowsersExplainsTheSafariHomepage(t *testing.T) {
+	ts, _ := settingsServer(t)
+
+	ts.get("/settings/browsers").
+		assertContains(`<section id="safari-homepage" class="user-section">`).
+		assertContains(`<li>Set Homepage to <code>https://start.example.com/</code>.</li>`).
+		assertContains(`<li>Set both "New windows open with" and "New tabs open with" to Homepage.</li>`)
+}
+
 func TestExtensionZip(t *testing.T) {
 	ts, _ := settingsServer(t)
 

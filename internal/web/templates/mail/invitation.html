@@ -1,0 +1,15 @@
+{{define "invitation.html"}}<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+
+  <body>
+    <p>An admin invited you to TinyStart, a start page for your browser. Choose a password to make your account:</p>
+    <p><a href="{{.URL}}">Choose a password</a></p>
+    <p>The link works for 7 days. If it expires, click "Forgot password?" on the sign-in page and we send you a new one.</p>
+    <hr>
+    <p style="font-size: 12px; color: #666666;">You received this email because an admin of TinyStart at <a href="{{.Base}}">{{.Base}}</a> invited this address.</p>
+  </body>
+</html>
+{{end}}

@@ -2,6 +2,15 @@
 <main>
   <h1>Users</h1>
 
+  <section class="user-section" id="invite">
+    <h2>Invite someone</h2>
+    <form class="invite-form" action="/settings/admin/users" method="post">
+      <input required="required" aria-label="Email address" placeholder="Email address" type="email" name="email" id="invite_email" />
+      <button type="submit" class="action-button">Invite</button>
+    </form>
+    <p class="help-text">They get an email with a link to choose a password. The link works for 7 days.</p>
+  </section>
+
   <ul id="users-list" class="item-list">
 {{range .Data.Users}}      {{template "admin_user" .}}
 {{end}}  </ul>

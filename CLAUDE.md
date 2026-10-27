@@ -49,7 +49,8 @@ blocker, not a note.
 | Connections (OAuth device flow) | `handle_connections.go`, `tinylinks.DeviceFlow`, `/settings/connections` |
 | Import & export | `internal/startpage`, `store.ReplaceStartPage`, `handle_import_export.go` |
 | Chrome new-tab extension | `static/chrome/`, `handle_extension.go`, download from `/settings/browsers` |
-| Auth, password reset | `auth.go`, `handle_sessions.go`, `handle_users.go`, `handle_passwords.go`, `passwordreset.go` |
+| Auth, password reset | `auth.go`, `handle_sessions.go`, `handle_users.go` (sign-up, first user only), `handle_passwords.go`, `passwordreset.go` (signed tokens) |
+| Invitations | admin invites on `/settings/admin/users` (`handle_admin.go`), the link is `handle_invitations.go`; an open invitation is a user with an empty `password_digest` |
 | Backups | `bin/backup_db`, installed by `.kamal/hooks/post-deploy`, weekly |
 
 ## Invariants
@@ -65,8 +66,8 @@ explained at the place it lives. This is the list, not the reasoning.
   gets structs and typed errors. `DB` keeps its `*sql.DB` unexported on
   purpose.
 - **There is no start page record.** `columns` is a column on `users` and
-  groups belong to the user. A start page exists from signup, so there is no
-  "no start page yet" branch anywhere.
+  groups belong to the user. A start page exists as soon as the user row
+  does, so there is no "no start page yet" branch anywhere.
 - **The start page is served at `/` and nowhere else.** `/start` survives as
   the `PATCH` target for the column count and as the prefix every group and
   item route hangs off. A `GET` there is a 404 on purpose (a test pins it).

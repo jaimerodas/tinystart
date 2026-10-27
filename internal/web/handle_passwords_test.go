@@ -76,6 +76,26 @@ func TestPasswordCreateWithAnUnknownEmailSendsNothingAndSaysTheSame(t *testing.T
 	ts.get("/sign_in").assertContains(resetSentNotice)
 }
 
+// An open invitation has no password to reset. Its link may have run out,
+// and this form is where an expired link sends people, so it sends a fresh
+// invitation. The notice is the same, so the form still says nothing about
+// who has an account.
+func TestPasswordCreateForAnOpenInvitationSendsTheInvitationAgain(t *testing.T) {
+	ts := newTestServer(t)
+	ts.createUser("admin@example.com")
+	ts.inviteUser("new@example.com")
+
+	ts.post("/passwords", url.Values{"email": {"new@example.com"}}).
+		assertRedirect("/sign_in")
+
+	sent := ts.mail.messages()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d messages, want 1", len(sent))
+	}
+	assertInvitationMail(t, sent[0], "new@example.com")
+	ts.get("/sign_in").assertContains(resetSentNotice)
+}
+
 // A mailer that is down must not change the answer either — a 500 here says
 // "that address exists" as loudly as a different notice does.
 func TestPasswordCreateSaysTheSameWhenTheMailerFails(t *testing.T) {

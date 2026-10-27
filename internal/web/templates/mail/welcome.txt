@@ -1,0 +1,9 @@
+{{define "welcome.txt"}}Welcome to TinyStart. Your account is ready.
+
+To open TinyStart in each new window and tab, follow the steps for Safari or Chrome on this page:
+{{.URL}}
+
+--
+You received this email because you made a TinyStart account at {{.Base}}
+
+{{end}}

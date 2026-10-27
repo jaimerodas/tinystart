@@ -1,0 +1,9 @@
+{{define "invitation.txt"}}An admin invited you to TinyStart, a start page for your browser. Choose a password to make your account:
+{{.URL}}
+
+The link works for 7 days. If it expires, click "Forgot password?" on the sign-in page and we send you a new one.
+
+--
+You received this email because an admin of TinyStart at {{.Base}} invited this address.
+
+{{end}}

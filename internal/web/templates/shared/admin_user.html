@@ -14,7 +14,7 @@
   </div>
 
   <div class="item-actions">
-{{if .CanReset}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/password_reset"><button type="submit">Reset password</button></form>
+{{if .CanReset}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/password_reset"><button type="submit">{{.ResetLabel}}</button></form>
 {{else}}    
 {{end}}{{if .CanToggle}}    <form class="button_to" method="post" action="/settings/admin/users/{{.ID}}/approve"><button type="submit">{{.ToggleLabel}}</button></form>
 {{else}}

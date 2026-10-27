@@ -57,10 +57,16 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 		http.Redirect(w, r, target, http.StatusMovedPermanently)
 	}))
 
-	// Sign up. Both actions turn a signed-in visitor away — there is nothing
-	// on this page for someone who already has an account.
+	// Sign up makes the first user, the admin. Once anyone exists, both
+	// actions are a 404: everyone else gets in by invitation.
 	mux.Handle("GET /sign_up", s.handleUserNew())
 	mux.Handle("POST /sign_up", s.rateLimited(s.signUp, s.handleUserCreate()))
+
+	// Accepting an invitation, by the link in the mail. Open, like the
+	// password reset: the person following it has no account to sign in to
+	// yet.
+	mux.Handle("GET /invitations/{token}", s.handleInvitationShow())
+	mux.Handle("POST /invitations/{token}", s.handleInvitationAccept())
 
 	// Password reset. Every action is open: the whole point is to be usable by
 	// someone who cannot sign in. PUT and PATCH are the same handler because
@@ -144,6 +150,8 @@ func addRoutes(mux *http.ServeMux, s *Server) {
 	// The admin section, which is the only place adminOnly is used.
 	mux.Handle("GET /settings/admin/users",
 		s.requireAuthentication(s.adminOnly(s.handleAdminUsers())))
+	mux.Handle("POST /settings/admin/users",
+		s.requireAuthentication(s.adminOnly(s.handleAdminUserInvite())))
 	mux.Handle("POST /settings/admin/users/{id}/approve",
 		s.requireAuthentication(s.adminOnly(s.handleAdminUserApprove())))
 	mux.Handle("POST /settings/admin/users/{id}/password_reset",

@@ -183,6 +183,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, layo
 // handler. A page with no entry gets the bare "TinyStart".
 var pageTitles = map[string]string{
 	"users_new":              "New user",
+	"invitations_show":       "Welcome to TinyStart",
 	"passwords_new":          "Forgot your password?",
 	pageSettingsShow:         "Settings",
 	pageSettingsPasswordEdit: "Change password",

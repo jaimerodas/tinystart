@@ -1,7 +1,30 @@
 /* Approved is how an account normally is, so it stays quiet. Colour is for the
-   exceptions: a blocked account, and the admin. */
+   exceptions: a blocked account, an invitation nobody has accepted yet, and the
+   admin. */
 #users-list {
   .user-status.approved { color: var(--mid-color) }
   .user-status.blocked { color: var(--danger-color) }
+  .user-status.invited { color: var(--highlight-color) }
   .user-admin { color: var(--highlight-color) }
+}
+
+/* One row: the address takes the space and the button what it needs. The
+   field is as tall as the button, so the two read as one control. */
+#invite {
+  .invite-form {
+    display: flex;
+    gap: 0.5em;
+    max-width: 32rem;
+
+    input[type=email] {
+      flex: 1;
+      height: var(--button-height);
+    }
+  }
+
+  .help-text {
+    margin: 0.5em 0 0;
+    font-size: 0.875em;
+    color: var(--mid-color);
+  }
 }

@@ -204,32 +204,49 @@ func (ts *testServer) do(req *http.Request) *response {
 	return &response{t: ts.t, Response: resp, body: string(body)}
 }
 
-// createUser signs someone up straight through the store, which is what a
+// createUser makes an account straight through the store, which is what a
 // fixture was. The point of most of these tests is what happens after there
-// is an account, not the signing up.
+// is an account, not how it got there.
+//
+// The first user is the admin. Everyone after that is blocked, which is the
+// state these tests were written against: before invitations, a second
+// sign-up waited unapproved.
 func (ts *testServer) createUser(email string) *store.User {
 	ts.t.Helper()
+	user := ts.createApprovedUser(email)
+	if user.Admin {
+		return user
+	}
+	blocked, err := ts.db.ToggleApproved(context.Background(), user.ID)
+	if err != nil {
+		ts.t.Fatalf("blocking %s: %v", email, err)
+	}
+	return blocked
+}
+
+// createApprovedUser makes an account that can sign in: the admin's sign-up
+// for the first user, an accepted invitation for everyone after.
+func (ts *testServer) createApprovedUser(email string) *store.User {
+	ts.t.Helper()
 	user, err := ts.db.CreateUser(context.Background(), email, testPassword)
+	if errors.Is(err, store.ErrConflict) {
+		user = ts.inviteUser(email)
+		user, err = ts.db.AcceptInvitation(context.Background(), user.ID, testPassword)
+	}
 	if err != nil {
 		ts.t.Fatalf("creating %s: %v", email, err)
 	}
 	return user
 }
 
-// createApprovedUser is createUser plus the admin's approval, for everyone
-// after the first. They are approved on the way in, because there is
-// nobody to approve them.
-func (ts *testServer) createApprovedUser(email string) *store.User {
+// inviteUser makes an open invitation, as if an admin had sent it.
+func (ts *testServer) inviteUser(email string) *store.User {
 	ts.t.Helper()
-	user := ts.createUser(email)
-	if user.Approved {
-		return user
-	}
-	approved, err := ts.db.ToggleApproved(context.Background(), user.ID)
+	user, err := ts.db.InviteUser(context.Background(), email)
 	if err != nil {
-		ts.t.Fatalf("approving %s: %v", email, err)
+		ts.t.Fatalf("inviting %s: %v", email, err)
 	}
-	return approved
+	return user
 }
 
 // protectedPath is the test-only page behind the authentication wall, and

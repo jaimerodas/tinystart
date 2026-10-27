@@ -52,7 +52,8 @@ Templates live in `internal/web/templates/`.
 | `pages/settings_connections` | `/settings/connections` |
 | `pages/settings_browsers` | `/settings/browsers` |
 | `pages/settings_users`, `shared/admin_user` | `/settings/admin/users` |
-| `pages/sessions_new`, `users_new`, `passwords_*` | `/sign_in`, `/sign_up`, `/passwords/…` |
+| `pages/sessions_new`, `users_new`, `passwords_*` | `/sign_in`, `/sign_up` (empty install only), `/passwords/…` |
+| `pages/invitations_show` | `/invitations/{token}` |
 
 Every Settings page shares one menu, drawn by `layouts/application` from
 `settingsNav` in `handle_settings.go`. It is a single `<details>`: a sidebar

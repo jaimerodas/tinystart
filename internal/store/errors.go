@@ -12,10 +12,11 @@ var (
 	// package needs database/sql to read an error.
 	ErrNotFound = errors.New("store: not found")
 
-	// ErrConflict means a unique index refused a write and there is no form
-	// field to hang the message on — a second connection for the same user,
-	// say. Everything a person typed comes back as a ValidationError instead,
-	// carrying "has already been taken" the way Rails did.
+	// ErrConflict means the data already there refuses a write and there is
+	// no form field to hang the message on — a second connection for the
+	// same user, say, or a sign-up once the install has a user. Everything a
+	// person typed comes back as a ValidationError instead, carrying "has
+	// already been taken" the way Rails did.
 	ErrConflict = errors.New("store: conflict")
 )
 

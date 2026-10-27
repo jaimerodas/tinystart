@@ -60,16 +60,6 @@ func TestCreateUserValidations(t *testing.T) {
 	}
 }
 
-func TestCreateUserRefusesADuplicateEmail(t *testing.T) {
-	db := newTestDB(t)
-	newUser(t, db, "test@example.com")
-
-	for _, email := range []string{"test@example.com", "TEST@EXAMPLE.COM", "  test@example.com "} {
-		_, err := db.CreateUser(t.Context(), email, "password123")
-		assertInvalid(t, err, "Email has already been taken")
-	}
-}
-
 // There is nobody to approve the first account, and an install with no way in
 // is not an install.
 func TestCreateUserBootstrapsTheFirstUser(t *testing.T) {
@@ -82,13 +72,152 @@ func TestCreateUserBootstrapsTheFirstUser(t *testing.T) {
 	if !first.Approved || !first.Admin {
 		t.Errorf("first user approved=%v admin=%v, want both true", first.Approved, first.Admin)
 	}
+}
 
-	second, err := db.CreateUser(t.Context(), "second@example.com", "password123")
-	if err != nil {
-		t.Fatalf("CreateUser: %v", err)
+// After the first user, people get in by invitation only. The refusal comes
+// before validation, so a closed sign-up says the same thing whatever was
+// typed.
+func TestCreateUserRefusesOnceAnyoneExists(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "first@example.com")
+
+	for _, email := range []string{"second@example.com", "first@example.com", ""} {
+		if _, err := db.CreateUser(t.Context(), email, "password123"); !errors.Is(err, ErrConflict) {
+			t.Errorf("CreateUser(%q) = %v, want ErrConflict", email, err)
+		}
 	}
-	if second.Approved || second.Admin {
-		t.Errorf("second user approved=%v admin=%v, want both false", second.Approved, second.Admin)
+	if _, err := db.UserByEmail(t.Context(), "second@example.com"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("UserByEmail after the refusal = %v, want ErrNotFound", err)
+	}
+}
+
+// An invited user has a row but no password yet. Nothing can sign in as them
+// until they accept, not even an empty password.
+func TestInviteUser(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "admin@example.com")
+
+	invited, err := db.InviteUser(t.Context(), "  New@Example.com ")
+	if err != nil {
+		t.Fatalf("InviteUser: %v", err)
+	}
+	if invited.Email != "new@example.com" {
+		t.Errorf("email = %q, want new@example.com", invited.Email)
+	}
+	if invited.Approved || invited.Admin || !invited.Invited() {
+		t.Errorf("invited user approved=%v admin=%v invited=%v, want false, false, true",
+			invited.Approved, invited.Admin, invited.Invited())
+	}
+
+	stored, err := db.UserByID(t.Context(), invited.ID)
+	if err != nil {
+		t.Fatalf("UserByID: %v", err)
+	}
+	if !stored.Invited() || stored.Columns != 1 || stored.ColorPreference != "teal" {
+		t.Errorf("stored = %+v, want an invited user with the defaults", stored)
+	}
+
+	// The refusal takes a full bcrypt hash at cost 12, like any other wrong
+	// password. bcrypt refuses an empty digest in microseconds, and that
+	// difference tells a stopwatch who has an open invitation. A lower bound
+	// only, so a slow machine cannot make this fail.
+	start := time.Now()
+	_, err = db.Authenticate(t.Context(), "new@example.com", "")
+	assertNotFound(t, err)
+	if elapsed := time.Since(start); elapsed < 50*time.Millisecond {
+		t.Errorf("refusing an invited user took %v, want the time of a cost-12 hash", elapsed)
+	}
+}
+
+func TestInviteUserValidations(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "taken@example.com")
+
+	for _, test := range []struct {
+		email string
+		want  string
+	}{
+		{"", "Email can't be blank"},
+		{"   ", "Email can't be blank"},
+		{"taken@example.com", "Email has already been taken"},
+		{" TAKEN@example.com", "Email has already been taken"},
+	} {
+		_, err := db.InviteUser(t.Context(), test.email)
+		assertInvalid(t, err, test.want)
+	}
+}
+
+// Accepting sets the password and approves the account in one write.
+func TestAcceptInvitation(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "admin@example.com")
+	invited, err := db.InviteUser(t.Context(), "new@example.com")
+	if err != nil {
+		t.Fatalf("InviteUser: %v", err)
+	}
+
+	accepted, err := db.AcceptInvitation(t.Context(), invited.ID, "newpassword")
+	if err != nil {
+		t.Fatalf("AcceptInvitation: %v", err)
+	}
+	if !accepted.Approved || accepted.Invited() || accepted.Admin {
+		t.Errorf("accepted approved=%v invited=%v admin=%v, want true, false, false",
+			accepted.Approved, accepted.Invited(), accepted.Admin)
+	}
+	if _, err := db.Authenticate(t.Context(), "new@example.com", "newpassword"); err != nil {
+		t.Errorf("the new password does not work: %v", err)
+	}
+}
+
+// A refused password leaves the invitation open, so the same link still works.
+func TestAcceptInvitationValidatesThePassword(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "admin@example.com")
+	invited, err := db.InviteUser(t.Context(), "new@example.com")
+	if err != nil {
+		t.Fatalf("InviteUser: %v", err)
+	}
+
+	_, err = db.AcceptInvitation(t.Context(), invited.ID, "")
+	assertInvalid(t, err, "Password can't be blank")
+
+	stored, err := db.UserByID(t.Context(), invited.ID)
+	if err != nil || !stored.Invited() || stored.Approved {
+		t.Errorf("after the refusal = %+v, %v; want still invited", stored, err)
+	}
+}
+
+// Only an open invitation can be accepted. A second accept finds nothing, and
+// a blocked user, who has a password, can never use this to unblock
+// themselves.
+func TestAcceptInvitationRefusesAnyoneWithAPassword(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "admin@example.com")
+	blocked := newUser(t, db, "blocked@example.com")
+	invited, err := db.InviteUser(t.Context(), "new@example.com")
+	if err != nil {
+		t.Fatalf("InviteUser: %v", err)
+	}
+	if _, err := db.AcceptInvitation(t.Context(), invited.ID, "first"); err != nil {
+		t.Fatalf("AcceptInvitation: %v", err)
+	}
+
+	_, err = db.AcceptInvitation(t.Context(), invited.ID, "second")
+	assertNotFound(t, err)
+	_, err = db.AcceptInvitation(t.Context(), blocked.ID, "letmein")
+	assertNotFound(t, err)
+	_, err = db.AcceptInvitation(t.Context(), 9999, "letmein")
+	assertNotFound(t, err)
+
+	if _, err := db.Authenticate(t.Context(), "new@example.com", "first"); err != nil {
+		t.Errorf("the first password stopped working: %v", err)
+	}
+	stored, err := db.UserByID(t.Context(), blocked.ID)
+	if err != nil || stored.Approved {
+		t.Errorf("blocked user after the refusal = %+v, %v; want still blocked", stored, err)
+	}
+	if _, err := db.Authenticate(t.Context(), "blocked@example.com", "letmein"); err == nil {
+		t.Error("the refused accept changed the blocked user's password")
 	}
 }
 
@@ -469,6 +598,20 @@ func TestToggleApprovedRefusesAnApprovedAdmin(t *testing.T) {
 	if err != nil || !reloaded.Approved {
 		t.Errorf("the admin after the refusal = %+v, %v; want still approved", reloaded, err)
 	}
+}
+
+// Unblocking an open invitation makes an approved account with no password.
+// The admin list draws no toggle for it, and the store refuses one too.
+func TestToggleApprovedRefusesAnInvitedUser(t *testing.T) {
+	db := newTestDB(t)
+	newUser(t, db, "admin@example.com")
+	invited, err := db.InviteUser(t.Context(), "new@example.com")
+	if err != nil {
+		t.Fatalf("InviteUser: %v", err)
+	}
+
+	_, err = db.ToggleApproved(t.Context(), invited.ID)
+	assertNotFound(t, err)
 }
 
 // A block signs the user out everywhere. Approval again does not bring the

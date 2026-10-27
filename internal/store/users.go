@@ -84,36 +84,44 @@ const maxPasswordLength = 72
 const userColumns = `id, email, password_digest, admin, approved,
 	theme_preference, color_preference, search_engine, font_preference, "columns", created_at, updated_at`
 
-// CreateUser signs someone up. It strips and downcases the email first, so
-// "  Me@Example.COM " and "me@example.com" are the same account, and
-// CreateUser refuses the second one.
+// Invited reports whether the user has an invitation they have not accepted
+// yet. An invited user has no password until they accept. An empty digest
+// is how the row says so, so no column has to be added to the Rails schema.
+func (u User) Invited() bool {
+	return u.PasswordDigest == ""
+}
+
+// CreateUser signs up the first user of an installation, who is an approved
+// admin. There is nobody else to approve them, and an install with no way in
+// is not an install. It strips and downcases the email first, so
+// "  Me@Example.COM " and "me@example.com" are the same account.
 //
-// CreateUser makes the very first user of an installation an approved admin.
-// There is nobody else to approve them, and an install with no way in is not
-// an install. Everyone after that arrives unapproved and waits.
+// After the first user, people get in by invitation only, and CreateUser
+// refuses with ErrConflict.
 func (db *DB) CreateUser(ctx context.Context, email, password string) (*User, error) {
 	email = normalizeEmail(email)
 
 	var user *User
 	err := db.tx(ctx, func(tx *sql.Tx) error {
+		// The check and the insert are one transaction. If they are not, two
+		// people who sign up at the same moment both see an empty table.
+		any, err := exists(ctx, tx, `SELECT 1 FROM users`)
+		if err != nil {
+			return err
+		}
+		if any {
+			return ErrConflict
+		}
+
 		// This validates fields in the same order app/models/user.rb declares
 		// the validations. The page joins the messages with ", " and prints
 		// them in that order.
 		fields := passwordErrors(password)
-
-		if email == "" {
-			fields = append(fields, FieldError{"email", msgBlank})
-		} else {
-			taken, err := exists(ctx, tx, `SELECT 1 FROM users WHERE email = ?`, email)
-			if err != nil {
-				return err
-			}
-			if taken {
-				fields = append(fields, FieldError{"email", msgTaken})
-			}
+		emailFields, err := emailErrors(ctx, tx, email)
+		if err != nil {
+			return err
 		}
-
-		if err := invalid(fields...); err != nil {
+		if err := invalid(append(fields, emailFields...)...); err != nil {
 			return err
 		}
 
@@ -121,51 +129,111 @@ func (db *DB) CreateUser(ctx context.Context, email, password string) (*User, er
 		if err != nil {
 			return err
 		}
-
-		// "Is this the first user" and the insert have to be one transaction.
-		// If they are not, two people signing up at the same moment both see
-		// an empty table, and both become admins.
-		any, err := exists(ctx, tx, `SELECT 1 FROM users`)
-		if err != nil {
-			return err
-		}
-		first := !any
-
-		now := utcNow()
-		result, err := tx.ExecContext(ctx,
-			`INSERT INTO users (email, password_digest, admin, approved,
-				theme_preference, color_preference, "columns", created_at, updated_at)
-			 VALUES (?, ?, ?, ?, 'system', 'teal', 1, ?, ?)`,
-			email, string(digest), railsBool(first), railsBool(first),
-			railsTime(now), railsTime(now))
-		if err != nil {
-			return err
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			return err
-		}
-
-		user = &User{
-			ID:              id,
-			Email:           email,
-			PasswordDigest:  string(digest),
-			Admin:           first,
-			Approved:        first,
-			ThemePreference: "system",
-			ColorPreference: "teal",
-			SearchEngine:    "duckduckgo",
-			FontPreference:  "geist",
-			Columns:         1,
-			CreatedAt:       now,
-			UpdatedAt:       now,
-		}
-		return nil
+		user, err = insertUser(ctx, tx, email, string(digest), true)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
+}
+
+// InviteUser adds a user that an admin invited. The user is not approved and
+// has no password until they accept with AcceptInvitation.
+func (db *DB) InviteUser(ctx context.Context, email string) (*User, error) {
+	email = normalizeEmail(email)
+
+	var user *User
+	err := db.tx(ctx, func(tx *sql.Tx) error {
+		fields, err := emailErrors(ctx, tx, email)
+		if err != nil {
+			return err
+		}
+		if err := invalid(fields...); err != nil {
+			return err
+		}
+		user, err = insertUser(ctx, tx, email, "", false)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// AcceptInvitation sets the password of an invited user and approves them.
+// The admin already decided when they sent the invitation.
+//
+// The write matches only a user with no password. Thus a blocked user, who
+// has a password, cannot use this to unblock themselves, and a second accept
+// of the same invitation finds nothing. Both get ErrNotFound.
+func (db *DB) AcceptInvitation(ctx context.Context, userID int64, password string) (*User, error) {
+	if fields := passwordErrors(password); len(fields) > 0 {
+		return nil, invalid(fields...)
+	}
+
+	digest, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return nil, err
+	}
+	err = db.update(ctx,
+		`UPDATE users SET password_digest = ?, approved = 1, updated_at = ?
+		 WHERE id = ? AND password_digest = ''`,
+		string(digest), railsTime(utcNow()), userID)
+	if err != nil {
+		return nil, err
+	}
+	return db.UserByID(ctx, userID)
+}
+
+// emailErrors is the email half of the validations: present, and not
+// somebody else's.
+func emailErrors(ctx context.Context, tx *sql.Tx, email string) ([]FieldError, error) {
+	if email == "" {
+		return []FieldError{{"email", msgBlank}}, nil
+	}
+	taken, err := exists(ctx, tx, `SELECT 1 FROM users WHERE email = ?`, email)
+	if err != nil {
+		return nil, err
+	}
+	if taken {
+		return []FieldError{{"email", msgTaken}}, nil
+	}
+	return nil, nil
+}
+
+// insertUser writes a new row with the defaults a new account starts with.
+// The first user is an approved admin. Everyone else starts unapproved.
+func insertUser(ctx context.Context, tx *sql.Tx, email, digest string, admin bool) (*User, error) {
+	now := utcNow()
+	result, err := tx.ExecContext(ctx,
+		`INSERT INTO users (email, password_digest, admin, approved,
+			theme_preference, color_preference, "columns", created_at, updated_at)
+		 VALUES (?, ?, ?, ?, 'system', 'teal', 1, ?, ?)`,
+		email, digest, railsBool(admin), railsBool(admin),
+		railsTime(now), railsTime(now))
+	if err != nil {
+		return nil, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		ID:              id,
+		Email:           email,
+		PasswordDigest:  digest,
+		Admin:           admin,
+		Approved:        admin,
+		ThemePreference: "system",
+		ColorPreference: "teal",
+		SearchEngine:    "duckduckgo",
+		FontPreference:  "geist",
+		Columns:         1,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}, nil
 }
 
 // Authenticate returns the user when the password matches. It returns
@@ -186,6 +254,12 @@ func (db *DB) Authenticate(ctx context.Context, email, password string) (*User, 
 	}
 	if err != nil {
 		return nil, err
+	}
+	// bcrypt rejects an empty digest at once. Without the dummy hash, the
+	// fast answer tells a stopwatch which addresses have an open invitation.
+	if user.Invited() {
+		bcrypt.CompareHashAndPassword([]byte(dummyDigest), []byte(password))
+		return nil, ErrNotFound
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordDigest), []byte(password)) != nil {
@@ -426,11 +500,13 @@ func (db *DB) ResetPassword(ctx context.Context, userID int64, newPassword strin
 // It refuses an approved admin with ErrNotFound, as DeleteUser refuses what
 // it cannot delete. The admin list draws no toggle for that row. A request
 // made by hand must not lock out the only account that can unblock anyone.
+// It refuses an open invitation too: approving one gives an account with no
+// password. AcceptInvitation approves it instead.
 func (db *DB) ToggleApproved(ctx context.Context, userID int64) (*User, error) {
 	err := db.tx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx,
 			`UPDATE users SET approved = NOT approved, updated_at = ?
-			 WHERE id = ? AND NOT (approved AND admin)`,
+			 WHERE id = ? AND NOT (approved AND admin) AND password_digest <> ''`,
 			railsTime(utcNow()), userID)
 		if err != nil {
 			return err

@@ -3,15 +3,13 @@ package web
 import (
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/jaimerodas/tinystart/internal/store"
 )
 
-// test/controllers/users_controller_test.rb, ported, plus the two copy rules
-// the sessions test held. The sign-up page offers a way back to sign-in only
-// once there is somebody to sign in as.
+// test/controllers/users_controller_test.rb, ported. Sign-up only exists on
+// an empty install, where it makes the admin. Everyone after that is invited.
 
 func TestSignUpPageRenders(t *testing.T) {
 	ts := newTestServer(t)
@@ -20,69 +18,45 @@ func TestSignUpPageRenders(t *testing.T) {
 		assertStatus(http.StatusOK).
 		assertContains(`<form action="/sign_up"`).
 		assertContains(`name="user[email]"`).
-		assertContains(`name="user[password]"`)
+		assertContains(`name="user[password]"`).
+		assertNotContains("Already registered?")
 }
 
-func TestSignUpPageOffersNoSignInLinkWhenThereAreNoUsers(t *testing.T) {
-	ts := newTestServer(t)
-
-	ts.get("/sign_up").assertNotContains("Already registered?")
-}
-
-func TestSignUpPageOffersASignInLinkOnceAUserExists(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("one@example.com")
-
-	ts.get("/sign_up").
-		assertContains("Already registered?").
-		// data-turbo="false" for the same reason as the demo page's sign-in
-		// link: password managers miss a form that a Turbo visit swaps in.
-		assertContains(`<a data-turbo="false" href="/sign_in">Log in</a>`)
-}
-
-func TestSignUpCreatesAUser(t *testing.T) {
+func TestSignUpCreatesTheAdminAndSignsThemIn(t *testing.T) {
 	ts := newTestServer(t)
 
 	ts.post("/sign_up", url.Values{
-		"user[email]":    {"useremail@email.com"},
+		"user[email]":    {"first@example.com"},
 		"user[password]": {"password"},
 	}).assertRedirect("/")
 
-	if _, err := ts.db.UserByEmail(t.Context(), "useremail@email.com"); err != nil {
-		t.Errorf("the user was not created: %v", err)
+	first := mustUser(t, ts, "first@example.com")
+	if !first.Admin || !first.Approved {
+		t.Errorf("first user: admin=%v approved=%v, want both true", first.Admin, first.Approved)
 	}
-	ts.get("/sign_up").assertContains("User was successfully created.")
+	ts.get("/").assertContains("User was successfully created.")
+	ts.get(ts.protectedPath()).assertStatus(http.StatusOK)
 }
 
-// A new account is not signed in. Everyone after the first waits for an admin,
-// so there is nothing to sign in to.
-func TestSignUpDoesNotSignTheNewUserIn(t *testing.T) {
+// Once anyone exists, the page and the form are gone: a 404 like any other
+// URL the app does not have, signed in or not, and nothing is created.
+func TestSignUpIsGoneOnceAUserExists(t *testing.T) {
 	ts := newTestServer(t)
+	ts.createUser("first@example.com")
 
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"useremail@email.com"},
+	signUp := url.Values{
+		"user[email]":    {"second@example.com"},
 		"user[password]": {"password"},
-	})
-
-	if ts.sessionCookie() != "" {
-		t.Error("signing up left a session cookie")
 	}
-}
+	ts.get("/sign_up").assertStatus(http.StatusNotFound)
+	ts.post("/sign_up", signUp).assertStatus(http.StatusNotFound)
+	ts.signIn("first@example.com")
+	ts.get("/sign_up").assertStatus(http.StatusNotFound)
+	ts.post("/sign_up", signUp).assertStatus(http.StatusNotFound)
 
-func TestSignUpWithADuplicateEmailIsRefused(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("one@example.com")
-
-	resp := ts.post("/sign_up", url.Values{
-		"user[email]":    {"one@example.com"},
-		"user[password]": {"password"},
-	})
-
-	resp.assertStatus(http.StatusUnprocessableEntity).
-		assertContains("1 error prohibited this user from being saved:").
-		assertContains("<li>Email has already been taken</li>").
-		// The address is put back in the field, and the field is marked.
-		assertContains(`<div class="field_with_errors"><input type="text" value="one@example.com" name="user[email]" id="user_email" /></div>`)
+	if _, err := ts.db.UserByEmail(t.Context(), "second@example.com"); err == nil {
+		t.Error("a sign-up after the first user created an account")
+	}
 }
 
 // Two rejected attributes make two list items and the plural, which is
@@ -98,30 +72,9 @@ func TestSignUpListsEveryError(t *testing.T) {
 	resp.assertStatus(http.StatusUnprocessableEntity).
 		assertContains("2 errors prohibited this user from being saved:").
 		assertContains("<li>Email can&#39;t be blank</li>").
-		assertContains("<li>Password can&#39;t be blank</li>")
-}
-
-func TestSignUpRedirectsASignedInVisitorAway(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("one@example.com")
-	ts.signIn("one@example.com")
-
-	ts.get("/sign_up").assertRedirect("/")
-}
-
-func TestSignUpRefusesASignedInVisitorWithoutCreatingAUser(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("one@example.com")
-	ts.signIn("one@example.com")
-
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"another@email.com"},
-		"user[password]": {"password"},
-	}).assertRedirect("/")
-
-	if _, err := ts.db.UserByEmail(t.Context(), "another@email.com"); err == nil {
-		t.Error("a signed-in visitor created a second account")
-	}
+		assertContains("<li>Password can&#39;t be blank</li>").
+		// The field is marked, so the reader sees which box is wrong.
+		assertContains(`<div class="field_with_errors"><input type="text" name="user[email]" id="user_email" /></div>`)
 }
 
 // params.expect(user: […]) refuses a body with no user key at all rather than
@@ -133,80 +86,9 @@ func TestSignUpWithNoUserParametersIsABadRequest(t *testing.T) {
 		assertStatus(http.StatusBadRequest)
 }
 
-// The first person to sign up runs the installation, so they are approved
-// and an admin. Everyone after them waits. The rule lives in the store, and
-// this pins that the handler does not undo it.
-func TestTheFirstUserToSignUpIsAnApprovedAdmin(t *testing.T) {
-	ts := newTestServer(t)
-
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"first@example.com"},
-		"user[password]": {"password"},
-	})
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"second@example.com"},
-		"user[password]": {"password"},
-	})
-
-	first := mustUser(t, ts, "first@example.com")
-	second := mustUser(t, ts, "second@example.com")
-
-	if !first.Admin || !first.Approved {
-		t.Errorf("first user: admin=%v approved=%v, want both true", first.Admin, first.Approved)
-	}
-	if second.Admin || second.Approved {
-		t.Errorf("second user: admin=%v approved=%v, want both false", second.Admin, second.Approved)
-	}
-}
-
-// Everyone after the first waits for an admin, and the mail is how they find
-// out there is a wait at all.
-func TestSignUpSendsAwaitingApprovalMail(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("first@example.com") // the bootstrap admin
-
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"second@example.com"},
-		"user[password]": {"password"},
-	}).assertRedirect("/")
-
-	sent := ts.mail.messages()
-	if len(sent) != 1 {
-		t.Fatalf("sent %d messages, want 1", len(sent))
-	}
-	if sent[0].To != "second@example.com" {
-		t.Errorf("To = %q, want %q", sent[0].To, "second@example.com")
-	}
-	if sent[0].From != ts.app.cfg.MailFrom {
-		t.Errorf("From = %q, want %q", sent[0].From, ts.app.cfg.MailFrom)
-	}
-	if sent[0].Subject != "Your TinyStart account is waiting for approval" {
-		t.Errorf("Subject = %q, want %q", sent[0].Subject, "Your TinyStart account is waiting for approval")
-	}
-	if sent[0].TextBody == "" {
-		t.Error("TextBody is empty")
-	}
-	if sent[0].HTMLBody == "" {
-		t.Error("HTMLBody is empty")
-	}
-	if !strings.Contains(sent[0].TextBody, "An admin must approve it first.") {
-		t.Errorf("TextBody = %q, want the approval sentence", sent[0].TextBody)
-	}
-	// The footer says who sent the mail and why, in both bodies. A mail that
-	// never names its sender is what a spam filter is trained on.
-	for _, body := range []string{sent[0].TextBody, sent[0].HTMLBody} {
-		if !strings.Contains(body, "https://start.example.com/") {
-			t.Errorf("body = %q, want the site's absolute URL", body)
-		}
-	}
-	if sent[0].MessageStream != "outbound" {
-		t.Errorf("MessageStream = %q, want %q", sent[0].MessageStream, "outbound")
-	}
-}
-
-// The first signup bootstraps the install as an approved admin. Nobody has
-// to approve them, so nothing gets mailed.
-func TestTheFirstUserToSignUpSendsNoMail(t *testing.T) {
+// The admin is approved on the way in, so there is no wait to mail them
+// about.
+func TestSignUpSendsNoMail(t *testing.T) {
 	ts := newTestServer(t)
 
 	ts.post("/sign_up", url.Values{
@@ -216,40 +98,6 @@ func TestTheFirstUserToSignUpSendsNoMail(t *testing.T) {
 
 	if sent := ts.mail.messages(); len(sent) != 0 {
 		t.Errorf("sent %d messages for the bootstrap admin, want 0", len(sent))
-	}
-}
-
-// A signup that fails validation never reaches the database, so there is
-// nobody to mail.
-func TestSignUpWithInvalidDataSendsNoMail(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("first@example.com")
-
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {""},
-		"user[password]": {""},
-	}).assertStatus(http.StatusUnprocessableEntity)
-
-	if sent := ts.mail.messages(); len(sent) != 0 {
-		t.Errorf("sent %d messages for an invalid signup, want 0", len(sent))
-	}
-}
-
-// A mailer that is down does not stop the account from being created — the
-// person still signed up, and an admin still needs to see them waiting.
-func TestSignUpRedirectsEvenWhenTheMailerFails(t *testing.T) {
-	ts := newTestServer(t)
-	ts.createUser("first@example.com")
-	ts.mail.failWith = errMailerDown
-
-	ts.post("/sign_up", url.Values{
-		"user[email]":    {"second@example.com"},
-		"user[password]": {"password"},
-	}).assertRedirect("/")
-
-	ts.get("/sign_up").assertContains("User was successfully created.")
-	if _, err := ts.db.UserByEmail(t.Context(), "second@example.com"); err != nil {
-		t.Errorf("the user was not created: %v", err)
 	}
 }
 
