@@ -27,7 +27,7 @@ require (
 	github.com/chromedp/chromedp v0.21.0
 	// The maintained continuation of gopkg.in/yaml.v3. It reads and writes the
 	// start page interchange format.
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	// For bcrypt, which verifies the $2a$ digests that Rails wrote, unchanged.
 	golang.org/x/crypto v0.58.0
 	// The pure-Go SQLite. It is why the image can be a static binary with no
