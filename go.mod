@@ -32,7 +32,7 @@ require (
 	golang.org/x/crypto v0.58.0
 	// The pure-Go SQLite. It is why the image can be a static binary with no
 	// libc.
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.62.0
 )
 
 // The dependencies of the modules above and of the two tools. To find which
@@ -53,7 +53,7 @@ require (
 	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/vuln v1.9.0 // indirect
 	honnef.co/go/tools v0.8.2 // indirect
-	modernc.org/libc v1.79.0 // indirect
+	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
