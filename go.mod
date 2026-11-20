@@ -29,7 +29,7 @@ require (
 	// start page interchange format.
 	go.yaml.in/yaml/v3 v3.0.5
 	// For bcrypt, which verifies the $2a$ digests that Rails wrote, unchanged.
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	// The pure-Go SQLite. It is why the image can be a static binary with no
 	// libc.
 	modernc.org/sqlite v1.61.0
@@ -48,7 +48,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20261007192929-f45ad48fbe92 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/vuln v1.9.0 // indirect
