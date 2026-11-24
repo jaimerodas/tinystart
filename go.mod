@@ -5,7 +5,7 @@ go 1.27.0
 // Pinned to a patch release, not just 1.27, because govulncheck in
 // script/test reports every standard library CVE the toolchain is behind on.
 // Bumping this line is how those get fixed.
-toolchain go1.27.3
+toolchain go1.27.4
 
 // Development tools, pinned here so `go run` uses a known version and nothing
 // has to be installed globally. Neither one is linked into the binary.
@@ -23,16 +23,16 @@ require (
 	// Test-only. chromedp drives the browser suite in
 	// internal/web/browser_*_test.go, which is behind //go:build browser. The
 	// app does not import it, so the binary does not link it.
-	github.com/chromedp/cdproto v0.158.6
-	github.com/chromedp/chromedp v0.21.0
+	github.com/chromedp/cdproto v0.160.8
+	github.com/chromedp/chromedp v0.24.0
 	// The maintained continuation of gopkg.in/yaml.v3. It reads and writes the
 	// start page interchange format.
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	// For bcrypt, which verifies the $2a$ digests that Rails wrote, unchanged.
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	// The pure-Go SQLite. It is why the image can be a static binary with no
 	// libc.
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.63.0
 )
 
 // The dependencies of the modules above and of the two tools. To find which
@@ -40,20 +40,20 @@ require (
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
-	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3 // indirect
+	github.com/go-json-experiment/json v1.27.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/exp/typeparams v0.0.0-20261007192929-f45ad48fbe92 // indirect
-	golang.org/x/mod v0.42.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e // indirect
-	golang.org/x/tools v0.52.0 // indirect
-	golang.org/x/vuln v1.9.0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20261124000051-d6646c509b6d // indirect
+	golang.org/x/mod v0.43.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261119160235-508b12de1089 // indirect
+	golang.org/x/tools v0.53.0 // indirect
+	golang.org/x/vuln v1.10.0 // indirect
 	honnef.co/go/tools v0.8.2 // indirect
-	modernc.org/libc v1.79.0 // indirect
+	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
